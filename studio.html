@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Publisher Studio | Publications Hub — Rotaract South Asia MDIO</title>
+  <meta name="description" content="Sign in to manage your Rotaract South Asia publications, upload editions, and invite your team. Publications Hub by Rotaract South Asia MDIO."/>
+  <meta name="robots" content="index, follow"/>
+  <link rel="canonical" href="https://publications.rsamdio.org/studio.html"/>
+  <meta name="theme-color" content="#101922"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="Publications Hub"/>
+  <meta property="og:title" content="Publisher Studio | Publications Hub"/>
+  <meta property="og:description" content="Manage publications and editions for Rotaract South Asia. An initiative by Rotaract South Asia MDIO."/>
+  <meta property="og:url" content="https://publications.rsamdio.org/studio.html"/>
+  <meta property="og:image" content="https://publications.rsamdio.org/images/ogimg.webp"/>
+  <meta property="og:image:type" content="image/webp"/>
+  <meta property="og:image:width" content="600"/>
+  <meta property="og:image:height" content="400"/>
+  <meta property="og:image:alt" content="Publications Hub — Rotaract South Asia MDIO"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="Publisher Studio | Publications Hub"/>
+  <meta name="twitter:description" content="Manage publications and editions for Rotaract South Asia."/>
+  <meta name="twitter:image" content="https://publications.rsamdio.org/images/ogimg.webp"/>
+  <link rel="icon" type="image/webp" href="images/favicon.webp"/>
+  <link rel="icon" type="image/x-icon" href="images/favicon.ico"/>
+  <link rel="apple-touch-icon" href="images/rsamdio.webp"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#137fec",
+            "primary-dark": "#106cc9",
+            "background-light": "#f6f7f8",
+            "background-dark": "#101922",
+            "surface-dark": "#192430",
+            "surface-dark-hover": "#223040",
+            "card-dark": "#182430",
+            "text-secondary": "#94a3b8",
+            "reader-bg": "#0b1219",
+          },
+          fontFamily: { display: ["Inter", "sans-serif"] },
+          borderRadius: { lg: "0.5rem", xl: "0.75rem", "2xl": "1rem" },
+          boxShadow: { page: "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4)" },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css" />
+  <link rel="stylesheet" href="css/st-page-flip.css" />
+  <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #101922; }
+    ::-webkit-scrollbar-thumb { background: #2e3b4b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3e4f63; }
+    .book-cover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .edition-card:hover .book-cover { transform: translateY(-3px) scale(1.02); box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.45); }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display antialiased min-h-screen flex flex-col">
+  <header class="sticky top-0 z-30 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-background-dark/90 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-6 min-w-0">
+        <a href="/" class="flex items-center gap-2.5 shrink-0 group" title="Public library">
+          <span class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-primary/25 group-hover:shadow-primary/40 transition-shadow">P</span>
+          <div class="hidden sm:block min-w-0">
+            <span class="block text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-tight">PubHub</span>
+            <span class="block text-[11px] font-semibold uppercase tracking-wider text-primary">Studio</span>
+          </div>
+        </a>
+        <a href="/" class="hidden md:inline-flex items-center gap-1 text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-primary transition-colors">
+          <span class="material-icons text-lg">menu_book</span>
+          Public library
+        </a>
+      </div>
+      <div id="header-signed-out" class="flex items-center gap-3">
+        <span class="text-sm text-slate-500 dark:text-text-secondary hidden sm:inline">Editors use Google sign-in</span>
+      </div>
+      <div id="header-signed-in" class="hidden items-center gap-2 sm:gap-3">
+        <button type="button" id="btn-signout" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white px-2 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors">
+          <span class="material-icons text-lg">logout</span>
+          <span class="hidden sm:inline">Sign out</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
+    <section id="view-guest" class="relative max-w-lg mx-auto text-center py-16 sm:py-20 px-2">
+      <div class="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[28rem] h-56 bg-primary/15 rounded-full blur-[100px] opacity-90" aria-hidden="true"></div>
+      <div class="relative rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-card-dark/90 p-8 sm:p-10 shadow-xl shadow-slate-200/50 dark:shadow-black/30">
+        <div class="w-14 h-14 rounded-xl bg-primary/15 flex items-center justify-center mx-auto mb-6">
+          <span class="material-icons text-primary text-3xl">auto_stories</span>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">Publisher Studio</h1>
+        <p class="text-slate-600 dark:text-text-secondary text-sm leading-relaxed mb-8 max-w-sm mx-auto">
+          Sign in to manage your publications and publish editions.
+        </p>
+        <p id="guest-error" class="text-sm text-red-500 dark:text-red-400 hidden mb-4 text-left rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 px-3 py-2"></p>
+        <button type="button" id="btn-google-signin" class="w-full max-w-sm mx-auto h-12 flex items-center justify-center gap-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-[#15202B] text-slate-900 dark:text-white font-semibold text-sm shadow-sm hover:bg-slate-100 dark:hover:bg-surface-dark-hover transition-colors">
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Continue with Google
+        </button>
+      </div>
+    </section>
+
+    <section id="view-no-membership" class="hidden relative max-w-lg mx-auto py-16 sm:py-20 text-center px-2">
+      <div class="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-80 h-48 bg-amber-500/10 rounded-full blur-[80px]" aria-hidden="true"></div>
+      <div class="relative rounded-2xl border border-amber-900/40 dark:border-amber-900/50 bg-white dark:bg-card-dark/90 p-8 sm:p-10 shadow-xl">
+        <div class="w-14 h-14 rounded-full bg-amber-500/15 flex items-center justify-center mx-auto mb-5">
+          <span class="material-icons text-amber-500 text-3xl">group_off</span>
+        </div>
+        <h1 class="text-xl font-bold text-slate-900 dark:text-white mb-2">No organization access</h1>
+        <p class="text-slate-600 dark:text-text-secondary text-sm leading-relaxed mb-6">
+          You’re signed in, but you’re not a member of any publisher yet. If you were invited, accept below using the <strong>same Google email</strong> the owner entered. Otherwise ask your platform team or publisher owner.
+        </p>
+        <p id="no-org-invites-error" class="hidden text-sm text-red-600 dark:text-red-400 mb-4 text-left rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 px-3 py-2"></p>
+        <div id="no-org-invites" class="hidden mb-6 text-left rounded-xl border border-primary/30 bg-primary/5 dark:bg-primary/10 p-4 space-y-3">
+          <p class="text-xs font-semibold uppercase tracking-wide text-primary">Pending invitations</p>
+          <ul id="no-org-invites-list" class="space-y-2 text-sm"></ul>
+        </div>
+        <button type="button" id="btn-signout-no-org" class="inline-flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">
+          <span class="material-icons text-lg">logout</span>
+          Sign out
+        </button>
+      </div>
+    </section>
+
+    <section id="view-studio" class="hidden space-y-8">
+      <div>
+        <p id="studio-publisher-name-label" class="text-xs font-semibold tracking-wide text-primary mb-1 truncate max-w-full sm:max-w-2xl" title="" aria-live="polite"></p>
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Publisher Studio</h1>
+        <p class="text-sm text-slate-600 dark:text-text-secondary mt-1">Manage your publications and publish editions.</p>
+      </div>
+
+      <div id="studio-pending-invites-banner" class="hidden rounded-xl border border-primary/40 bg-primary/10 dark:bg-primary/15 p-4 sm:p-5">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-primary mb-1">Invitation</p>
+            <p id="studio-pending-invites-text" class="text-sm text-slate-700 dark:text-slate-200"></p>
+          </div>
+          <div id="studio-pending-invites-actions" class="flex flex-wrap gap-2 shrink-0"></div>
+        </div>
+      </div>
+
+      <div class="flex gap-1 border-b border-slate-200 dark:border-slate-800" role="tablist" aria-label="Studio sections">
+        <button type="button" id="btn-tab-content" class="studio-tab px-4 py-2.5 text-sm font-semibold rounded-t-lg border-b-2 border-primary text-slate-900 dark:text-white bg-slate-50/80 dark:bg-surface-dark/40" data-studio-tab="content" aria-selected="true">Library</button>
+        <button type="button" id="btn-tab-team" class="studio-tab px-4 py-2.5 text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white" data-studio-tab="team" aria-selected="false">Team</button>
+      </div>
+
+      <div id="studio-panel-content" class="space-y-6">
+        <div id="library-flow-steps" class="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400" aria-hidden="true">
+          <span id="flow-step-pill-1" class="inline-flex items-center gap-1.5 rounded-full bg-primary/15 text-primary px-3 py-1.5 border border-primary/25">
+            <span class="tabular-nums font-bold">1</span> Publications
+          </span>
+          <span class="text-slate-400">→</span>
+          <span id="flow-step-pill-2" class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-500">
+            <span class="tabular-nums font-bold">2</span> Editions
+          </span>
+        </div>
+
+        <div id="cover-required-banner" class="hidden rounded-xl border border-amber-500/40 bg-amber-500/10 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+          <span class="font-medium">Cover required for this publication.</span> Upload a cover before you can publish new editions. Use <strong>Cover</strong> on the publications list, or go back and open this publication after adding one.
+        </div>
+
+        <div id="content-step-publications" class="space-y-6">
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark/50 p-5 sm:p-6 shadow-sm dark:shadow-none">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+              <div class="flex items-start gap-3 min-w-0">
+                <span class="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                  <span class="material-icons text-primary">menu_book</span>
+                </span>
+                <div>
+                  <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Your publications</h2>
+                  <p class="text-sm text-slate-500 dark:text-text-secondary mt-0.5">Each publication is a series. Open one to add or manage editions.</p>
+                </div>
+              </div>
+              <button type="button" id="btn-new-publication-open" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold shadow-md shadow-primary/25 shrink-0 w-full sm:w-auto">
+                <span class="material-icons text-lg">add</span>
+                New publication
+              </button>
+            </div>
+            <div id="series-list" role="list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8 min-h-[4rem]"></div>
+          </div>
+        </div>
+
+        <div id="content-step-editions" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <button type="button" id="btn-back-publications" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-primary w-fit">
+              <span class="material-icons text-lg">arrow_back</span>
+              All publications
+            </button>
+            <button type="button" id="btn-upload-in-flow" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold shadow-md shadow-primary/25">
+              <span class="material-icons text-lg">cloud_upload</span>
+              Upload edition
+            </button>
+          </div>
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark/40 p-5 sm:p-6 min-h-[280px] shadow-sm dark:shadow-lg dark:shadow-black/10">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+              <div class="min-w-0">
+                <p class="text-xs font-semibold uppercase tracking-wide text-primary mb-1">Publication</p>
+                <h2 id="editions-series-title" class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">—</h2>
+                <p id="editions-series-desc" class="text-sm text-slate-500 dark:text-text-secondary mt-1 line-clamp-2"></p>
+              </div>
+              <span id="edition-count-label" class="inline-flex items-center self-start rounded-full bg-slate-100 dark:bg-slate-800/80 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 shrink-0">0 editions</span>
+            </div>
+            <div id="editions-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5"></div>
+          </div>
+        </div>
+
+        <div class="sr-only">
+          <label for="select-series-upload">Upload target series</label>
+          <select id="select-series-upload" aria-hidden="true"></select>
+        </div>
+      </div>
+
+      <div id="studio-panel-team" class="hidden space-y-6">
+        <div id="team-editor-note" class="hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark/40 p-5 text-sm text-slate-600 dark:text-text-secondary">
+          You’re an <strong>editor</strong> — you can see who’s on the team, but only <strong>owners</strong> can invite or remove people.
+        </div>
+        <div id="team-owner-ui" class="hidden space-y-6">
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark/40 p-5 sm:p-6 shadow-sm">
+            <h2 class="font-semibold text-slate-900 dark:text-white mb-1">Invite editor</h2>
+            <p class="text-xs text-slate-500 dark:text-text-secondary mb-4">They must sign in with Google using the <strong>same email</strong> you enter.</p>
+            <div class="grid sm:grid-cols-2 gap-3 mb-3">
+              <div>
+                <label for="invite-name" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Display name</label>
+                <input type="text" id="invite-name" placeholder="Jamie Lee" class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-[#15202B] text-slate-900 dark:text-white text-sm py-2 px-3"/>
+              </div>
+              <div>
+                <label for="invite-email" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Email</label>
+                <input type="email" id="invite-email" placeholder="editor@example.com" autocomplete="email" class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-[#15202B] text-slate-900 dark:text-white text-sm py-2 px-3"/>
+              </div>
+            </div>
+            <p id="invite-form-msg" class="text-xs min-h-[1.25rem] mb-2"></p>
+            <button type="button" id="btn-send-invite" class="py-2.5 px-4 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold">Invite Editor</button>
+          </div>
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark/40 overflow-hidden shadow-sm">
+            <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 class="text-sm font-semibold text-slate-900 dark:text-white">Pending invites</h3>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left min-w-[480px]">
+                <thead class="bg-slate-50 dark:bg-surface-dark text-xs text-slate-500 uppercase tracking-wide">
+                  <tr>
+                    <th class="px-4 py-2.5">Name</th>
+                    <th class="px-4 py-2.5">Email</th>
+                    <th class="px-4 py-2.5 w-28"></th>
+                  </tr>
+                </thead>
+                <tbody id="team-invites-tbody" class="divide-y divide-slate-200 dark:divide-slate-800"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark/40 overflow-hidden shadow-sm">
+          <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-800">
+            <h3 class="text-sm font-semibold text-slate-900 dark:text-white">Active members</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left min-w-[520px]">
+              <thead class="bg-slate-50 dark:bg-surface-dark text-xs text-slate-500 uppercase tracking-wide">
+                <tr>
+                  <th class="px-4 py-2.5">Name</th>
+                  <th class="px-4 py-2.5">Email</th>
+                  <th class="px-4 py-2.5">Role</th>
+                  <th class="px-4 py-2.5 w-24"></th>
+                </tr>
+              </thead>
+              <tbody id="team-roster-tbody" class="divide-y divide-slate-200 dark:divide-slate-800"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <input type="file" id="series-cover-input" accept="image/jpeg,image/png,image/webp" class="hidden" aria-hidden="true"/>
+
+  <!-- New publication modal -->
+  <div id="new-publication-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="w-full max-w-lg my-8 bg-white dark:bg-card-dark rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-surface-dark/50">
+        <div class="flex items-center gap-3">
+          <span class="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center">
+            <span class="material-icons text-primary text-xl">library_add</span>
+          </span>
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white">New publication</h2>
+        </div>
+        <button type="button" id="new-publication-close" class="text-slate-400 hover:text-slate-900 dark:hover:text-white p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors" aria-label="Close"><span class="material-icons">close</span></button>
+      </div>
+      <form id="new-publication-form" class="p-6 space-y-5">
+        <div>
+          <label for="new-series-title" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Title</label>
+          <input type="text" id="new-series-title" required autocomplete="off" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#15202B] text-slate-900 dark:text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="e.g. Monthly bulletin"/>
+        </div>
+        <div>
+          <label for="new-series-desc" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Description <span class="text-slate-400 font-normal">(optional)</span></label>
+          <textarea id="new-series-desc" rows="3" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#15202B] text-slate-900 dark:text-white text-sm py-2.5 px-3 resize-none focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="Short summary for the public library"></textarea>
+        </div>
+        <div>
+          <label for="new-series-frequency" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Frequency</label>
+          <select id="new-series-frequency" name="frequency" required class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#15202B] text-slate-900 dark:text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary">
+            <option value="monthly">Monthly</option>
+            <option value="bimonthly">Bimonthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="half_yearly">Half Yearly</option>
+            <option value="one_time">One Time</option>
+          </select>
+        </div>
+        <div>
+          <label for="new-series-cover-file" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Cover image <span class="text-slate-400 font-normal">(optional)</span></label>
+          <input type="file" id="new-series-cover-file" accept="image/jpeg,image/png,image/webp" class="block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-medium file:cursor-pointer hover:file:bg-primary-dark"/>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5">JPEG, PNG, or WebP. You can add or change the cover later from the publication card.</p>
+        </div>
+        <p id="series-form-error" class="text-sm text-red-500 dark:text-red-400 hidden"></p>
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+          <button type="button" id="new-publication-cancel" class="px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">Cancel</button>
+          <button type="submit" id="btn-new-publication-submit" class="px-5 py-2.5 text-sm font-semibold text-white bg-primary rounded-xl hover:bg-primary-dark shadow-md shadow-primary/20">Create publication</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Upload modal -->
+  <div id="upload-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="w-full max-w-lg my-8 bg-white dark:bg-card-dark rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-surface-dark/50">
+        <div class="flex items-center gap-3">
+          <span class="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center">
+            <span class="material-icons text-primary text-xl">publish</span>
+          </span>
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white">Publish edition</h2>
+        </div>
+        <button type="button" id="upload-close" class="text-slate-400 hover:text-slate-900 dark:hover:text-white p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors" aria-label="Close"><span class="material-icons">close</span></button>
+      </div>
+      <form id="upload-form" class="p-6 space-y-5">
+        <div class="rounded-lg border border-primary/35 bg-primary/5 dark:bg-primary/10 px-4 py-3">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-primary mb-1">Publication</p>
+          <p id="upload-publication-name" class="text-base font-semibold text-slate-900 dark:text-white leading-snug">—</p>
+          <p id="upload-publication-slug" class="text-xs font-mono text-slate-500 dark:text-slate-400 mt-1 truncate hidden" aria-hidden="true"></p>
+        </div>
+        <div>
+          <label for="upload-title" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Title</label>
+          <input type="text" id="upload-title" required class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#15202B] text-slate-900 dark:text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="e.g. April 2026 bulletin"/>
+        </div>
+        <div>
+          <label for="upload-description" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Description <span class="text-slate-400 font-normal">(optional)</span></label>
+          <textarea id="upload-description" rows="3" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#15202B] text-slate-900 dark:text-white text-sm py-2.5 px-3 resize-none focus:ring-2 focus:ring-primary/40 focus:border-primary"></textarea>
+        </div>
+        <div>
+          <label for="upload-issue-date" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Issue date</label>
+          <input type="date" id="upload-issue-date" required class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#15202B] text-slate-900 dark:text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary"/>
+        </div>
+        <div>
+          <label for="upload-file" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">PDF file</label>
+          <input type="file" id="upload-file" accept=".pdf" required class="block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-medium file:cursor-pointer hover:file:bg-primary-dark"/>
+        </div>
+        <p id="upload-error" class="text-sm text-red-500 dark:text-red-400 hidden"></p>
+        <p id="upload-success" class="text-sm text-emerald-600 dark:text-emerald-400 hidden"></p>
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+          <button type="button" id="upload-cancel" class="px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">Cancel</button>
+          <button type="submit" id="upload-submit" class="px-5 py-2.5 text-sm font-semibold text-white bg-primary rounded-xl hover:bg-primary-dark shadow-md shadow-primary/20">Publish</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit edition modal -->
+  <div id="edit-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="w-full max-w-lg my-8 bg-white dark:bg-card-dark rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-surface-dark/50">
+        <div class="flex items-center gap-3">
+          <span class="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+            <span class="material-icons text-emerald-400 text-xl">edit</span>
+          </span>
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white">Edit edition</h2>
+        </div>
+        <button type="button" id="edit-close" class="text-slate-400 hover:text-slate-900 dark:hover:text-white p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors" aria-label="Close"><span class="material-icons">close</span></button>
+      </div>
+      <form id="edit-form" class="p-6 space-y-5">
+        <input type="hidden" id="edit-edition-id" value=""/>
+        <div>
+          <label for="edit-title" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Title</label>
+          <input type="text" id="edit-title" required class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#15202B] text-slate-900 dark:text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary"/>
+        </div>
+        <div>
+          <label for="edit-description" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Description <span class="text-slate-400 font-normal">(optional)</span></label>
+          <textarea id="edit-description" rows="3" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#15202B] text-slate-900 dark:text-white text-sm py-2.5 px-3 resize-none focus:ring-2 focus:ring-primary/40 focus:border-primary"></textarea>
+        </div>
+        <div>
+          <label for="edit-series" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Series</label>
+          <select id="edit-series" class="block w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-[#15202B] text-slate-900 dark:text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary"></select>
+        </div>
+        <div>
+          <label for="edit-issue-date" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Issue date</label>
+          <input type="date" id="edit-issue-date" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#15202B] text-slate-900 dark:text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary"/>
+        </div>
+        <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#15202B]/80 px-3 py-3 space-y-2">
+          <p class="text-xs text-slate-600 dark:text-text-secondary leading-relaxed">Cover preview is generated from the <strong>first page</strong> of the PDF (WebP when supported, otherwise JPEG). It is stored next to the PDF in your data repo.</p>
+          <button type="button" id="edit-regenerate-cover" class="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary-dark">
+            <span class="material-icons text-base">image</span>
+            Regenerate cover from PDF
+          </button>
+          <p id="edit-cover-hint" class="text-xs text-amber-600 dark:text-amber-400 hidden"></p>
+        </div>
+        <p id="edit-error" class="text-sm text-red-500 dark:text-red-400 hidden"></p>
+        <p id="edit-success" class="text-sm text-emerald-600 dark:text-emerald-400 hidden"></p>
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+          <button type="button" id="edit-cancel" class="px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">Cancel</button>
+          <button type="submit" id="edit-save" class="px-5 py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-900/20">Save changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit series modal -->
+  <div id="series-edit-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="w-full max-w-lg my-8 bg-white dark:bg-card-dark rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-surface-dark/50">
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Edit series</h2>
+        <button type="button" id="series-edit-close" class="text-slate-400 hover:text-slate-900 dark:hover:text-white p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors" aria-label="Close"><span class="material-icons">close</span></button>
+      </div>
+      <form id="series-edit-form" class="p-6 space-y-5">
+        <input type="hidden" id="series-edit-id" value=""/>
+        <div>
+          <label for="series-edit-title" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Title</label>
+          <input type="text" id="series-edit-title" required autocomplete="off" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#15202B] text-slate-900 dark:text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary"/>
+        </div>
+        <div>
+          <label for="series-edit-desc" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Description <span class="text-slate-400 font-normal">(optional)</span></label>
+          <textarea id="series-edit-desc" rows="3" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#15202B] text-slate-900 dark:text-white text-sm py-2.5 px-3 resize-none focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="Short summary for the public library"></textarea>
+        </div>
+        <div>
+          <label for="series-edit-frequency" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Frequency</label>
+          <select id="series-edit-frequency" name="frequency" required class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#15202B] text-slate-900 dark:text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary">
+            <option value="monthly">Monthly</option>
+            <option value="bimonthly">Bimonthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="half_yearly">Half Yearly</option>
+            <option value="one_time">One Time</option>
+          </select>
+        </div>
+        <div>
+          <label for="series-edit-cover-file" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Cover image <span class="text-slate-400 font-normal">(optional)</span></label>
+          <div class="mb-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#0f172a]/80 p-3 flex items-center justify-center min-h-[6.5rem]">
+            <p id="series-edit-cover-empty" class="text-sm text-slate-500 dark:text-slate-400 text-center px-2 hidden">No cover yet. Upload an image below.</p>
+            <img id="series-edit-cover-preview" width="120" height="160" class="max-h-40 w-auto max-w-[min(100%,8rem)] rounded-lg object-cover shadow-md border border-slate-200 dark:border-slate-600 bg-slate-200 dark:bg-slate-800 hidden" alt="Current publication cover"/>
+          </div>
+          <input type="file" id="series-edit-cover-file" accept="image/jpeg,image/png,image/webp" class="block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-medium file:cursor-pointer hover:file:bg-primary-dark"/>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5">JPEG, PNG, or WebP. Choose a file below to replace the cover, or leave unchanged. You can also use the Cover button on the card.</p>
+        </div>
+        <p id="series-edit-error" class="text-sm text-red-500 dark:text-red-400 hidden"></p>
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+          <button type="button" id="series-edit-cancel" class="px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-surface-dark transition-colors">Cancel</button>
+          <button type="submit" id="series-edit-save" class="px-5 py-2.5 text-sm font-semibold text-white bg-primary rounded-xl hover:bg-primary-dark shadow-md shadow-primary/20">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Reader overlay -->
+  <div id="reader-view" class="fixed inset-0 z-50 bg-reader-bg hidden flex-col touch-manipulation">
+    <div id="flipbook-wrapper" class="flex-1 flex items-center justify-center w-full min-h-0 overflow-auto overscroll-y-contain p-2 sm:p-4 pb-[calc(6.75rem+env(safe-area-inset-bottom,0px))] sm:pb-4 max-h-[100dvh]" style="min-width: 0; -webkit-overflow-scrolling: touch;">
+      <div id="flipbook-container" class="relative transition-transform duration-300 ease-out" style="will-change: transform;"></div>
+    </div>
+    <audio id="page-flip-sound" preload="none" aria-hidden="true"></audio>
+    <div class="absolute top-2 left-2 right-2 sm:top-4 sm:left-4 sm:right-4 z-20 flex flex-row items-start justify-between gap-2 pointer-events-none">
+      <div class="pointer-events-auto flex flex-col gap-2 min-w-0 max-w-[min(18rem,calc(100vw-5.5rem))]">
+        <button type="button" id="reader-close" class="inline-flex items-center gap-2 text-gray-200 hover:text-white bg-black/60 hover:bg-black/80 backdrop-blur-sm px-3 py-2.5 sm:py-2 rounded-lg border border-white/10 shadow-lg transition-all group w-fit min-h-[44px]">
+          <span class="material-icons text-xl group-hover:-translate-x-0.5 transition-transform">chevron_left</span>
+          <span class="text-sm font-semibold tracking-wide">Back</span>
+        </button>
+        <div id="reader-name-card" class="bg-black/60 backdrop-blur-sm rounded-lg border border-white/10 shadow-lg px-4 py-3 w-fit max-w-full">
+          <h1 id="reader-title" class="text-white text-sm font-bold leading-tight">Publication</h1>
+          <span id="reader-edition" class="text-gray-400 text-xs font-medium"></span>
+        </div>
+      </div>
+      <a id="reader-download-link" href="#" target="_blank" rel="noopener" class="pointer-events-auto inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/10 text-gray-200 hover:text-white shadow-lg transition-all shrink-0" title="Download PDF">
+        <span class="material-icons text-[22px]">download</span>
+      </a>
+    </div>
+    <footer class="fixed sm:absolute inset-x-0 bottom-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:bottom-4 z-30 flex justify-center px-2 sm:px-4 pointer-events-none pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-0">
+      <div class="pointer-events-auto bg-black/80 backdrop-blur-md rounded-t-2xl sm:rounded-2xl shadow-2xl border border-white/10 border-b-0 sm:border-b px-2 py-2 sm:px-4 sm:py-2.5 flex items-center gap-2 sm:gap-5 flex-wrap sm:flex-nowrap justify-center max-w-full w-full sm:w-auto">
+        <div class="flex items-center gap-0.5 sm:gap-2 border-r border-white/10 pr-2 sm:pr-4">
+          <button type="button" id="reader-first" class="text-gray-400 hover:text-white transition-colors min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-1 rounded-md hover:bg-white/10" title="First page (Home)"><span class="material-icons text-xl">first_page</span></button>
+          <button type="button" id="reader-prev" class="text-gray-400 hover:text-white transition-colors min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-1 rounded-md hover:bg-white/10" title="Previous (←)"><span class="material-icons text-xl">chevron_left</span></button>
+          <span id="reader-page-info" class="text-xs font-bold text-white min-w-[3.5rem] text-center tabular-nums">1 / 1</span>
+          <span class="text-xs text-gray-400 font-medium tabular-nums">/ <span id="reader-total-pages">1</span></span>
+          <button type="button" id="reader-next" class="text-gray-400 hover:text-white transition-colors min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-1 rounded-md hover:bg-white/10" title="Next (→)"><span class="material-icons text-xl">chevron_right</span></button>
+          <button type="button" id="reader-last" class="text-gray-400 hover:text-white transition-colors min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-1 rounded-md hover:bg-white/10" title="Last page (End)"><span class="material-icons text-xl">last_page</span></button>
+        </div>
+        <div class="flex items-center gap-1.5 border-r border-white/10 pr-2 sm:pr-4">
+          <label for="reader-page-jump" class="sr-only">Go to page</label>
+          <span class="text-[10px] uppercase tracking-wide text-gray-500 hidden sm:inline">Go to</span>
+          <input type="number" id="reader-page-jump" min="1" value="1" class="w-11 sm:w-14 min-h-9 rounded-md bg-white/10 border border-white/15 text-white text-xs py-1.5 px-1 text-center tabular-nums focus:ring-1 focus:ring-primary focus:border-primary" title="Page number, then Enter"/>
+          <button type="button" id="reader-page-jump-go" class="text-gray-400 hover:text-white text-xs font-medium min-h-9 px-2.5 py-1 rounded-md hover:bg-white/10 inline-flex items-center justify-center" title="Go to page">Go</button>
+        </div>
+        <div class="flex items-center gap-1 sm:gap-2 flex-wrap justify-center">
+          <button type="button" id="reader-zoom-out" class="text-gray-400 hover:text-white transition-colors min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-1 rounded-md hover:bg-white/10" title="Zoom out"><span class="material-icons text-lg">remove</span></button>
+          <div class="flex items-center gap-0.5">
+            <label for="reader-zoom-input" class="sr-only">Zoom percent (50–250, Enter to apply)</label>
+            <input type="number" id="reader-zoom-input" min="50" max="250" step="1" value="100" inputmode="numeric" autocomplete="off" class="w-[3.25rem] min-h-9 rounded-md bg-white/10 border border-white/15 text-white text-xs py-1 px-0.5 text-center tabular-nums focus:ring-1 focus:ring-primary focus:border-primary" title="Zoom % (Enter or leave field to apply)"/>
+            <span class="text-[11px] text-gray-400 font-medium tabular-nums select-none" aria-hidden="true">%</span>
+          </div>
+          <button type="button" id="reader-zoom-in" class="text-gray-400 hover:text-white transition-colors min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-1 rounded-md hover:bg-white/10" title="Zoom in"><span class="material-icons text-lg">add</span></button>
+          <button type="button" id="reader-fit-reset" class="text-gray-400 hover:text-white transition-colors min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-1 rounded-md hover:bg-white/10 border-l border-white/10 pl-2 sm:pl-3 ml-0.5 sm:ml-1" title="Reset zoom to 100%"><span class="material-icons text-lg">fit_screen</span></button>
+          <button type="button" id="reader-fullscreen" class="text-gray-400 hover:text-white transition-colors min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-1 rounded-md hover:bg-white/10" title="Fullscreen"><span class="material-icons text-lg">fullscreen</span></button>
+        </div>
+      </div>
+      <span class="sr-only">Keyboard: arrows or PgUp/PgDn turn pages, Home, End, Escape closes.</span>
+    </footer>
+    <div id="reader-loading" class="absolute inset-0 z-10 hidden flex-col items-center justify-center bg-reader-bg/95">
+      <p class="text-gray-200 mb-2 text-sm font-medium">Loading publication…</p>
+      <p id="reader-loading-detail" class="text-gray-500 text-xs mb-4 min-h-[1rem]"></p>
+      <div class="w-52 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+        <div id="reader-progress" class="h-full bg-primary rounded-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+    </div>
+    <p id="reader-error" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-400 hidden z-20 text-center px-4"></p>
+  </div>
+
+  <div id="studio-toast-root" class="fixed bottom-4 right-4 z-[80] flex flex-col gap-2 pointer-events-none max-w-md w-[min(24rem,calc(100vw-2rem))]" aria-live="polite"></div>
+  <div id="studio-confirm-dialog" class="fixed inset-0 z-[80] hidden items-center justify-center bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="studio-confirm-title">
+    <div class="w-full max-w-md bg-white dark:bg-card-dark rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 pointer-events-auto">
+      <h2 id="studio-confirm-title" class="text-lg font-bold text-slate-900 dark:text-white"></h2>
+      <p id="studio-confirm-message" class="text-sm text-slate-600 dark:text-text-secondary mt-2 whitespace-pre-line"></p>
+      <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-6">
+        <button type="button" id="studio-confirm-cancel" class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-surface-dark"></button>
+        <button type="button" id="studio-confirm-confirm" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-white"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js" defer></script>
+  <script type="module" src="js/dashboard/main.js" defer></script>
+</body>
+</html>

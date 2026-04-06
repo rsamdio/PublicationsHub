@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Platform Admin | Publications Hub — Rotaract South Asia MDIO</title>
+  <meta name="description" content="Platform administration for Publications Hub (Rotaract South Asia MDIO). Staff sign-in required."/>
+  <meta name="robots" content="noindex, nofollow"/>
+  <link rel="canonical" href="https://publications.rsamdio.org/admin.html"/>
+  <meta name="theme-color" content="#101922"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="Publications Hub"/>
+  <meta property="og:title" content="Platform Admin | Publications Hub"/>
+  <meta property="og:description" content="Platform administration for Publications Hub. Staff only."/>
+  <meta property="og:url" content="https://publications.rsamdio.org/admin.html"/>
+  <meta property="og:image" content="https://publications.rsamdio.org/images/ogimg.webp"/>
+  <meta property="og:image:type" content="image/webp"/>
+  <meta property="og:image:width" content="600"/>
+  <meta property="og:image:height" content="400"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="Platform Admin | Publications Hub"/>
+  <meta name="twitter:image" content="https://publications.rsamdio.org/images/ogimg.webp"/>
+  <link rel="icon" type="image/webp" href="images/favicon.webp"/>
+  <link rel="icon" type="image/x-icon" href="images/favicon.ico"/>
+  <link rel="apple-touch-icon" href="images/rsamdio.webp"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#137fec',
+            'primary-dark': '#106cc9',
+            'background-dark': '#101922',
+            'surface-dark': '#192430',
+            'surface-dark-hover': '#223040',
+            'card-dark': '#182430',
+            'text-secondary': '#94a3b8',
+          },
+          fontFamily: { display: ['Inter', 'sans-serif'] },
+          borderRadius: { lg: '0.5rem', xl: '0.75rem', '2xl': '1rem' },
+          boxShadow: { 'primary-glow': '0 0 40px -10px rgba(19, 127, 236, 0.35)' },
+        },
+      },
+    };
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #101922; }
+    ::-webkit-scrollbar-thumb { background: #2e3b4b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3e4f63; }
+  </style>
+</head>
+<body class="bg-background-dark text-slate-100 font-display antialiased min-h-screen flex flex-col">
+  <nav class="sticky top-0 z-50 w-full border-b border-slate-800 bg-background-dark/85 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex h-16 items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <a href="/" class="flex items-center gap-2.5 shrink-0 group" title="Public library">
+            <span class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-primary/25 group-hover:shadow-primary/40 transition-shadow">P</span>
+            <div class="min-w-0">
+              <span class="block text-lg font-bold tracking-tight text-white leading-tight">PubHub</span>
+              <span class="block text-[11px] font-semibold uppercase tracking-wider text-primary">Platform admin</span>
+            </div>
+          </a>
+        </div>
+        <div class="flex items-center gap-1 sm:gap-2">
+          <a href="/" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-surface-dark transition-colors">
+            <span class="material-icons text-lg">public</span>
+            <span>Library</span>
+          </a>
+          <a href="studio.html" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-surface-dark transition-colors">
+            <span class="material-icons text-lg">dashboard</span>
+            <span class="hidden sm:inline">Publisher studio</span>
+          </a>
+          <button type="button" id="btn-signout" class="hidden inline-flex items-center gap-1.5 ml-1 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 border border-slate-700 hover:bg-surface-dark hover:text-white transition-colors">
+            <span class="material-icons text-lg">logout</span>
+            <span class="hidden sm:inline">Sign out</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="flex-1 w-full">
+    <section id="view-guest" class="relative px-4 py-16 sm:py-24">
+      <div class="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[min(100%,42rem)] h-64 bg-primary/15 rounded-full blur-[100px] opacity-80" aria-hidden="true"></div>
+      <div class="relative max-w-md mx-auto">
+        <div class="rounded-2xl border border-slate-800 bg-card-dark/90 backdrop-blur-sm p-8 sm:p-10 shadow-xl shadow-black/20">
+          <div class="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center mb-6">
+            <span class="material-icons text-primary text-2xl">admin_panel_settings</span>
+          </div>
+          <h1 class="text-2xl font-bold text-white tracking-tight mb-2">Sign in</h1>
+          <p class="text-sm text-text-secondary leading-relaxed mb-6">
+            Platform Managers only access.
+          </p>
+          <p id="guest-error" class="text-sm text-red-400 hidden mb-4 rounded-lg bg-red-950/40 border border-red-900/50 px-3 py-2"></p>
+          <button type="button" id="btn-google-signin" class="w-full h-12 flex items-center justify-center gap-3 rounded-xl border border-slate-600 bg-[#15202B] text-white text-sm font-semibold hover:bg-surface-dark-hover hover:border-slate-500 transition-colors shadow-sm">
+            <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Continue with Google
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-denied" class="hidden relative px-4 py-16 sm:py-24">
+      <div class="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[min(100%,36rem)] h-48 bg-red-500/10 rounded-full blur-[80px]" aria-hidden="true"></div>
+      <div class="relative max-w-md mx-auto rounded-2xl border border-red-900/40 bg-card-dark/90 p-8 sm:p-10 text-center">
+        <div class="w-14 h-14 rounded-full bg-red-950/60 flex items-center justify-center mx-auto mb-5">
+          <span class="material-icons text-red-400 text-3xl">gpp_bad</span>
+        </div>
+        <h1 class="text-xl font-bold text-white mb-2">Access denied</h1>
+        <p class="text-sm text-text-secondary mb-6">This account is not platform staff yet. If you were invited, accept below (use the same Google email).</p>
+        <div id="denied-platform-invites" class="hidden mb-6 text-left rounded-xl border border-primary/30 bg-primary/5 p-4"></div>
+        <button type="button" id="btn-signout-denied" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-surface-dark border border-slate-700 text-sm font-medium text-white hover:bg-surface-dark-hover transition-colors">
+          <span class="material-icons text-lg">logout</span>
+          Sign out
+        </button>
+      </div>
+    </section>
+
+    <section id="view-admin" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-12">
+      <header class="mb-8">
+        <p class="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Platform</p>
+        <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Admin console</h1>
+        <p id="stats-line" class="text-sm text-text-secondary mt-2 max-w-3xl"></p>
+      </header>
+
+      <div class="flex flex-wrap gap-1 border-b border-slate-800 mb-8" role="tablist" aria-label="Admin sections">
+        <button type="button" class="px-4 py-2.5 text-sm font-semibold rounded-t-lg border-b-2 border-primary text-white bg-surface-dark/60" data-admin-tab="publishers" aria-selected="true">Publishers</button>
+        <button type="button" class="px-4 py-2.5 text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-white" data-admin-tab="publications" aria-selected="false">Catalog</button>
+        <button type="button" class="px-4 py-2.5 text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-white" data-admin-tab="team" aria-selected="false">Platform team</button>
+      </div>
+
+      <div id="admin-panel-publishers" class="hidden space-y-6">
+        <div id="admin-browse-flow-steps" class="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500" aria-label="Browse progress">
+          <span id="admin-flow-pill-1" class="inline-flex items-center gap-1.5 rounded-full bg-primary/15 text-primary px-3 py-1.5 border border-primary/25">
+            <span class="tabular-nums font-bold">1</span> Publishers
+          </span>
+          <span class="text-slate-600">→</span>
+          <span id="admin-flow-pill-2" class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border border-slate-700 text-slate-500">
+            <span class="tabular-nums font-bold">2</span> Publications &amp; team
+          </span>
+          <span class="text-slate-600">→</span>
+          <span id="admin-flow-pill-3" class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border border-slate-700 text-slate-500">
+            <span class="tabular-nums font-bold">3</span> Editions
+          </span>
+        </div>
+
+        <div id="admin-step-publishers" class="space-y-6">
+          <div class="rounded-xl border border-slate-800 bg-surface-dark/40 overflow-hidden shadow-lg shadow-black/10">
+            <div class="p-5 sm:p-6 border-b border-slate-800">
+              <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div class="flex items-start gap-3 min-w-0">
+                  <span class="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                    <span class="material-icons text-primary">apartment</span>
+                  </span>
+                  <div>
+                    <h2 class="text-lg font-semibold text-white">All publishers</h2>
+                    <p class="text-sm text-text-secondary mt-0.5">Choose a publisher to manage its publications, team, and editions.</p>
+                  </div>
+                </div>
+                <button type="button" id="btn-new-publisher-open" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold shadow-md shadow-primary/25 shrink-0 w-full sm:w-auto">
+                  <span class="material-icons text-lg">add</span>
+                  New publisher
+                </button>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left min-w-[560px]">
+                <thead class="bg-surface-dark text-text-secondary text-xs font-semibold uppercase tracking-wide">
+                  <tr>
+                    <th scope="col" class="px-4 py-3.5">Name</th>
+                    <th scope="col" class="px-4 py-3.5">Status</th>
+                    <th scope="col" class="px-4 py-3.5">Document ID</th>
+                    <th scope="col" class="px-4 py-3.5 w-28 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="publishers-tbody" class="divide-y divide-slate-800/80 bg-card-dark/30"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="admin-step-org" class="hidden space-y-6">
+          <button type="button" id="btn-admin-back-publishers" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-300 hover:text-primary w-fit">
+            <span class="material-icons text-lg">arrow_back</span>
+            All publishers
+          </button>
+          <div class="rounded-xl border border-slate-800 bg-card-dark/80 p-5 sm:p-6 shadow-lg shadow-black/10">
+            <p class="text-xs font-semibold uppercase tracking-wide text-primary mb-1">Publisher</p>
+            <h2 id="admin-org-title" class="text-xl font-bold text-white tracking-tight">—</h2>
+            <p id="admin-org-meta" class="text-sm text-text-secondary mt-1 font-mono text-xs"></p>
+          </div>
+          <div class="flex gap-1 border-b border-slate-800" role="tablist" aria-label="Publisher sections">
+            <button type="button" id="btn-admin-org-publications" class="admin-org-tab px-4 py-2.5 text-sm font-semibold rounded-t-lg border-b-2 border-primary text-white bg-surface-dark/40" data-admin-org-tab="publications" aria-selected="true">Publications</button>
+            <button type="button" id="btn-admin-org-team" class="admin-org-tab px-4 py-2.5 text-sm font-semibold rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-white" data-admin-org-tab="team" aria-selected="false">Team</button>
+          </div>
+          <div id="admin-org-panel-publications" class="rounded-xl border border-slate-800 bg-surface-dark/40 overflow-hidden shadow-lg shadow-black/10">
+            <div class="px-4 py-3 border-b border-slate-800 flex items-center gap-2">
+              <span class="material-icons text-slate-400 text-xl">library_books</span>
+              <h3 class="text-sm font-semibold text-white">Publications by this Publisher</h3>
+            </div>
+            <p class="px-4 py-2 text-xs text-text-secondary border-b border-slate-800/80">Each row is a series. Open one to list editions and delete individual issues.</p>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left min-w-[640px]">
+                <thead class="bg-surface-dark text-text-secondary text-xs font-semibold uppercase tracking-wide">
+                  <tr>
+                    <th class="px-4 py-3">Title</th>
+                    <th class="px-4 py-3">Series ID</th>
+                    <th class="px-4 py-3 w-28 text-right">Editions</th>
+                    <th class="px-4 py-3 w-40 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-org-series-tbody" class="divide-y divide-slate-800/80 bg-card-dark/30"></tbody>
+              </table>
+            </div>
+          </div>
+          <div id="admin-org-panel-team" class="hidden space-y-6">
+            <div class="rounded-xl border border-slate-800 bg-surface-dark/40 overflow-hidden shadow-lg shadow-black/10">
+              <div class="px-4 py-3 border-b border-slate-800">
+                <h3 class="text-sm font-semibold text-white">Active members</h3>
+                <p class="text-xs text-text-secondary mt-1">Realtime Database org mirror — same paths as Publisher studio. If you’re a member of this publisher, your row is shown even when the roster mirror lags.</p>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left min-w-[560px]">
+                  <thead class="bg-surface-dark text-text-secondary text-xs font-semibold uppercase tracking-wide">
+                    <tr>
+                      <th class="px-4 py-3">Name</th>
+                      <th class="px-4 py-3">Email</th>
+                      <th class="px-4 py-3">Role</th>
+                      <th class="px-4 py-3 text-right w-28">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-org-roster-tbody" class="divide-y divide-slate-800/80 bg-card-dark/30"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="rounded-xl border border-slate-800 bg-surface-dark/40 overflow-hidden shadow-lg shadow-black/10">
+              <div class="px-4 py-3 border-b border-slate-800 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h3 class="text-sm font-semibold text-white">Pending invites</h3>
+                <button type="button" id="btn-admin-new-team-member-open" class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary hover:bg-primary-dark text-white text-xs font-semibold shadow-md shadow-primary/20 shrink-0 w-full sm:w-auto">
+                  <span class="material-icons text-base">person_add</span>
+                  New team member
+                </button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left min-w-[560px]">
+                  <thead class="bg-surface-dark text-text-secondary text-xs font-semibold uppercase tracking-wide">
+                    <tr>
+                      <th class="px-4 py-3">Name</th>
+                      <th class="px-4 py-3">Email</th>
+                      <th class="px-4 py-3">Role</th>
+                      <th class="px-4 py-3 text-right w-28">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-org-invites-tbody" class="divide-y divide-slate-800/80 bg-card-dark/30"></tbody>
+                </table>
+              </div>
+            </div>
+            <div id="admin-org-danger-zone" class="hidden rounded-xl border border-red-900/40 bg-red-950/20 p-5" data-full-admin-only>
+              <p class="text-xs text-red-200/90 mb-3">Remove the entire publisher (Firestore, memberships, GitHub assets for all editions).</p>
+              <button type="button" id="btn-admin-del-publisher-org" class="px-3 py-2 rounded-lg border border-red-800/60 bg-red-950/40 text-red-300 text-xs font-semibold hover:bg-red-900/50">Delete entire publisher</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="admin-step-editions" class="hidden space-y-6">
+          <button type="button" id="btn-admin-back-org" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-300 hover:text-primary w-fit">
+            <span class="material-icons text-lg">arrow_back</span>
+            Publications &amp; team
+          </button>
+          <div class="rounded-xl border border-slate-800 bg-surface-dark/40 overflow-hidden shadow-lg shadow-black/10">
+            <div class="px-4 py-3 border-b border-slate-800">
+              <p class="text-xs font-semibold uppercase tracking-wide text-primary mb-1">Publication</p>
+              <h2 id="admin-series-editions-title" class="text-lg font-semibold text-white">—</h2>
+              <p id="admin-series-editions-sub" class="text-xs text-text-secondary font-mono mt-1"></p>
+            </div>
+            <div class="overflow-x-auto max-h-[min(32rem,60vh)] overflow-y-auto">
+              <table class="w-full text-sm text-left min-w-[720px]">
+                <thead class="bg-surface-dark text-text-secondary text-xs font-semibold uppercase tracking-wide sticky top-0 z-10">
+                  <tr>
+                    <th class="px-4 py-3">Edition title</th>
+                    <th class="px-4 py-3">Edition ID</th>
+                    <th class="px-4 py-3 w-20">Reader</th>
+                    <th class="px-4 py-3 w-24 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-series-editions-tbody" class="divide-y divide-slate-800/80 bg-card-dark/30"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="admin-panel-publications" class="hidden space-y-8">
+        <p class="text-sm text-text-secondary max-w-3xl">Explore-wide catalog: feature editions on the public home and delete from the published mirror. Use <strong>Publishers</strong> to drill down by publisher.</p>
+        <p id="pub-msg" class="hidden text-sm px-3 py-2 rounded-lg border border-slate-800"></p>
+        <div class="rounded-xl border border-slate-800 bg-surface-dark/40 overflow-hidden shadow-lg shadow-black/10">
+          <div class="px-4 py-3 border-b border-slate-800 flex items-center gap-2">
+            <span class="material-icons text-slate-400 text-xl">library_books</span>
+            <h2 class="text-sm font-semibold text-white">All published editions</h2>
+          </div>
+          <div class="overflow-x-auto max-h-[min(28rem,55vh)] overflow-y-auto">
+            <table class="w-full text-sm text-left min-w-[800px]">
+              <thead class="bg-surface-dark text-text-secondary text-xs font-semibold uppercase tracking-wide sticky top-0 z-10">
+                <tr>
+                  <th class="px-4 py-3.5 w-24">Featured</th>
+                  <th class="px-4 py-3.5">Title</th>
+                  <th class="px-4 py-3.5">Publisher</th>
+                  <th class="px-4 py-3.5">Edition ID</th>
+                  <th class="px-4 py-3.5 w-20">Reader</th>
+                  <th class="px-4 py-3.5 w-24 text-right">Delete</th>
+                </tr>
+              </thead>
+              <tbody id="all-editions-tbody" class="divide-y divide-slate-800/80 bg-card-dark/30"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="rounded-xl border border-slate-800 bg-surface-dark/40 overflow-hidden shadow-lg shadow-black/10">
+          <div class="px-4 py-3 border-b border-slate-800 flex items-center gap-2">
+            <span class="material-icons text-amber-400 text-xl">star</span>
+            <h2 class="text-sm font-semibold text-white">Featured only</h2>
+          </div>
+          <p class="px-4 py-2 text-xs text-text-secondary border-b border-slate-800/80">Same toggle as above; subset for quick review.</p>
+          <div class="overflow-x-auto max-h-[min(22rem,45vh)] overflow-y-auto">
+            <table class="w-full text-sm text-left min-w-[800px]">
+              <thead class="bg-surface-dark text-text-secondary text-xs font-semibold uppercase tracking-wide sticky top-0 z-10">
+                <tr>
+                  <th class="px-4 py-3.5 w-24">Featured</th>
+                  <th class="px-4 py-3.5">Title</th>
+                  <th class="px-4 py-3.5">Publisher</th>
+                  <th class="px-4 py-3.5">Edition ID</th>
+                  <th class="px-4 py-3.5 w-20">Reader</th>
+                  <th class="px-4 py-3.5 w-24 text-right">Delete</th>
+                </tr>
+              </thead>
+              <tbody id="featured-only-tbody" class="divide-y divide-slate-800/80 bg-card-dark/30"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="admin-panel-team" class="hidden space-y-8">
+        <div class="rounded-xl border border-amber-800/50 bg-gradient-to-br from-amber-950/25 via-card-dark to-card-dark p-6 sm:p-8 shadow-lg shadow-black/10" data-full-admin-only>
+          <div class="flex flex-col sm:flex-row sm:items-start gap-4">
+            <span class="w-12 h-12 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+              <span class="material-icons text-amber-400 text-2xl">sync_alt</span>
+            </span>
+            <div class="flex-1 min-w-0">
+              <h2 class="text-lg font-semibold text-white mb-1">Realtime Database mirror</h2>
+              <p class="text-sm text-text-secondary leading-relaxed max-w-3xl">
+                Rebuilds the public catalog and org data in RTDB from Firestore. Full admins only.
+              </p>
+              <p id="bf-msg" class="text-sm mt-3 hidden min-h-[1.25rem]"></p>
+              <button type="button" id="btn-backfill" class="mt-5 inline-flex items-center justify-center gap-2 py-2.5 px-5 rounded-xl border border-amber-600/50 bg-amber-950/30 text-amber-100 hover:bg-amber-900/40 text-sm font-semibold transition-colors">
+                <span class="material-icons text-lg">cloud_sync</span>
+                Rebuild mirror (backfillMirror)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-slate-800 bg-card-dark p-6 shadow-lg shadow-black/10" data-full-admin-only>
+          <h2 class="font-semibold text-white mb-1">Invite platform staff</h2>
+          <p class="text-xs text-text-secondary mb-4">Name + email only; they accept after signing in with Google on that email.</p>
+          <div class="grid sm:grid-cols-2 gap-3 mb-3">
+            <div>
+              <label for="pi-name" class="block text-xs font-medium text-slate-400 mb-1">Name</label>
+              <input type="text" id="pi-name" class="w-full rounded-lg bg-[#15202B] border-slate-600 text-white text-sm py-2 px-3"/>
+            </div>
+            <div>
+              <label for="pi-email" class="block text-xs font-medium text-slate-400 mb-1">Email</label>
+              <input type="email" id="pi-email" autocomplete="email" class="w-full rounded-lg bg-[#15202B] border-slate-600 text-white text-sm py-2 px-3"/>
+            </div>
+            <div class="sm:col-span-2">
+              <label for="pi-tier" class="block text-xs font-medium text-slate-400 mb-1">Role</label>
+              <select id="pi-tier" class="w-full rounded-lg bg-[#15202B] border-slate-600 text-white text-sm py-2 px-3">
+                <option value="admin">Full admin</option>
+                <option value="manager">Manager (publishers, publications, featured — no staff invites / backfill)</option>
+              </select>
+            </div>
+          </div>
+          <p id="pi-msg" class="text-xs min-h-[1.25rem] mb-2"></p>
+          <button type="button" id="btn-platform-invite" class="py-2.5 px-4 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold">Send platform invite</button>
+        </div>
+
+        <div class="rounded-xl border border-slate-800 bg-surface-dark/40 overflow-hidden shadow-lg shadow-black/10" data-full-admin-only>
+          <div class="px-4 py-3 border-b border-slate-800">
+            <h2 class="text-sm font-semibold text-white">Pending platform invites</h2>
+            <p class="text-xs text-text-secondary mt-1">Invites not yet accepted. Revoke to cancel.</p>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left min-w-[640px]">
+              <thead class="bg-surface-dark text-text-secondary text-xs font-semibold uppercase tracking-wide">
+                <tr>
+                  <th class="px-4 py-3.5">Name</th>
+                  <th class="px-4 py-3.5">Email</th>
+                  <th class="px-4 py-3.5">Tier</th>
+                  <th class="px-4 py-3.5 text-right w-28">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="platform-pending-invites-tbody" class="divide-y divide-slate-800/80 bg-card-dark/30"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-slate-800 bg-surface-dark/40 overflow-hidden shadow-lg shadow-black/10">
+          <div class="px-4 py-3 border-b border-slate-800">
+            <h2 class="text-sm font-semibold text-white">Current platform staff</h2>
+            <p class="text-xs text-text-secondary mt-1">Loaded via <code class="text-primary">listPlatformStaff</code>.</p>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left min-w-[720px]">
+              <thead class="bg-surface-dark text-text-secondary text-xs font-semibold uppercase tracking-wide">
+                <tr>
+                  <th class="px-4 py-3.5">UID</th>
+                  <th class="px-4 py-3.5">Email</th>
+                  <th class="px-4 py-3.5">Display name</th>
+                  <th class="px-4 py-3.5">Tier</th>
+                  <th class="px-4 py-3.5 text-right w-24">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="staff-tbody" class="divide-y divide-slate-800/80 bg-card-dark/30"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="mt-auto border-t border-slate-800 py-6 text-center">
+    <p class="text-xs text-slate-600">PubHub platform administration</p>
+  </footer>
+
+  <div id="new-publisher-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="w-full max-w-lg my-8 bg-card-dark rounded-2xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-800 bg-surface-dark/50">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+            <span class="material-icons text-primary text-xl">add_business</span>
+          </span>
+          <div class="min-w-0">
+            <h2 class="text-lg font-bold text-white">New publisher</h2>
+            <p class="text-xs text-text-secondary mt-0.5">Sends an owner invite — no prior sign-in required</p>
+          </div>
+        </div>
+        <button type="button" id="new-publisher-close" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors shrink-0" aria-label="Close"><span class="material-icons">close</span></button>
+      </div>
+      <form id="new-publisher-form" class="p-6 space-y-5">
+        <div>
+          <label for="cp-name" class="block text-sm font-medium text-slate-300 mb-1.5">Publisher name</label>
+          <input type="text" id="cp-name" required autocomplete="organization" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="e.g. District 3191"/>
+        </div>
+        <div>
+          <label for="cp-owner-name" class="block text-sm font-medium text-slate-300 mb-1.5">Owner name</label>
+          <input type="text" id="cp-owner-name" required autocomplete="name" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="Alex Kim"/>
+        </div>
+        <div>
+          <label for="cp-owner-email" class="block text-sm font-medium text-slate-300 mb-1.5">Owner email</label>
+          <input type="email" id="cp-owner-email" required autocomplete="email" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="owner@example.com"/>
+        </div>
+        <p id="cp-msg" class="text-sm hidden min-h-[1.25rem]"></p>
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+          <button type="button" id="new-publisher-cancel" class="px-4 py-2.5 text-sm font-medium text-slate-300 border border-slate-600 rounded-xl hover:bg-surface-dark transition-colors">Cancel</button>
+          <button type="submit" id="btn-new-publisher-submit" class="px-5 py-2.5 text-sm font-semibold text-white bg-primary rounded-xl hover:bg-primary-dark shadow-md shadow-primary/20">Create publisher</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="edit-publisher-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="w-full max-w-lg my-8 bg-card-dark rounded-2xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-800 bg-surface-dark/50">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+            <span class="material-icons text-primary text-xl">edit</span>
+          </span>
+          <div class="min-w-0">
+            <h2 class="text-lg font-bold text-white">Edit publisher</h2>
+            <p class="text-xs text-text-secondary mt-0.5">Update the display name (URL slug is unchanged)</p>
+          </div>
+        </div>
+        <button type="button" id="edit-publisher-close" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors shrink-0" aria-label="Close"><span class="material-icons">close</span></button>
+      </div>
+      <form id="edit-publisher-form" class="p-6 space-y-5">
+        <input type="hidden" id="ep-id" value=""/>
+        <div>
+          <label for="ep-name" class="block text-sm font-medium text-slate-300 mb-1.5">Publisher name</label>
+          <input type="text" id="ep-name" required autocomplete="organization" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="Publisher name"/>
+        </div>
+        <p id="ep-msg" class="text-sm hidden min-h-[1.25rem]"></p>
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+          <button type="button" id="edit-publisher-cancel" class="px-4 py-2.5 text-sm font-medium text-slate-300 border border-slate-600 rounded-xl hover:bg-surface-dark transition-colors">Cancel</button>
+          <button type="submit" id="btn-edit-publisher-submit" class="px-5 py-2.5 text-sm font-semibold text-white bg-primary rounded-xl hover:bg-primary-dark shadow-md shadow-primary/20">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="admin-team-invite-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="w-full max-w-lg my-8 bg-card-dark rounded-2xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-800 bg-surface-dark/50">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+            <span class="material-icons text-primary text-xl">person_add</span>
+          </span>
+          <div class="min-w-0">
+            <h2 class="text-lg font-bold text-white">New team member</h2>
+            <p class="text-xs text-text-secondary mt-0.5">Invite by email — they can accept after signing in with that Google account</p>
+          </div>
+        </div>
+        <button type="button" id="admin-team-invite-close" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors shrink-0" aria-label="Close"><span class="material-icons">close</span></button>
+      </div>
+      <form id="admin-team-invite-form" class="p-6 space-y-5">
+        <div>
+          <label for="ati-name" class="block text-sm font-medium text-slate-300 mb-1.5">Display name</label>
+          <input type="text" id="ati-name" required autocomplete="name" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="Jamie Lee"/>
+        </div>
+        <div>
+          <label for="ati-email" class="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
+          <input type="email" id="ati-email" required autocomplete="email" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="editor@example.com"/>
+        </div>
+        <div>
+          <label for="ati-role" class="block text-sm font-medium text-slate-300 mb-1.5">Role</label>
+          <select id="ati-role" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary">
+            <option value="editor">Editor</option>
+            <option value="owner" id="ati-role-owner-option">Owner</option>
+          </select>
+          <p id="ati-role-hint" class="hidden text-xs text-text-secondary mt-1.5">Platform managers can only invite editors.</p>
+        </div>
+        <p id="ati-msg" class="text-sm hidden min-h-[1.25rem]"></p>
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+          <button type="button" id="admin-team-invite-cancel" class="px-4 py-2.5 text-sm font-medium text-slate-300 border border-slate-600 rounded-xl hover:bg-surface-dark transition-colors">Cancel</button>
+          <button type="submit" id="btn-admin-team-invite-submit" class="px-5 py-2.5 text-sm font-semibold text-white bg-primary rounded-xl hover:bg-primary-dark shadow-md shadow-primary/20">Send invite</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="studio-toast-root" class="fixed bottom-4 right-4 z-[80] flex flex-col gap-2 pointer-events-none max-w-md w-[min(24rem,calc(100vw-2rem))]" aria-live="polite"></div>
+  <div id="studio-confirm-dialog" class="fixed inset-0 z-[80] hidden items-center justify-center bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="studio-confirm-title">
+    <div class="w-full max-w-md bg-card-dark rounded-2xl shadow-2xl border border-slate-800 p-6 pointer-events-auto">
+      <h2 id="studio-confirm-title" class="text-lg font-bold text-white"></h2>
+      <p id="studio-confirm-message" class="text-sm text-text-secondary mt-2 whitespace-pre-line"></p>
+      <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-6">
+        <button type="button" id="studio-confirm-cancel" class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-300 border border-slate-600 hover:bg-surface-dark"></button>
+        <button type="button" id="studio-confirm-confirm" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-white"></button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/admin/main.js"></script>
+</body>
+</html>

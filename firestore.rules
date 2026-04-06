@@ -1,0 +1,154 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isPlatformAdminDoc(uid) {
+      return exists(/databases/$(database)/documents/platform_admins/$(uid));
+    }
+
+    function isPlatformAdmin() {
+      return isSignedIn() && isPlatformAdminDoc(request.auth.uid);
+    }
+
+    function publisherMembershipPath(pubId) {
+      return /databases/$(database)/documents/users/$(request.auth.uid)/publisherMemberships/$(pubId);
+    }
+
+    function isPublisherMember(pubId) {
+      return isSignedIn() && exists(publisherMembershipPath(pubId));
+    }
+
+    function publisherRole(pubId) {
+      return get(publisherMembershipPath(pubId)).data.role;
+    }
+
+    function isPublisherOwner(pubId) {
+      return isPublisherMember(pubId) && publisherRole(pubId) == 'owner';
+    }
+
+    function seriesUpdateKeysAllowed() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['title', 'description', 'slug', 'cover_url', 'cover_repo_path', 'frequency']);
+    }
+
+    /** Matches publisher app `createSeries` payload only. */
+    function seriesCreateKeysAllowed() {
+      return request.resource.data.keys().hasOnly([
+        'publisher_id',
+        'title',
+        'slug',
+        'description',
+        'frequency',
+        'created_at',
+        'created_by_uid'
+      ]);
+    }
+
+    /** Matches publisher app `insertPublishedEdition` payload only; `featured` is platform-only (callable). */
+    function editionCreateKeysAllowed() {
+      return request.resource.data.keys().hasOnly([
+        'publisher_id',
+        'series_id',
+        'title',
+        'description',
+        'pdf_url',
+        'cover_url',
+        'pdf_repo_path',
+        'status',
+        'publisher_name',
+        'series_title',
+        'issue_date',
+        'created_at',
+        'created_by_uid'
+      ]);
+    }
+
+    /** Matches publisher app `updateEdition` allowlist only. */
+    function editionUpdateKeysAllowed() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'title',
+        'description',
+        'cover_url',
+        'series_id',
+        'series_title',
+        'pdf_repo_path',
+        'pdf_url',
+        'issue_date'
+      ]);
+    }
+
+    match /platform_admins/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /platform_invites/{inviteId} {
+      allow read, write: if false;
+    }
+
+    match /publishers/{publisherId} {
+      allow read, write: if false;
+    }
+
+    match /publishers/{publisherId}/invites/{inviteId} {
+      allow read: if isPlatformAdmin() || isPublisherOwner(publisherId);
+      allow write: if false;
+    }
+
+    match /publishers/{publisherId}/roster/{memberUid} {
+      allow read: if isPublisherMember(publisherId) || isPlatformAdmin();
+      allow write: if false;
+    }
+
+    match /users/{uid}/publisherMemberships/{publisherId} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /series/{seriesId} {
+      allow read: if false;
+      allow create: if isSignedIn()
+        && seriesCreateKeysAllowed()
+        && isPublisherMember(request.resource.data.publisher_id)
+        && request.resource.data.publisher_id is string
+        && request.resource.data.title is string
+        && request.resource.data.created_by_uid == request.auth.uid;
+      allow update: if isSignedIn()
+        && isPublisherMember(resource.data.publisher_id)
+        && seriesUpdateKeysAllowed();
+      allow delete: if isPlatformAdmin()
+        || (isSignedIn() && isPublisherMember(resource.data.publisher_id));
+    }
+
+    match /editions/{editionId} {
+      allow read: if false;
+      allow create: if isSignedIn()
+        && editionCreateKeysAllowed()
+        && isPublisherMember(request.resource.data.publisher_id)
+        && request.resource.data.publisher_id is string
+        && request.resource.data.series_id is string
+        && request.resource.data.title is string
+        && request.resource.data.pdf_url is string
+        && request.resource.data.status == 'published'
+        && request.resource.data.created_by_uid == request.auth.uid;
+      allow update: if isSignedIn()
+        && isPublisherMember(resource.data.publisher_id)
+        && editionUpdateKeysAllowed();
+      allow delete: if isPlatformAdmin()
+        || (isSignedIn() && isPublisherMember(resource.data.publisher_id));
+    }
+
+    match /publications/{docId} {
+      allow read: if false;
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

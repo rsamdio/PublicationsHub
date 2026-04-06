@@ -1,0 +1,44 @@
+{
+  "rules": {
+    "public": {
+      "catalog": {
+        "editions": {
+          ".read": true,
+          ".write": false
+        },
+        "series": {
+          ".read": true,
+          ".write": false
+        }
+      }
+    },
+    "org": {
+      "$publisherId": {
+        ".read": "auth != null && (root.child('userMemberships').child(auth.uid).child($publisherId).exists() || root.child('platformAdmins').child(auth.uid).val() === true)",
+        ".write": false
+      }
+    },
+    "userMemberships": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": false
+      }
+    },
+    "platformAdmins": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": false
+      }
+    },
+    "platform": {
+      "publishers": {
+        ".read": "auth != null && root.child('platformAdmins').child(auth.uid).val() === true",
+        ".write": false
+      },
+      "stats": {
+        ".read": "auth != null && root.child('platformAdmins').child(auth.uid).val() === true",
+        ".write": false
+      }
+    }
+  }
+}

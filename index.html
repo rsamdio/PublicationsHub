@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Publications Hub | Rotaract South Asia MDIO</title>
+  <meta name="description" content="One place for all the digital publications across Rotaract South Asia. An initiative by Rotaract South Asia MDIO."/>
+  <meta name="keywords" content="Rotaract, South Asia, MDIO, digital publications, magazines, Rotary, Publications Hub"/>
+  <meta name="author" content="Rotaract South Asia MDIO"/>
+  <meta name="robots" content="index, follow"/>
+  <link rel="canonical" href="https://publications.rsamdio.org/"/>
+  <meta name="theme-color" content="#101922"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="Publications Hub"/>
+  <meta property="og:title" content="Publications Hub | Rotaract South Asia MDIO"/>
+  <meta property="og:description" content="One place for all the digital publications across Rotaract South Asia. An initiative by Rotaract South Asia MDIO."/>
+  <meta property="og:url" content="https://publications.rsamdio.org/"/>
+  <meta property="og:image" content="https://publications.rsamdio.org/images/ogimg.webp"/>
+  <meta property="og:image:type" content="image/webp"/>
+  <meta property="og:image:width" content="600"/>
+  <meta property="og:image:height" content="400"/>
+  <meta property="og:image:alt" content="Publications Hub — Rotaract South Asia MDIO"/>
+  <meta property="og:locale" content="en_US"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="Publications Hub | Rotaract South Asia MDIO"/>
+  <meta name="twitter:description" content="One place for all the digital publications across Rotaract South Asia. An initiative by Rotaract South Asia MDIO."/>
+  <meta name="twitter:image" content="https://publications.rsamdio.org/images/ogimg.webp"/>
+  <link rel="icon" type="image/webp" href="images/favicon.webp"/>
+  <link rel="icon" type="image/x-icon" href="images/favicon.ico"/>
+  <link rel="apple-touch-icon" href="images/rsamdio.webp"/>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"WebSite","name":"Publications Hub","url":"https://publications.rsamdio.org/","description":"One place for all the digital publications across Rotaract South Asia. An initiative by Rotaract South Asia MDIO.","inLanguage":"en","publisher":{"@type":"Organization","name":"Rotaract South Asia MDIO"}}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#137fec",
+            "primary-dark": "#106cc9",
+            "background-light": "#f6f7f8",
+            "background-dark": "#101922",
+            "surface-dark": "#192430",
+            "surface-dark-hover": "#223040",
+            "text-secondary": "#94a3b8",
+            "reader-bg": "#0b1219",
+          },
+          fontFamily: { display: ["Inter", "sans-serif"] },
+          borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", "2xl": "1rem", full: "9999px" },
+          boxShadow: {
+            page: "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4)",
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css" />
+  <link rel="stylesheet" href="css/st-page-flip.css" />
+  <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #101922; }
+    ::-webkit-scrollbar-thumb { background: #2e3b4b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3e4f63; }
+    .book-cover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .edition-card:hover .book-cover { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display antialiased min-h-screen flex flex-col">
+
+  <!-- Top navigation -->
+  <nav id="app-nav" class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <a href="/" class="flex items-center gap-2 text-left" aria-label="PubHub home">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-primary/20">P</div>
+          <span class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">PubHub</span>
+        </a>
+        <div class="hidden md:flex items-center space-x-8">
+          <a href="/" class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors">Home</a>
+          <a href="https://rsamdio.org/" target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors">RSAMDIO</a>
+        </div>
+        <div class="flex items-center gap-3 sm:gap-4">
+          <a href="studio.html" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg text-white bg-primary hover:bg-primary-dark shadow-sm shadow-primary/20 transition-all">
+            Publisher Studio
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Library (reader journey) -->
+  <div id="view-library" class="flex flex-col flex-1 min-h-0">
+    <div class="relative overflow-hidden" id="explore-start">
+      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-primary/10 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+        <div class="text-center max-w-3xl mx-auto">
+          <div class="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-6 border border-primary/20">
+            <span class="w-2 h-2 rounded-full bg-primary mr-2"></span>
+            RSA Publications Hub
+          </div>
+          <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-6 leading-tight">
+            Discover, read, and publish<br class="hidden md:block"/>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">digital editions</span>
+          </h1>
+          <p class="text-lg md:text-xl text-slate-600 dark:text-slate-400 mb-6 max-w-2xl mx-auto leading-relaxed">
+            Browse and read publications. Publishers use <a href="studio.html" class="text-primary hover:underline font-medium">Publisher Studio</a> to upload editions.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <p id="shelf-error" class="hidden text-center py-4 text-sm text-red-400 max-w-7xl mx-auto px-4"></p>
+
+    <div id="library-empty-state" class="hidden max-w-7xl mx-auto px-4 py-16 text-center">
+      <div class="inline-flex p-6 rounded-2xl bg-surface-dark border border-slate-800 mb-6">
+        <span class="material-icons text-5xl text-primary/80">menu_book</span>
+      </div>
+      <h2 class="text-2xl font-bold text-white mb-2">No publications yet</h2>
+      <p class="text-slate-400 max-w-md mx-auto mb-8">When a publisher uploads a PDF, it will appear here for everyone to read.</p>
+      <a href="studio.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-medium transition-colors">
+        <span class="material-icons text-sm">login</span>
+        Publisher Studio
+      </a>
+    </div>
+
+    <main id="library-content" class="flex-grow space-y-16 lg:space-y-20 pb-20">
+      <section id="featured-section" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Featured</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Highlights from across the Publications</p>
+          </div>
+        </div>
+        <div id="featured-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6"></div>
+      </section>
+
+      <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8" id="all-publications">
+        <div class="sticky top-16 z-40 -mx-4 px-4 py-4 bg-background-dark/90 backdrop-blur border-b border-slate-800 mb-8">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+              All Publications
+              <span id="edition-count-badge" class="text-sm font-normal text-slate-400 bg-surface-dark px-2 py-1 rounded-md">0</span>
+            </h2>
+            <div class="relative w-full md:max-w-md">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                <span class="material-icons text-lg">filter_list</span>
+              </div>
+              <input id="shelf-search" type="search" class="block w-full pl-10 pr-3 py-2 border border-slate-700 rounded-lg bg-surface-dark text-white placeholder-slate-500 focus:ring-1 focus:ring-primary focus:border-primary text-sm" placeholder="Filter by title or publisher…"/>
+            </div>
+          </div>
+        </div>
+        <div id="shelf-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8"></div>
+      </section>
+
+      <section id="section-publishers" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark p-8 md:p-12 text-center md:text-left md:flex md:items-center md:justify-between gap-8">
+          <div class="max-w-xl">
+            <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-3">For Publishers</h2>
+            <p class="text-slate-600 dark:text-slate-400 leading-relaxed">
+              Sign in to Publisher Studio, to manage your publications and publish editions.
+            </p>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-3 mt-6 md:mt-0 shrink-0">
+            <a href="studio.html" class="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-medium shadow-lg shadow-primary/20 transition-colors">
+              Open Publisher Studio
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="bg-white dark:bg-background-dark border-t border-slate-200 dark:border-slate-800 pt-12 pb-8 mt-auto">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4 pt-8 border-t border-slate-200 dark:border-slate-800">
+          <p class="text-xs text-slate-500">© Rotaract South Asia MDIO. All rights reserved.</p>
+          <div class="flex items-center gap-4 text-xs text-slate-500">
+            <span class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              RSA Publications Hub
+            </span>
+            <a href="admin.html" class="hover:text-primary transition-colors">Platform admin</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Reader overlay -->
+  <div id="reader-view" class="fixed inset-0 z-50 bg-reader-bg hidden flex-col touch-manipulation">
+    <div id="flipbook-wrapper" class="flex-1 flex items-center justify-center w-full min-h-0 overflow-auto overscroll-y-contain p-2 sm:p-4 pb-[calc(6.75rem+env(safe-area-inset-bottom,0px))] sm:pb-4 max-h-[100dvh]" style="min-width: 0; -webkit-overflow-scrolling: touch;">
+      <div id="flipbook-container" class="relative transition-transform duration-300 ease-out" style="will-change: transform;"></div>
+    </div>
+    <!-- Optional flip sound: add lib/page-flip.mp3 and a <source> if you want audio (viewer.js handles missing audio). -->
+    <audio id="page-flip-sound" preload="none" aria-hidden="true"></audio>
+    <div class="absolute top-2 left-2 right-2 sm:top-4 sm:left-4 sm:right-4 z-20 flex flex-row items-start justify-between gap-2 pointer-events-none">
+      <div class="pointer-events-auto flex flex-col gap-2 min-w-0 max-w-[min(18rem,calc(100vw-5.5rem))]">
+        <button type="button" id="reader-close" class="inline-flex items-center gap-2 text-gray-200 hover:text-white bg-black/60 hover:bg-black/80 backdrop-blur-sm px-3 py-2.5 sm:py-2 rounded-lg border border-white/10 shadow-lg transition-all group w-fit min-h-[44px]">
+          <span class="material-icons text-xl group-hover:-translate-x-0.5 transition-transform">chevron_left</span>
+          <span class="text-sm font-semibold tracking-wide">Back</span>
+        </button>
+        <div id="reader-name-card" class="bg-black/60 backdrop-blur-sm rounded-lg border border-white/10 shadow-lg px-4 py-3 w-fit max-w-full">
+          <h1 id="reader-title" class="text-white text-sm font-bold leading-tight">Publication</h1>
+          <span id="reader-edition" class="text-gray-400 text-xs font-medium"></span>
+        </div>
+      </div>
+      <a id="reader-download-link" href="#" target="_blank" rel="noopener" class="pointer-events-auto inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/10 text-gray-200 hover:text-white shadow-lg transition-all shrink-0" title="Download PDF">
+        <span class="material-icons text-[22px]">download</span>
+      </a>
+    </div>
+    <footer class="fixed sm:absolute inset-x-0 bottom-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:bottom-4 z-30 flex justify-center px-2 sm:px-4 pointer-events-none pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-0">
+      <div class="pointer-events-auto bg-black/80 backdrop-blur-md rounded-t-2xl sm:rounded-2xl shadow-2xl border border-white/10 border-b-0 sm:border-b px-2 py-2 sm:px-4 sm:py-2.5 flex items-center gap-2 sm:gap-5 flex-wrap sm:flex-nowrap justify-center max-w-full w-full sm:w-auto">
+        <div class="flex items-center gap-0.5 sm:gap-2 border-r border-white/10 pr-2 sm:pr-4">
+          <button type="button" id="reader-first" class="text-gray-400 hover:text-white transition-colors min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-1 rounded-md hover:bg-white/10" title="First page (Home)"><span class="material-icons text-xl">first_page</span></button>
+          <button type="button" id="reader-prev" class="text-gray-400 hover:text-white transition-colors min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-1 rounded-md hover:bg-white/10" title="Previous (←)"><span class="material-icons text-xl">chevron_left</span></button>
+          <span id="reader-page-info" class="text-xs font-bold text-white min-w-[3.5rem] text-center tabular-nums">1 / 1</span>
+          <span class="text-xs text-gray-400 font-medium tabular-nums">/ <span id="reader-total-pages">1</span></span>
+          <button type="button" id="reader-next" class="text-gray-400 hover:text-white transition-colors min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-1 rounded-md hover:bg-white/10" title="Next (→)"><span class="material-icons text-xl">chevron_right</span></button>
+          <button type="button" id="reader-last" class="text-gray-400 hover:text-white transition-colors min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-1 rounded-md hover:bg-white/10" title="Last page (End)"><span class="material-icons text-xl">last_page</span></button>
+        </div>
+        <div class="flex items-center gap-1.5 border-r border-white/10 pr-2 sm:pr-4">
+          <label for="reader-page-jump" class="sr-only">Go to page</label>
+          <span class="text-[10px] uppercase tracking-wide text-gray-500 hidden sm:inline">Go to</span>
+          <input type="number" id="reader-page-jump" min="1" value="1" class="w-11 sm:w-14 min-h-9 rounded-md bg-white/10 border border-white/15 text-white text-xs py-1.5 px-1 text-center tabular-nums focus:ring-1 focus:ring-primary focus:border-primary" title="Page number, then Enter"/>
+          <button type="button" id="reader-page-jump-go" class="text-gray-400 hover:text-white text-xs font-medium min-h-9 px-2.5 py-1 rounded-md hover:bg-white/10 inline-flex items-center justify-center" title="Go to page">Go</button>
+        </div>
+        <div class="flex items-center gap-1 sm:gap-2 flex-wrap justify-center">
+          <button type="button" id="reader-zoom-out" class="text-gray-400 hover:text-white transition-colors min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-1 rounded-md hover:bg-white/10" title="Zoom out"><span class="material-icons text-lg">remove</span></button>
+          <div class="flex items-center gap-0.5">
+            <label for="reader-zoom-input" class="sr-only">Zoom percent (50–250, Enter to apply)</label>
+            <input type="number" id="reader-zoom-input" min="50" max="250" step="1" value="100" inputmode="numeric" autocomplete="off" class="w-[3.25rem] min-h-9 rounded-md bg-white/10 border border-white/15 text-white text-xs py-1 px-0.5 text-center tabular-nums focus:ring-1 focus:ring-primary focus:border-primary" title="Zoom % (Enter or leave field to apply)"/>
+            <span class="text-[11px] text-gray-400 font-medium tabular-nums select-none" aria-hidden="true">%</span>
+          </div>
+          <button type="button" id="reader-zoom-in" class="text-gray-400 hover:text-white transition-colors min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-1 rounded-md hover:bg-white/10" title="Zoom in"><span class="material-icons text-lg">add</span></button>
+          <button type="button" id="reader-fit-reset" class="text-gray-400 hover:text-white transition-colors min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-1 rounded-md hover:bg-white/10 border-l border-white/10 pl-2 sm:pl-3 ml-0.5 sm:ml-1" title="Reset zoom to 100%"><span class="material-icons text-lg">fit_screen</span></button>
+          <button type="button" id="reader-fullscreen" class="text-gray-400 hover:text-white transition-colors min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center p-1 rounded-md hover:bg-white/10" title="Fullscreen"><span class="material-icons text-lg">fullscreen</span></button>
+        </div>
+      </div>
+      <span class="sr-only">Keyboard: arrows or PgUp/PgDn turn pages, Home, End, Escape closes.</span>
+    </footer>
+    <div id="reader-loading" class="absolute inset-0 z-10 hidden flex-col items-center justify-center bg-reader-bg/95">
+      <p class="text-gray-200 mb-2 text-sm font-medium">Loading publication…</p>
+      <p id="reader-loading-detail" class="text-gray-500 text-xs mb-4 min-h-[1rem]"></p>
+      <div class="w-52 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+        <div id="reader-progress" class="h-full bg-primary rounded-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+    </div>
+    <p id="reader-error" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-400 hidden z-20 text-center px-4"></p>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js" defer></script>
+  <script type="module" src="js/main.js" defer></script>
+</body>
+</html>
