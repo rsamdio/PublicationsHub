@@ -2,13 +2,13 @@
 
 A no-build web app for a multi-tenant digital library.
 
-- **Readers** open [`index.html`](index.html): browse **published** editions from the **Realtime Database** mirror—**featured** plus **all publications** (series grouped by `series_id`)—and read flipbooks **without signing in**. [`publication.html?s=…`](publication.html) is the **publication (series) detail** page with editions and the same reader (legacy `?series=` / `?id=` still work). Old `publications.html` bookmarks redirect to the home page ([`_redirects`](_redirects)).
+- **Readers** open [`index.html`](index.html): browse **published** editions from the **Realtime Database** mirror—**featured** plus **all publications** (series grouped by `series_id`)—and read flipbooks **without signing in**. **`publication?s=…`** (pretty URL; source file [`publication.html`](publication.html)) is the **publication (series) detail** page with editions and the same reader (legacy `?series=` / `?id=` and `/publication.html` still work). Old `publications.html` bookmarks redirect to the home page ([`_redirects`](_redirects)).
 - **Editors / owners** open [`studio.html`](studio.html): Google sign-in, **Library** tab (publications → editions; **covers**, **issue dates**, uploads, deletes) and **Team** tab (owners invite by name+email; **one publisher per user**).
 - **Platform staff** open [`admin.html`](admin.html): **Publishers** (new publisher, edit name, stepped browse: org → publications/team → editions), **Catalog** (*all* vs *featured*), **Platform team** (invite staff, pending invites + revoke, current staff + remove, RTDB mirror rebuild for full admins). **Managers** have a narrower callable surface than full **admins** (see `tier` on `platform_admins`).
 
 Reader stack: PDF.js + StPageFlip. UI: Inter, blue primary, dark surfaces.
 
-**URLs (static deployment):** see **Public URL contract** in [`AGENTS.md`](AGENTS.md). New links use **`publication.html?s=<canonicalId>#/r/<ref>`** (short query + hash); **`?series=`** and **`#/read/`** remain supported for old bookmarks. Publisher **dashboard** still embeds the reader on the same page with a hash.
+**URLs (static deployment):** see **Public URL contract** in [`AGENTS.md`](AGENTS.md). New links use **`publication?s=<canonicalId>#/r/<ref>`** (short query + hash); **`?series=`** and **`#/read/`** remain supported for old bookmarks. Publisher **dashboard** still embeds the reader on the same page with a hash.
 
 ## Run locally
 
@@ -137,7 +137,7 @@ Prefer the `download_url` / `raw.githubusercontent.com` URL returned by the GitH
 ## Production checklist (before go-live)
 
 1. **`js/config.js`** — Firebase web config and **`databaseURL`** match the production project; **Authentication → Authorized domains** includes your live hostname (and `localhost` only if you still test there).
-2. **SEO / links** — Canonical and Open Graph URLs in `index.html`, `studio.html`, `publication.html`, and `admin.html` use your real site origin (currently `https://publications.rsamdio.org`). Update if the primary domain differs.
+2. **SEO / links** — Canonical and Open Graph URLs in `index.html`, `studio.html`, the publication page (`/publication` in meta; file `publication.html`), and `admin.html` use your real site origin (currently `https://publications.rsamdio.org`). Update if the primary domain differs.
 3. **`robots.txt`** — Uses path rules only; if you add a **sitemap**, reference it here.
 4. **`_redirects`** — Netlify: confirm primary-domain redirect rules match production (see file comments).
 5. **Cloud Functions + rules** — Deployed (`firebase deploy --only functions,firestore:rules,firestore:indexes,database` as needed). **Secrets**: `GITHUB_TOKEN` in Secret Manager; **`functions/.env`** on the machine used to deploy (owner/repo/branch) — never commit `.env`.

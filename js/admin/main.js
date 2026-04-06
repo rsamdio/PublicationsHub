@@ -189,7 +189,7 @@ function setMsg(el, text, isError) {
 
 function readerHrefForEdition(pub) {
   const eid = pub?.id != null ? String(pub.id).trim() : '';
-  if (!eid) return 'publication.html';
+  if (!eid) return 'publication';
   const sid = getSeriesCanonicalIdForPublication(pub) || eid;
   return `${buildSeriesPagePath(sid)}${formatReadLocationHash(eid)}`;
 }

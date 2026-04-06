@@ -1,8 +1,11 @@
 /**
- * Public URL contract (static hosting, no server rewrites).
+ * Public URL contract (static hosting).
  * - Reader deep link: hash `#/r/<editionRef>` (short). Legacy `#/read/<editionRef>` still parsed.
- * - Publication page: `publication.html?s=<canonicalId>`. Legacy `?series=` and `?id=` still read.
+ * - Publication page: `publication?s=<canonicalId>` (pretty path; file is `publication.html`). Legacy `?series=` and `?id=` still read.
  */
+
+/** Path segment for the series shell (no `.html` — Netlify serves `publication.html`). */
+export const PUBLICATION_PAGE_PATH = 'publication';
 
 /** Short query key for series / publication shell (canonical id). */
 export const SERIES_QUERY_PARAM = 's';
@@ -62,8 +65,8 @@ export function getSeriesCanonicalIdForPublication(pub) {
 /** Relative navigation target from the site root (same directory as index.html). */
 export function buildSeriesPagePath(canonicalId) {
   const id = canonicalId != null ? String(canonicalId).trim() : '';
-  if (!id) return 'publication.html';
-  return `publication.html?${SERIES_QUERY_PARAM}=${encodeURIComponent(id)}`;
+  if (!id) return PUBLICATION_PAGE_PATH;
+  return `${PUBLICATION_PAGE_PATH}?${SERIES_QUERY_PARAM}=${encodeURIComponent(id)}`;
 }
 
 /**
@@ -76,14 +79,14 @@ export function buildEditionDeepLink(editionId, seriesCanonicalId) {
   const base = typeof window !== 'undefined' ? window.location.href : 'http://localhost/';
   const eid = editionId != null ? String(editionId).trim() : '';
   if (!eid) {
-    const u = new URL('publication.html', base);
+    const u = new URL(PUBLICATION_PAGE_PATH, base);
     return u.href;
   }
   const sidRaw = seriesCanonicalId != null && String(seriesCanonicalId).trim()
     ? String(seriesCanonicalId).trim()
     : '';
   const sid = sidRaw || eid;
-  const u = new URL('publication.html', base);
+  const u = new URL(PUBLICATION_PAGE_PATH, base);
   u.searchParams.set(SERIES_QUERY_PARAM, sid);
   u.hash = formatReadLocationHash(eid);
   return u.href;

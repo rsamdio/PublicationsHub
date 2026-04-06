@@ -1,5 +1,5 @@
 /**
- * publication.html — single series hero + editions grid (series detail + reader).
+ * publication (publication.html) — single series hero + editions grid (series detail + reader).
  */
 import { fetchPublishedCatalog, fetchPublishedSeriesMap } from './db-public.js';
 import { groupEditionsIntoSeries, findSeriesGroup } from './catalog-series.js';

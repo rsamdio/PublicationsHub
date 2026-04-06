@@ -1,8 +1,14 @@
 # Redirect default Netlify subdomain to primary domain
 https://publicationshub.netlify.app/* https://publications.rsamdio.org/:splat 301!
 
-# Old series detail URL → publication.html (query string preserved)
-/series.html /publication.html 301
+# Pretty URL for series shell (serves publication.html; query + hash unchanged)
+/publication /publication.html 200
+
+# Legacy .html path → canonical pretty URL (query string preserved)
+/publication.html /publication 301
+
+# Old series detail URL → pretty publication path (query string preserved)
+/series.html /publication 301
 
 # Standalone publications list removed — full series grid lives on index
 /publications.html /index.html 301

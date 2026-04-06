@@ -20,9 +20,11 @@ Implementations live in [`js/url-routes.js`](js/url-routes.js); [`js/viewer.js`]
 | Kind | Shape | Notes |
 |------|--------|--------|
 | **Reader** | `#/r/<editionRef>` | Short hash. **Legacy:** `#/read/<editionRef>` (still parsed). `editionRef` = URL-encoded edition **id** or optional mirrored **slug**. Alternate: `#read/…` (no slash after `#`). |
-| **Publication page** | `publication.html?s=<canonicalId>` | Short query key **`s`**. **Legacy:** `?series=` and `?id=`. **Old path:** `series.html` → 301 to `publication.html` ([`_redirects`](_redirects)). |
-| **Library home** | `index.html` (`#all-publications` for the series grid) | Featured + all publications + reader overlay. Edition opens **redirect** to `publication.html?s=…#/r/…` via [`js/shelf.js`](js/shelf.js) (`buildEditionDeepLink` + `getSeriesCanonicalIdForPublication`). |
-| **Canonical read URL** | `publication.html?s=<canonicalId>#/r/<editionRef>` | Same for home grid, shares, and bookmarks (standalone editions use `s=<editionId>`). Publisher **dashboard** still opens the reader on `studio.html` with hash only. |
+| **Publication page** | `publication?s=<canonicalId>` (pretty path; file [`publication.html`](publication.html)) | Short query key **`s`**. **Legacy:** `?series=` and `?id=`, and `/publication.html` → 301 to `/publication` ([`_redirects`](_redirects)). **Old path:** `series.html` → 301 to `/publication`. |
+| **Library home** | `index.html` (`#all-publications` for the series grid) | Featured + all publications + reader overlay. Edition opens **redirect** to `publication?s=…#/r/…` via [`js/shelf.js`](js/shelf.js) (`buildEditionDeepLink` + `getSeriesCanonicalIdForPublication`). |
+| **Canonical read URL** | `publication?s=<canonicalId>#/r/<editionRef>` | Same for home grid, shares, and bookmarks (standalone editions use `s=<editionId>`). Publisher **dashboard** still opens the reader on `studio.html` with hash only. |
+
+**Local static servers:** `publication?…` may 404 unless the host maps it to `publication.html` (Netlify does via [`_redirects`](_redirects)). For local testing without that rewrite, open **`publication.html?…`** directly or use **Netlify Dev**.
 
 ## Authoritative paths (product work)
 
@@ -32,7 +34,7 @@ Implementations live in [`js/url-routes.js`](js/url-routes.js); [`js/viewer.js`]
 | `publication.html` | One series + editions + reader overlay. |
 | `js/catalog-series.js` | Group flat editions by `series_id` (or single edition key). |
 | `js/url-routes.js` | **Canonical URL builders + `series` / `id` query parsing.** |
-| `js/series-detail.js` | `publication.html?s=` hero + grid + reader wiring. |
+| `js/series-detail.js` | `publication?s=` hero + grid + reader wiring. |
 | `studio.html` | Publisher studio shell + upload modal + reader overlay. |
 | `admin.html` | Platform admin UI. |
 | `js/main.js` | Explore-only: nav, shelf bootstrap, reader controls. |
