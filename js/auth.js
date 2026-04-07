@@ -50,8 +50,7 @@ export function onAuthStateChange(callback) {
       callback(user ? 'SIGNED_IN' : 'SIGNED_OUT', user);
     });
     return { unsubscribe: () => unsub() };
-  } catch (e) {
-    console.warn('[auth]', e);
+  } catch (_e) {
     return { unsubscribe: () => {} };
   }
 }

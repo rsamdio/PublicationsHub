@@ -1303,19 +1303,14 @@ uploadForm?.addEventListener('submit', async (e) => {
   }
   let coverUrl = null;
   if (up.path) {
-    const { blob: coverBlob, error: coverGenErr } = await renderFirstPageWebpFromPdfFile(file, {});
-    if (coverGenErr) {
-      console.warn('PubHub cover preview:', coverGenErr);
-    }
+    const { blob: coverBlob } = await renderFirstPageWebpFromPdfFile(file, {});
     if (coverBlob) {
       const cup = await uploadEditionCoverWebp(coverBlob, {
         publisherId: currentPublisherId,
         seriesId,
         pdfRepoPath: up.path
       });
-      if (cup.error) {
-        console.warn('PubHub cover upload:', cup.error);
-      } else {
+      if (!cup.error) {
         coverUrl = cup.download_url;
       }
     }

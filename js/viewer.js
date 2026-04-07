@@ -76,7 +76,8 @@ let flipOpChain = Promise.resolve();
 
 function enqueueReaderOp(fn) {
   flipOpChain = flipOpChain.then(() => fn()).catch((err) => {
-    console.warn('PubHub reader:', err);
+    getReaderElements();
+    setReaderError(err?.message || 'Reader failed');
   });
   return flipOpChain;
 }
