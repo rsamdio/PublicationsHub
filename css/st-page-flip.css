@@ -63,3 +63,12 @@
   left: 0;
   top: 0;
 }
+
+/* Reader: allow pinch and horizontal pan; default StPageFlip uses pan-y only. */
+#reader-view:not(.reader-zoomed) .stf__parent {
+  touch-action: manipulation !important;
+}
+
+#reader-view.reader-zoomed .stf__parent {
+  touch-action: none !important;
+}

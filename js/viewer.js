@@ -5,6 +5,7 @@
  * - PDFDocumentProxy.destroy() + per-page cleanup() to release workers/memory.
  * - No full PDF re-render on window resize/fullscreen (that caused stuck loading and blocked reopen).
  * - Remount #flipbook-container after PageFlip.destroy() (the library removes the host node from the DOM).
+ * - Pan/zoom: #flipbook-pan uses translate+scale; pinch + one-finger pan (zoomed), Ctrl+wheel zoom, wheel pan when zoomed, mouse drag when zoomed.
  */
 import { formatReadLocationHash, parseReadRefFromHash, isReaderLocationHash } from './url-routes.js';
 
@@ -44,8 +45,16 @@ let readerProgress = null;
 let readerLoadingDetail = null;
 let readerError = null;
 let readerPageInfo = null;
-let readerTotalPagesEl = null;
 let zoomLevel = 1;
+let panX = 0;
+let panY = 0;
+let gesturesBound = false;
+/** @type {{ d0: number, z0: number } | null} */
+let pinchState = null;
+/** @type {{ x: number, y: number, ox: number, oy: number } | null} */
+let panTouch = null;
+/** @type {{ pointerId: number, x: number, y: number, ox: number, oy: number } | null} */
+let mousePan = null;
 let pageWidth = 400;
 let pageHeight = 560;
 const MIN_ZOOM = 0.5;
@@ -82,21 +91,173 @@ function enqueueReaderOp(fn) {
   return flipOpChain;
 }
 
+function ensureFlipbookPanLayer() {
+  const wrapper = document.getElementById('flipbook-wrapper');
+  if (!wrapper) return null;
+  let pan = document.getElementById('flipbook-pan');
+  let el = document.getElementById('flipbook-container');
+  if (!pan) {
+    pan = document.createElement('div');
+    pan.id = 'flipbook-pan';
+    pan.className = 'relative transition-transform duration-300 ease-out will-change-transform';
+    if (el && el.parentNode === wrapper) {
+      wrapper.insertBefore(pan, el);
+      pan.appendChild(el);
+    } else {
+      wrapper.appendChild(pan);
+    }
+  } else if (el && el.parentNode !== pan && el.parentNode) {
+    pan.appendChild(el);
+  }
+  return pan;
+}
+
 /**
  * StPageFlip.destroy() calls block.remove(), which detaches #flipbook-container from the document.
- * Recreate it under #flipbook-wrapper so the next openReader() can run.
+ * Recreate it under #flipbook-pan → #flipbook-wrapper so the next openReader() can run.
  */
 function ensureFlipbookContainerMounted() {
   const wrapper = document.getElementById('flipbook-wrapper');
   if (!wrapper) return null;
+  ensureFlipbookPanLayer();
+  const pan = document.getElementById('flipbook-pan');
   let el = document.getElementById('flipbook-container');
   if (el && el.isConnected) return el;
   el = document.createElement('div');
   el.id = 'flipbook-container';
-  el.className = 'relative transition-transform duration-300 ease-out';
-  el.style.willChange = 'transform';
-  wrapper.appendChild(el);
+  el.className = 'relative';
+  (pan || wrapper).appendChild(el);
   return el;
+}
+
+function touchDistance(a, b) {
+  const dx = a.clientX - b.clientX;
+  const dy = a.clientY - b.clientY;
+  return Math.hypot(dx, dy);
+}
+
+function syncReaderZoomClass() {
+  const rv = document.getElementById('reader-view');
+  if (!rv) return;
+  rv.classList.toggle('reader-zoomed', zoomLevel > 1.02);
+}
+
+function bindReaderPointerGesturesOnce() {
+  if (gesturesBound) return;
+  const wrapper = document.getElementById('flipbook-wrapper');
+  if (!wrapper) return;
+  gesturesBound = true;
+
+  wrapper.addEventListener(
+    'wheel',
+    (e) => {
+      if (!isReaderOpen()) return;
+      const path = e.composedPath();
+      if (
+        path.some((n) => {
+          const id = n && typeof n === 'object' && 'id' in n ? /** @type {Element} */ (n).id : '';
+          return id === 'reader-page-jump' || id === 'reader-zoom-input';
+        })
+      ) {
+        return;
+      }
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.06 : 1 / 1.06;
+        setZoom(zoomLevel * factor);
+        return;
+      }
+      if (zoomLevel > 1.02) {
+        e.preventDefault();
+        panX -= e.deltaX;
+        panY -= e.deltaY;
+        applyTransform();
+      }
+    },
+    { passive: false }
+  );
+
+  wrapper.addEventListener(
+    'touchstart',
+    (e) => {
+      if (!isReaderOpen()) return;
+      if (e.touches.length >= 2) {
+        panTouch = null;
+        const a = e.touches[0];
+        const b = e.touches[1];
+        pinchState = { d0: touchDistance(a, b), z0: zoomLevel };
+      } else if (e.touches.length === 1 && zoomLevel > 1.02) {
+        pinchState = null;
+        const t = e.touches[0];
+        panTouch = { x: t.clientX, y: t.clientY, ox: panX, oy: panY };
+      }
+    },
+    { passive: true }
+  );
+
+  wrapper.addEventListener(
+    'touchmove',
+    (e) => {
+      if (!isReaderOpen()) return;
+      if (pinchState && e.touches.length >= 2) {
+        e.preventDefault();
+        const a = e.touches[0];
+        const b = e.touches[1];
+        const d = touchDistance(a, b);
+        if (pinchState.d0 > 1 && d > 0) {
+          setZoom(pinchState.z0 * (d / pinchState.d0));
+        }
+        return;
+      }
+      if (panTouch && e.touches.length === 1 && zoomLevel > 1.02) {
+        e.preventDefault();
+        const t = e.touches[0];
+        panX = panTouch.ox + (t.clientX - panTouch.x);
+        panY = panTouch.oy + (t.clientY - panTouch.y);
+        applyTransform();
+      }
+    },
+    { passive: false }
+  );
+
+  wrapper.addEventListener('touchend', (e) => {
+    if (e.touches.length < 2) pinchState = null;
+    if (e.touches.length === 0) panTouch = null;
+  });
+
+  wrapper.addEventListener('touchcancel', () => {
+    pinchState = null;
+    panTouch = null;
+  });
+
+  wrapper.addEventListener('pointerdown', (e) => {
+    if (!isReaderOpen() || e.pointerType !== 'mouse' || e.button !== 0) return;
+    if (zoomLevel <= 1.02) return;
+    const panLayer = document.getElementById('flipbook-pan');
+    if (!panLayer || !panLayer.contains(e.target)) return;
+    e.preventDefault();
+    mousePan = { pointerId: e.pointerId, x: e.clientX, y: e.clientY, ox: panX, oy: panY };
+    try {
+      wrapper.setPointerCapture(e.pointerId);
+    } catch (_) {}
+  });
+
+  wrapper.addEventListener('pointermove', (e) => {
+    if (!mousePan || e.pointerId !== mousePan.pointerId) return;
+    panX = mousePan.ox + (e.clientX - mousePan.x);
+    panY = mousePan.oy + (e.clientY - mousePan.y);
+    applyTransform();
+  });
+
+  const endMousePan = (e) => {
+    if (!mousePan || e.pointerId !== mousePan.pointerId) return;
+    mousePan = null;
+    try {
+      wrapper.releasePointerCapture(e.pointerId);
+    } catch (_) {}
+  };
+  wrapper.addEventListener('pointerup', endMousePan);
+  wrapper.addEventListener('pointercancel', endMousePan);
 }
 
 export function readEditionRefFromHash() {
@@ -139,7 +300,6 @@ function getReaderElements() {
   readerLoadingDetail = document.getElementById('reader-loading-detail');
   readerError = document.getElementById('reader-error');
   readerPageInfo = document.getElementById('reader-page-info');
-  readerTotalPagesEl = document.getElementById('reader-total-pages');
 }
 
 function bindReaderZoomInputOnce() {
@@ -212,6 +372,14 @@ function hideReaderView() {
     clearTimeout(visualViewportResizeTimer);
     visualViewportResizeTimer = null;
   }
+  pinchState = null;
+  panTouch = null;
+  mousePan = null;
+  panX = 0;
+  panY = 0;
+  if (readerView) readerView.classList.remove('reader-zoomed');
+  const panEl = document.getElementById('flipbook-pan');
+  if (panEl) panEl.style.transform = '';
   tearDownReaderContent();
   if (readerView) {
     readerView.classList.add('hidden');
@@ -310,9 +478,10 @@ function playFlipSound() {
 
 function applyTransform() {
   getReaderElements();
-  if (!flipbookContainer) return;
-  flipbookContainer.style.transform = `scale(${zoomLevel})`;
-  flipbookContainer.style.transformOrigin = 'center center';
+  const pan = document.getElementById('flipbook-pan');
+  if (!pan) return;
+  pan.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
+  pan.style.transformOrigin = 'center center';
 }
 
 function getPageFlipCtor() {
@@ -357,6 +526,8 @@ function bindReaderKeyboardOnce() {
       }, 120);
     });
   }
+  bindReaderPointerGesturesOnce();
+
   document.addEventListener('keydown', (e) => {
     if (!isReaderOpen()) return;
     const tag = (e.target && e.target.tagName) || '';
@@ -410,7 +581,6 @@ async function buildFlipFromPdfDoc(pdfDoc, myLoad) {
     setReaderError('PDF has no pages');
     return;
   }
-  if (readerTotalPagesEl) readerTotalPagesEl.textContent = String(numPages);
 
   await new Promise((r) => requestAnimationFrame(r));
   if (myLoad !== loadGeneration) return;
@@ -500,7 +670,6 @@ function updatePageInfo() {
   const current = flipBook.getCurrentPageIndex();
   const total = flipBook.getPageCount();
   if (readerPageInfo) readerPageInfo.textContent = `${current + 1} / ${total}`;
-  if (readerTotalPagesEl) readerTotalPagesEl.textContent = String(total);
   applyTransform();
 }
 
@@ -549,15 +718,22 @@ export function openReader(publication) {
   }
 
   zoomLevel = 1;
+  panX = 0;
+  panY = 0;
+  pinchState = null;
+  panTouch = null;
+  mousePan = null;
+  syncReaderZoomClass();
   const zinOpen = document.getElementById('reader-zoom-input');
   if (zinOpen) zinOpen.value = '100';
   if (readerPageInfo) readerPageInfo.textContent = '—';
-  if (readerTotalPagesEl) readerTotalPagesEl.textContent = '—';
   const jump = document.getElementById('reader-page-jump');
   if (jump) {
     jump.value = '1';
     jump.removeAttribute('max');
   }
+
+  applyTransform();
 
   setReaderLocationHash(publication);
 
@@ -620,6 +796,11 @@ export function openReader(publication) {
 
 function setZoom(value) {
   zoomLevel = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
+  if (zoomLevel <= 1.02) {
+    panX = 0;
+    panY = 0;
+  }
+  syncReaderZoomClass();
   applyTransform();
   const pct = Math.round(zoomLevel * 100);
   const zin = document.getElementById('reader-zoom-input');
@@ -656,6 +837,11 @@ export function zoomOut() {
 
 /** Reset zoom to 100% (book size follows viewport; use after resize relayout for best fit). */
 export function resetReaderZoom() {
+  panX = 0;
+  panY = 0;
+  pinchState = null;
+  panTouch = null;
+  mousePan = null;
   setZoom(1);
 }
 
