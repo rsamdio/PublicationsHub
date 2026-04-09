@@ -6,7 +6,7 @@ import { config } from './config.js';
 import { fbAuth, fbFunctions } from './firebase-init.js';
 
 /** Same cap as `MAX_PDF_BYTES` in functions/index.js */
-const MAX_PDF_BYTES = 75 * 1024 * 1024;
+const MAX_PDF_BYTES = 65 * 1024 * 1024;
 /** Multipart POST to `uploadPublicationPdf` must stay under Cloud Functions HTTP body limit (~32 MiB). */
 const MULTIPART_PDF_MAX_BYTES = 28 * 1024 * 1024;
 

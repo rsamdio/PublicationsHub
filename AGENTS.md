@@ -48,7 +48,7 @@ Implementations live in [`js/url-routes.js`](js/url-routes.js); [`js/viewer.js`]
 | `js/db-admin.js` | RTDB: `platformAdmins`, `platform/publishers`, `platform/stats`. |
 | `js/db.js` | Re-exports `db-public` for backward compatibility. |
 | `js/firebase-init.js` | `initializeApp`, Auth, Firestore, **Realtime Database** (`databaseURL`), **Functions (`us-central1`)**. |
-| `js/storage.js` | `uploadEditionPdf` → HTTPS `uploadPublicationPdf` (≤~28 MB) or Storage signed URL + `finalizeEditionPdfUpload` (up to 75 MB); R2 credentials server-side only. |
+| `js/storage.js` | `uploadEditionPdf` → HTTPS `uploadPublicationPdf` (≤~28 MB) or Storage signed URL + `finalizeEditionPdfUpload` (up to 65 MB); R2 credentials server-side only. |
 | `js/config.js` | Firebase web config only; optional `uploadPublicationPdfUrl` for emulator. |
 | `database.rules.json` | RTDB security; deploy with `firebase deploy --only database`. |
 | `firestore.rules` / `firestore.indexes.json` | Writes allowed where needed; **reads denied** on mirrored docs. |
@@ -65,7 +65,7 @@ Implementations live in [`js/url-routes.js`](js/url-routes.js); [`js/viewer.js`]
 index.html → main.js → shelf.js → db-public.js → fbRtdb ← firebase-init.js ← config.js
                               → viewer.js
 
-studio.html → dashboard/main.js → db-publisher.js (RTDB read + Firestore write), storage.js → `uploadPublicationPdf` (≤~28 MB) or `prepareEditionPdfUpload` / `finalizeEditionPdfUpload` (to R2), viewer.js
+studio.html → dashboard/main.js → db-publisher.js (RTDB read + Firestore write), storage.js → `uploadPublicationPdf` (≤~28 MB) or `prepareEditionPdfUpload` / `finalizeEditionPdfUpload` (to R2, up to 65 MB), viewer.js
 
 admin.html → admin/main.js → db-admin.js (RTDB), httpsCallable (incl. backfillMirror)
 ```

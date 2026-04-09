@@ -32,13 +32,13 @@ Paths are unchanged for compatibility with Firestore `pdf_repo_path`:
 
 **Publisher studio** POSTs multipart form data to **`uploadPublicationPdf`**. The function verifies auth and membership, then **`PutObject`**s to R2.
 
-## Large PDFs (up to 75 MB)
+## Large PDFs (up to 65 MB)
 
 Same as before: **`prepareEditionPdfUpload`** returns a signed **Firebase Storage** PUT URL; the client uploads the file; **`finalizeEditionPdfUpload`** streams the object from Storage to R2 and deletes the temp file. Deploy **`storage.rules`** and bucket **CORS** for PUT (see below).
 
 ## Limits
 
-- **Up to 75 MB** per PDF (`MAX_PDF_BYTES` in `functions/index.js`).
+- **Up to 65 MB** per PDF (`MAX_PDF_BYTES` in `functions/index.js`).
 - **Direct multipart POST** stays under the Gen2 HTTP body limit (~32 MiB); larger files use Storage + finalize.
 
 ### One-time Firebase Storage setup (large PDFs)

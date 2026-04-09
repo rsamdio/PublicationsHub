@@ -88,7 +88,7 @@ const {
 } = require('./r2.js');
 
 /** Max PDF size after upload (Storage path); multipart POST is capped lower (Gen2 HTTP ~32 MiB). */
-const MAX_PDF_BYTES = 75 * 1024 * 1024;
+const MAX_PDF_BYTES = 65 * 1024 * 1024;
 /** Larger PDFs must use `prepareEditionPdfUpload` + Storage signed URL + `finalizeEditionPdfUpload`. */
 const MULTIPART_PDF_MAX_BYTES = 28 * 1024 * 1024;
 const MAX_COVER_BYTES = 4 * 1024 * 1024;
