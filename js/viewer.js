@@ -62,10 +62,17 @@ const MAX_ZOOM = 2.5;
 const MIN_ZOOM_PCT = 50;
 const MAX_ZOOM_PCT = 250;
 const ZOOM_STEP = 0.25;
-const PAGE_ASPECT = 400 / 560;
 
 /** Invalidates in-flight openReader work when the user closes or opens another edition. */
 let loadGeneration = 0;
+
+/** Skip page-flip sound on first `flip` after open (library may emit an initial flip). */
+let lastFlipSoundPageIndex = -1;
+
+let downloadClickBound = false;
+
+/** @type {AudioContext | null} */
+let flipAudioCtx = null;
 
 /** Cached PDF for resize relayout (destroyed on close). */
 let activePdfDoc = null;
@@ -288,7 +295,20 @@ export function tryOpenReaderFromHash(resolve) {
     return;
   }
   const pub = typeof resolve === 'function' ? resolve(ref) : null;
-  if (pub) openReader(pub);
+  if (!pub) return;
+
+  // RTDB (studio/org mirror) can emit many times per second; reopening would tear down PDF.js + PageFlip each time.
+  if (isReaderOpen() && currentPublication) {
+    const sameId = String(pub.id || '').trim() === String(currentPublication.id || '').trim();
+    const samePdf = String(pub.pdf_url || '').trim() === String(currentPublication.pdf_url || '').trim();
+    if (sameId && samePdf && String(pub.id || '').trim()) {
+      getReaderElements();
+      const hasFlipbook = !!flipBook;
+      const hasErr = !!(readerError && !readerError.classList.contains('hidden'));
+      if (hasFlipbook || !hasErr) return;
+    }
+  }
+  openReader(pub);
 }
 
 function getReaderElements() {
@@ -362,6 +382,7 @@ function tearDownReaderContent() {
     activePdfDoc = null;
   }
   currentPublication = null;
+  lastFlipSoundPageIndex = -1;
 }
 
 function hideReaderView() {
@@ -391,7 +412,11 @@ function hideReaderView() {
   }
 }
 
-function getViewportPageSize() {
+/**
+ * Largest page slot (CSS px) that fits the wrapper and matches this PDF page’s aspect ratio.
+ * Wide viewports: each page may use up to half the available width (spread).
+ */
+function getViewportPageSizeForPdf(pdfW, pdfH) {
   const wrapper = document.getElementById('flipbook-wrapper');
   if (!wrapper) return { pageWidth: 400, pageHeight: 560 };
   const paddingX = 12;
@@ -400,17 +425,24 @@ function getViewportPageSize() {
   const availH = Math.max(0, wrapper.clientHeight - paddingY * 2);
   const isNarrow = typeof window !== 'undefined' && window.innerWidth < 768;
 
+  const pw = Math.max(1, pdfW);
+  const ph = Math.max(1, pdfH);
+
   if (isNarrow) {
-    const pageW = Math.max(160, availW);
-    const pageH = Math.max(200, Math.min(availH, pageW / PAGE_ASPECT));
-    return { pageWidth: pageW, pageHeight: pageH };
+    const maxW = Math.max(160, availW);
+    const maxH = Math.max(200, availH);
+    let scale = Math.min(maxW / pw, maxH / ph);
+    const minScale = Math.max(160 / pw, 200 / ph);
+    if (scale < minScale) scale = minScale;
+    return { pageWidth: pw * scale, pageHeight: ph * scale };
   }
 
-  const w = Math.max(220, availW);
-  const h = Math.max(220, availH);
-  const pageH = Math.min(h, (w / 2) / PAGE_ASPECT);
-  const pageW = pageH * PAGE_ASPECT;
-  return { pageWidth: Math.max(200, pageW), pageHeight: Math.max(280, pageH) };
+  const maxWEach = Math.max(110, availW / 2);
+  const maxH = Math.max(220, availH);
+  let scale = Math.min(maxWEach / pw, maxH / ph);
+  const minScale = Math.max(200 / pw, 280 / ph);
+  if (scale < minScale) scale = minScale;
+  return { pageWidth: pw * scale, pageHeight: ph * scale };
 }
 
 /**
@@ -437,7 +469,7 @@ async function renderPageToDiv(pdfPage, pageNum, targetWidth, targetHeight) {
   inner.style.display = 'flex';
   inner.style.alignItems = 'center';
   inner.style.justifyContent = 'center';
-  inner.style.background = 'linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%)';
+  inner.style.background = 'transparent';
 
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d', { alpha: false });
@@ -445,8 +477,10 @@ async function renderPageToDiv(pdfPage, pageNum, targetWidth, targetHeight) {
   const sh = Math.floor(viewport.height * outputScale);
   canvas.width = Math.max(1, sw);
   canvas.height = Math.max(1, sh);
-  canvas.style.width = `${Math.floor(viewport.width)}px`;
-  canvas.style.height = `${Math.floor(viewport.height)}px`;
+  const cw = Math.round(viewport.width);
+  const ch = Math.round(viewport.height);
+  canvas.style.width = `${cw}px`;
+  canvas.style.height = `${ch}px`;
   canvas.style.display = 'block';
 
   const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
@@ -466,14 +500,157 @@ async function renderPageToDiv(pdfPage, pageNum, targetWidth, targetHeight) {
   return div;
 }
 
+function sanitizeFilenameSegment(s, maxLen) {
+  return String(s || '')
+    .replace(/[/\\?%*:|"<>]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLen);
+}
+
+/**
+ * `<<Edition title>> - <<Publication name>>.pdf` when series/publication title exists.
+ * @param {{ title?: string, series_title?: string | null }} pub
+ */
+function pdfDownloadFilename(pub) {
+  const edition = sanitizeFilenameSegment(pub?.title || 'edition', 100);
+  const publication = sanitizeFilenameSegment(
+    pub?.series_title || pub?.publication_name || '',
+    100
+  );
+  let base = publication ? `${edition} - ${publication}` : edition;
+  base = base || 'publication';
+  if (base.length > 180) base = base.slice(0, 180);
+  return base.toLowerCase().endsWith('.pdf') ? base : `${base}.pdf`;
+}
+
+/**
+ * @param {{ pdf_url?: string, title?: string }} pub
+ */
+async function downloadPdfFile(pub) {
+  const url = String(pub?.pdf_url || '').trim();
+  if (!url) throw new Error('No PDF to download');
+  const res = await fetch(url, { mode: 'cors', credentials: 'omit' });
+  if (!res.ok) throw new Error(`Download failed (${res.status})`);
+  const blob = await res.blob();
+  const name = pdfDownloadFilename(pub);
+  const objectUrl = URL.createObjectURL(blob);
+  try {
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = name;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+function bindReaderDownloadOnce() {
+  if (downloadClickBound) return;
+  const link = document.getElementById('reader-download-link');
+  if (!link) return;
+  downloadClickBound = true;
+  link.addEventListener('click', async (e) => {
+    e.preventDefault();
+    if (!isReaderOpen()) return;
+    const pub = currentPublication;
+    if (!pub?.pdf_url) return;
+    link.setAttribute('aria-busy', 'true');
+    link.classList.add('opacity-60', 'pointer-events-none');
+    try {
+      await downloadPdfFile(pub);
+    } catch (err) {
+      const msg =
+        err?.message ||
+        'Could not download the PDF. Check your connection and CORS on the PDF host (e.g. R2).';
+      window.alert(msg);
+    } finally {
+      link.removeAttribute('aria-busy');
+      link.classList.remove('opacity-60', 'pointer-events-none');
+    }
+  });
+}
+
+/** Web Audio fallback: soft rustle + brief low thump (no `<source>` on `#page-flip-sound`). */
+function playFlipSoundSynthesized() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!flipAudioCtx || flipAudioCtx.state === 'closed') {
+      flipAudioCtx = new AC();
+    }
+    const ctx = flipAudioCtx;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+
+    const t0 = ctx.currentTime;
+    const rustleDur = 0.14;
+    const sampleRate = ctx.sampleRate;
+    const n = Math.max(1, Math.floor(sampleRate * rustleDur));
+    const buffer = ctx.createBuffer(1, n, sampleRate);
+    const data = buffer.getChannelData(0);
+    let leak = 0;
+    for (let i = 0; i < n; i++) {
+      leak = 0.97 * leak + 0.03 * (Math.random() * 2 - 1);
+      data[i] = leak;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 2400;
+    lp.Q.value = 0.5;
+
+    const gRustle = ctx.createGain();
+    gRustle.gain.setValueAtTime(0.0001, t0);
+    gRustle.gain.exponentialRampToValueAtTime(0.085, t0 + 0.016);
+    gRustle.gain.exponentialRampToValueAtTime(0.0001, t0 + rustleDur);
+
+    noise.connect(lp);
+    lp.connect(gRustle);
+
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(92, t0);
+    osc.frequency.exponentialRampToValueAtTime(58, t0 + 0.038);
+    const gThump = ctx.createGain();
+    gThump.gain.setValueAtTime(0.0001, t0);
+    gThump.gain.exponentialRampToValueAtTime(0.035, t0 + 0.007);
+    gThump.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.048);
+    osc.connect(gThump);
+
+    const out = ctx.createGain();
+    out.gain.value = 0.78;
+    gRustle.connect(out);
+    gThump.connect(out);
+    out.connect(ctx.destination);
+
+    noise.start(t0);
+    noise.stop(t0 + rustleDur + 0.02);
+    osc.start(t0);
+    osc.stop(t0 + 0.055);
+  } catch (_) {}
+}
+
 function playFlipSound() {
   const audio = document.getElementById('page-flip-sound');
-  if (!audio) return;
-  try {
-    const clone = audio.cloneNode(true);
-    clone.volume = 0.3;
-    clone.play().catch(() => {});
-  } catch (_) {}
+  const hasSrc =
+    audio &&
+    (String(audio.getAttribute('src') || '').trim() !== '' ||
+      audio.querySelector('source[src]'));
+  if (hasSrc) {
+    try {
+      const clone = audio.cloneNode(true);
+      clone.volume = 0.28;
+      clone.play().catch(() => {});
+    } catch (_) {}
+    return;
+  }
+  playFlipSoundSynthesized();
 }
 
 function applyTransform() {
@@ -585,15 +762,17 @@ async function buildFlipFromPdfDoc(pdfDoc, myLoad) {
   await new Promise((r) => requestAnimationFrame(r));
   if (myLoad !== loadGeneration) return;
 
-  const size = getViewportPageSize();
-  const narrow = typeof window !== 'undefined' && window.innerWidth < 768;
-  if (narrow) {
-    pageWidth = Math.max(160, size.pageWidth);
-    pageHeight = Math.max(200, size.pageHeight);
-  } else {
-    pageWidth = Math.max(200, size.pageWidth);
-    pageHeight = Math.max(280, size.pageHeight);
-  }
+  const pdfPage1 = await pdfDoc.getPage(1);
+  const base1 = pdfPage1.getViewport({ scale: 1 });
+  try {
+    pdfPage1.cleanup();
+  } catch (_) {}
+  if (myLoad !== loadGeneration) return;
+
+  const slot = getViewportPageSizeForPdf(base1.width, base1.height);
+  const scaleSlot = Math.min(slot.pageWidth / base1.width, slot.pageHeight / base1.height);
+  pageWidth = Math.max(1, Math.round(base1.width * scaleSlot));
+  pageHeight = Math.max(1, Math.round(base1.height * scaleSlot));
 
   for (let i = 1; i <= numPages; i++) {
     if (myLoad !== loadGeneration) return;
@@ -642,8 +821,12 @@ async function buildFlipFromPdfDoc(pdfDoc, myLoad) {
     flipBook = new PageFlip(flipbookContainer, settings);
     flipBook.loadFromHTML(Array.from(flipbookContainer.querySelectorAll('.page')));
     flipBook.on('flip', () => {
+      const cur = flipBook.getCurrentPageIndex();
+      if (lastFlipSoundPageIndex >= 0 && cur !== lastFlipSoundPageIndex) {
+        playFlipSound();
+      }
+      lastFlipSoundPageIndex = cur;
       updatePageInfo();
-      playFlipSound();
       syncPageJumpInput();
     });
     updatePageInfo();
@@ -681,7 +864,7 @@ function syncPageJumpInput() {
 }
 
 /**
- * @param {{ id?: string, title: string, pdf_url: string, created_at?: string, issue_date?: string }} publication
+ * @param {{ id?: string, title: string, pdf_url: string, created_at?: string, issue_date?: string, series_title?: string | null, publication_name?: string | null }} publication
  */
 export function openReader(publication) {
   const myLoad = ++loadGeneration;
@@ -691,6 +874,7 @@ export function openReader(publication) {
   currentPublication = publication;
   bindReaderKeyboardOnce();
   bindReaderZoomInputOnce();
+  bindReaderDownloadOnce();
 
   showReaderView();
   getReaderElements();
@@ -701,16 +885,14 @@ export function openReader(publication) {
   const downloadLink = document.getElementById('reader-download-link');
   if (titleEl) titleEl.textContent = publication.title || 'Publication';
   if (editionEl) {
-    try {
-      const raw = publication.issue_date || publication.created_at;
-      const d = raw ? new Date(raw) : null;
-      editionEl.textContent = d ? `${d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} Edition` : '';
-    } catch (_) {
-      editionEl.textContent = '';
-    }
+    const pubLine = String(
+      publication.series_title || publication.publication_name || ''
+    ).trim();
+    editionEl.textContent = pubLine;
+    editionEl.classList.toggle('hidden', !pubLine);
   }
   if (downloadLink && publication.pdf_url) {
-    downloadLink.href = publication.pdf_url;
+    downloadLink.href = '#';
     downloadLink.classList.remove('hidden');
   } else if (downloadLink) {
     downloadLink.href = '#';
@@ -774,7 +956,7 @@ export function openReader(publication) {
         pdfDoc = await loading.promise;
       } catch (e) {
         if (myLoad !== loadGeneration) return;
-        setReaderError(e.message || 'Failed to load PDF. Check CORS if hosted on GitHub.');
+        setReaderError(e.message || 'Failed to load PDF. Check CORS on your PDF host (e.g. R2).');
         return;
       }
 

@@ -1,20 +1,21 @@
 /**
- * Series cover upload (sharp→WebP), GitHub deletes, publisher/platform invites, delete edition/series.
+ * Series cover upload (sharp→WebP), R2 deletes, publisher/platform invites, delete edition/series.
  */
 const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
-const { defineSecret, defineString } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const admin = require('firebase-admin');
 const busboy = require('busboy');
 const { encodeCoverToLosslessWebp } = require('./cover-encode');
+const {
+  r2AccessKeyId,
+  r2SecretAccessKey,
+  getR2Context,
+  putObjectBuffer,
+  deleteObjectKey
+} = require('./r2.js');
 
 const db = admin.firestore();
 const callableOptions = { region: 'us-central1' };
-
-const githubToken = defineSecret('GITHUB_TOKEN');
-const githubOwner = defineString('GITHUB_OWNER');
-const githubRepo = defineString('GITHUB_REPO');
-const githubBranch = defineString('GITHUB_BRANCH', { default: 'main' });
 
 const MAX_COVER_BYTES = 4 * 1024 * 1024;
 
@@ -37,61 +38,6 @@ function coverRepoPathFromPdfRepoPath(pdfRepoPath, kind) {
   if (!p.toLowerCase().endsWith('.pdf')) return null;
   const base = p.replace(/\.pdf$/i, '');
   return `${base}-cover.${kind === 'jpeg' ? 'jpg' : 'webp'}`;
-}
-
-async function getGithubContext() {
-  const owner = githubOwner.value();
-  const repo = githubRepo.value();
-  const branch = githubBranch.value();
-  const token = githubToken.value();
-  if (!owner || !repo || !token) {
-    throw new HttpsError('failed-precondition', 'Server missing GITHUB_OWNER, GITHUB_REPO, or GITHUB_TOKEN');
-  }
-  return { owner, repo, branch, token };
-}
-
-async function githubGetContentSha(path, ctx) {
-  const pathForApi = path.split('/').map(encodeURIComponent).join('/');
-  const url = `https://api.github.com/repos/${ctx.owner}/${ctx.repo}/contents/${pathForApi}?ref=${encodeURIComponent(ctx.branch)}`;
-  const res = await fetch(url, {
-    headers: {
-      Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${ctx.token}`,
-      'X-GitHub-Api-Version': '2022-11-28'
-    }
-  });
-  if (res.status === 404) return null;
-  if (!res.ok) {
-    const j = await res.json().catch(() => ({}));
-    throw new Error(j.message || `GitHub GET ${res.status}`);
-  }
-  const j = await res.json();
-  return j.sha || null;
-}
-
-async function githubDeletePathIfExists(path, ctx) {
-  const sha = await githubGetContentSha(path, ctx);
-  if (!sha) return;
-  const pathForApi = path.split('/').map(encodeURIComponent).join('/');
-  const url = `https://api.github.com/repos/${ctx.owner}/${ctx.repo}/contents/${pathForApi}`;
-  const res = await fetch(url, {
-    method: 'DELETE',
-    headers: {
-      Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${ctx.token}`,
-      'X-GitHub-Api-Version': '2022-11-28',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      message: `Delete ${path}`,
-      sha,
-      branch: ctx.branch
-    })
-  });
-  if (!res.ok && res.status !== 404) {
-    const j = await res.json().catch(() => ({}));
-    throw new Error(j.message || `GitHub DELETE ${res.status}`);
-  }
 }
 
 async function assertPlatformStaff(uid) {
@@ -128,28 +74,50 @@ async function countPublisherMemberships(uid) {
 async function assertAtMostOnePublisher(uid, publisherId) {
   const col = await db.collection(`users/${uid}/publisherMemberships`).get();
   for (const d of col.docs) {
-    if (d.id !== publisherId) {
-      throw new HttpsError('failed-precondition', 'Account is already linked to another publisher');
+    if (d.id === publisherId) continue;
+    const pubSnap = await db.doc(`publishers/${d.id}`).get();
+    if (!pubSnap.exists) {
+      logger.warn('Removing orphan publisherMembership (publisher deleted)', { uid, stalePublisherId: d.id });
+      await d.ref.delete();
+      continue;
     }
+    throw new HttpsError('failed-precondition', 'Account is already linked to another publisher');
   }
 }
 
-async function deleteEditionGithubFiles(d, ctx) {
+/**
+ * Remove every users/{uid}/publisherMemberships/{publisherId} doc.
+ * Uses an unfiltered collection-group read (same pattern as mirror backfill) because
+ * documentId() equality cannot be indexed for collection groups in indexes.json.
+ */
+async function deleteAllPublisherMembershipDocs(publisherId) {
+  const snap = await db.collectionGroup('publisherMemberships').get();
+  const matches = snap.docs.filter((d) => d.id === publisherId);
+  const chunk = 400;
+  for (let i = 0; i < matches.length; i += chunk) {
+    const batch = db.batch();
+    for (const doc of matches.slice(i, i + chunk)) {
+      batch.delete(doc.ref);
+    }
+    await batch.commit();
+  }
+}
+
+async function deleteEditionStorageFiles(d, ctx) {
   const pdfPath = d.pdf_repo_path && String(d.pdf_repo_path).trim();
   if (!pdfPath) return;
-  const lower = pdfPath.toLowerCase();
-  await githubDeletePathIfExists(pdfPath, ctx);
+  await deleteObjectKey(ctx, pdfPath);
   const webpCover = coverRepoPathFromPdfRepoPath(pdfPath, 'webp');
   const jpgCover = coverRepoPathFromPdfRepoPath(pdfPath, 'jpeg');
-  if (webpCover) await githubDeletePathIfExists(webpCover, ctx).catch(() => {});
-  if (jpgCover) await githubDeletePathIfExists(jpgCover, ctx).catch(() => {});
+  if (webpCover) await deleteObjectKey(ctx, webpCover).catch(() => {});
+  if (jpgCover) await deleteObjectKey(ctx, jpgCover).catch(() => {});
 }
 
 exports.uploadSeriesCover = onRequest(
   {
     region: 'us-central1',
     cors: true,
-    secrets: [githubToken],
+    secrets: [r2AccessKeyId, r2SecretAccessKey],
     timeoutSeconds: 120,
     memory: '512MiB',
     invoker: 'public'
@@ -254,40 +222,10 @@ exports.uploadSeriesCover = onRequest(
             return;
           }
 
-          const ctx = await getGithubContext();
-          const repoPath = `${publicationsPathPrefix(publisherId, seriesId)}series-cover.webp`;
-          const pathForApi = repoPath.split('/').map(encodeURIComponent).join('/');
-          const sha = await githubGetContentSha(repoPath, ctx);
-          const putBody = {
-            message: `Upload series cover ${repoPath}`,
-            content: webpBuffer.toString('base64'),
-            branch: ctx.branch
-          };
-          if (sha) putBody.sha = sha;
-
-          const ghRes = await fetch(
-            `https://api.github.com/repos/${ctx.owner}/${ctx.repo}/contents/${pathForApi}`,
-            {
-              method: 'PUT',
-              headers: {
-                Accept: 'application/vnd.github+json',
-                Authorization: `Bearer ${ctx.token}`,
-                'X-GitHub-Api-Version': '2022-11-28',
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(putBody)
-            }
-          );
-          const ghJson = await ghRes.json().catch(() => ({}));
-          if (!ghRes.ok) {
-            res.status(502).json({ error: ghJson.message || `GitHub error ${ghRes.status}` });
-            resolve();
-            return;
-          }
-          const downloadUrl =
-            ghJson.content?.download_url ||
-            `https://raw.githubusercontent.com/${ctx.owner}/${ctx.repo}/${ctx.branch}/${repoPath}`;
-          res.status(200).json({ download_url: downloadUrl, path: repoPath });
+          const ctx = getR2Context();
+          const objectKey = `${publicationsPathPrefix(publisherId, seriesId)}series-cover.webp`;
+          const out = await putObjectBuffer(ctx, objectKey, webpBuffer, 'image/webp');
+          res.status(200).json(out);
           resolve();
         } catch (e) {
           logger.error('uploadSeriesCover', e);
@@ -320,7 +258,7 @@ exports.uploadSeriesCover = onRequest(
 );
 
 exports.deleteEditionAssets = onCall(
-  { region: 'us-central1', secrets: [githubToken] },
+  { region: 'us-central1', secrets: [r2AccessKeyId, r2SecretAccessKey] },
   async (request) => {
     if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in required');
     const editionId = typeof request.data?.editionId === 'string' ? request.data.editionId.trim() : '';
@@ -338,27 +276,26 @@ exports.deleteEditionAssets = onCall(
       throw new HttpsError('permission-denied', 'Not allowed');
     }
 
-    const ctx = await getGithubContext();
-    await deleteEditionGithubFiles(d, ctx);
+    const ctx = getR2Context();
+    await deleteEditionStorageFiles(d, ctx);
     await ref.delete();
     return { ok: true };
   }
 );
 
 /**
- * Delete series doc, its editions (Firestore + GitHub assets), and series cover. Caller must authorize.
+ * Delete series doc, its editions (Firestore + R2 objects), and series cover. Caller must authorize.
  * @param {FirebaseFirestore.QueryDocumentSnapshot} seriesSnap
- * @param {{ owner: string, repo: string, branch: string, token: string }} ctx
  */
 async function deleteSeriesCore(seriesSnap, ctx) {
   const seriesId = seriesSnap.id;
   const pubId = seriesSnap.data().publisher_id;
   const seriesCoverPath = `${publicationsPathPrefix(pubId, seriesId)}series-cover.webp`;
-  await githubDeletePathIfExists(seriesCoverPath, ctx).catch(() => {});
+  await deleteObjectKey(ctx, seriesCoverPath).catch(() => {});
 
   const edSnap = await db.collection('editions').where('series_id', '==', seriesId).get();
   for (const doc of edSnap.docs) {
-    await deleteEditionGithubFiles(doc.data(), ctx).catch((e) => logger.warn('deleteSeries edition gh', e));
+    await deleteEditionStorageFiles(doc.data(), ctx).catch((e) => logger.warn('deleteSeries edition R2', e));
     await doc.ref.delete();
   }
 
@@ -366,7 +303,7 @@ async function deleteSeriesCore(seriesSnap, ctx) {
 }
 
 exports.deleteSeries = onCall(
-  { region: 'us-central1', secrets: [githubToken] },
+  { region: 'us-central1', secrets: [r2AccessKeyId, r2SecretAccessKey] },
   async (request) => {
     if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in required');
     const seriesId = typeof request.data?.seriesId === 'string' ? request.data.seriesId.trim() : '';
@@ -382,17 +319,17 @@ exports.deleteSeries = onCall(
       throw new HttpsError('permission-denied', 'Not allowed');
     }
 
-    const ctx = await getGithubContext();
+    const ctx = getR2Context();
     await deleteSeriesCore(sSnap, ctx);
     return { ok: true };
   }
 );
 
 /**
- * Full platform admin only: removes all series/editions (incl. GitHub), roster, invites, memberships, publisher doc.
+ * Full platform admin only: removes all series/editions (incl. R2 assets), roster, invites, memberships, publisher doc.
  */
 exports.deletePublisher = onCall(
-  { region: 'us-central1', secrets: [githubToken] },
+  { region: 'us-central1', secrets: [r2AccessKeyId, r2SecretAccessKey] },
   async (request) => {
     if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in required');
     await assertFullPlatformAdmin(request.auth.uid);
@@ -404,7 +341,9 @@ exports.deletePublisher = onCall(
     const pSnap = await pref.get();
     if (!pSnap.exists) throw new HttpsError('not-found', 'Publisher not found');
 
-    const ctx = await getGithubContext();
+    await deleteAllPublisherMembershipDocs(publisherId);
+
+    const ctx = getR2Context();
 
     const seriesQ = await db.collection('series').where('publisher_id', '==', publisherId).get();
     for (const sdoc of seriesQ.docs) {
@@ -413,7 +352,6 @@ exports.deletePublisher = onCall(
 
     const rosterSnap = await db.collection('publishers').doc(publisherId).collection('roster').get();
     for (const doc of rosterSnap.docs) {
-      await db.doc(`users/${doc.id}/publisherMemberships/${publisherId}`).delete();
       await doc.ref.delete();
     }
 

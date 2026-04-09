@@ -8,7 +8,7 @@ Use this file as the **source of truth** for which paths matter. The app lives a
 |------|----------|----------------|
 | [`index.html`](index.html) | **Public readers** — featured + **all publications** (series grid) + flipbook. No auth. | [`js/main.js`](js/main.js) → [`js/shelf.js`](js/shelf.js) + [`js/catalog-series.js`](js/catalog-series.js) → [`js/db-public.js`](js/db-public.js) (**Realtime DB** mirror). |
 | [`publication.html`](publication.html) | **Publication (series) detail** — hero + editions grid + reader (same as index). | [`js/series-detail.js`](js/series-detail.js) → [`js/viewer.js`](js/viewer.js) + catalog grouping. |
-| [`studio.html`](studio.html) | **Publishers / editors** — Google sign-in, series, editions, GitHub PDF upload. | [`js/dashboard/main.js`](js/dashboard/main.js) → [`js/db-publisher.js`](js/db-publisher.js): **RTDB reads**, **Firestore writes**; [`js/storage.js`](js/storage.js), [`js/viewer.js`](js/viewer.js). |
+| [`studio.html`](studio.html) | **Publishers / editors** — Google sign-in, series, editions, PDF/cover upload (R2 via Functions). | [`js/dashboard/main.js`](js/dashboard/main.js) → [`js/db-publisher.js`](js/db-publisher.js): **RTDB reads**, **Firestore writes**; [`js/storage.js`](js/storage.js), [`js/viewer.js`](js/viewer.js). |
 | [`admin.html`](admin.html) | **Platform super admins** — org list from RTDB; callables + **backfillMirror**. | [`js/admin/main.js`](js/admin/main.js) → [`js/db-admin.js`](js/db-admin.js) (**RTDB**), `httpsCallable`. |
 
 **Hybrid data:** **Firestore** = system of record + all client **writes** (and server/callables). **Realtime Database** = read-optimized **mirror** maintained by [`functions/mirror.js`](functions/mirror.js). **Firestore client reads** on mirrored collections are **denied** ([`firestore.rules`](firestore.rules)); clients read RTDB ([`database.rules.json`](database.rules.json)).
@@ -48,7 +48,7 @@ Implementations live in [`js/url-routes.js`](js/url-routes.js); [`js/viewer.js`]
 | `js/db-admin.js` | RTDB: `platformAdmins`, `platform/publishers`, `platform/stats`. |
 | `js/db.js` | Re-exports `db-public` for backward compatibility. |
 | `js/firebase-init.js` | `initializeApp`, Auth, Firestore, **Realtime Database** (`databaseURL`), **Functions (`us-central1`)**. |
-| `js/storage.js` | `uploadEditionPdf` → HTTPS `uploadPublicationPdf` (no GitHub token client-side). |
+| `js/storage.js` | `uploadEditionPdf` → HTTPS `uploadPublicationPdf` (≤~28 MB) or Storage signed URL + `finalizeEditionPdfUpload` (up to 75 MB); R2 credentials server-side only. |
 | `js/config.js` | Firebase web config only; optional `uploadPublicationPdfUrl` for emulator. |
 | `database.rules.json` | RTDB security; deploy with `firebase deploy --only database`. |
 | `firestore.rules` / `firestore.indexes.json` | Writes allowed where needed; **reads denied** on mirrored docs. |
@@ -56,7 +56,7 @@ Implementations live in [`js/url-routes.js`](js/url-routes.js); [`js/viewer.js`]
 | `functions/mirror.js` | Firestore `onDocumentWritten` → RTDB; `backfillMirror` callable. |
 | `docs/FIRESTORE_SCHEMA.md` | Collection map and fields. |
 | `docs/MIGRATION.md` | Legacy `publications` → `editions`. |
-| `docs/STORAGE.md` | Why PDFs use GitHub Functions, not Firebase Storage. |
+| `docs/STORAGE.md` | PDF path: Cloudflare R2 via Functions; large uploads stage in Firebase Storage first. |
 | `README.md` | Human setup, bootstrap first admin, deploy. |
 
 ## Dependency flow (high level)
@@ -65,7 +65,7 @@ Implementations live in [`js/url-routes.js`](js/url-routes.js); [`js/viewer.js`]
 index.html → main.js → shelf.js → db-public.js → fbRtdb ← firebase-init.js ← config.js
                               → viewer.js
 
-studio.html → dashboard/main.js → db-publisher.js (RTDB read + Firestore write), storage.js → uploadPublicationPdf, viewer.js
+studio.html → dashboard/main.js → db-publisher.js (RTDB read + Firestore write), storage.js → `uploadPublicationPdf` (≤~28 MB) or `prepareEditionPdfUpload` / `finalizeEditionPdfUpload` (to R2), viewer.js
 
 admin.html → admin/main.js → db-admin.js (RTDB), httpsCallable (incl. backfillMirror)
 ```

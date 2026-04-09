@@ -3,9 +3,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "migrate": "node scripts/migrate-publications.mjs"
+    "migrate": "node scripts/migrate-publications.mjs",
+    "build:css": "tailwindcss -c tailwind.config.cjs -i ./styles/tailwind-input.css -o ./css/tailwind-bundle.css --minify"
   },
   "dependencies": {
     "firebase-admin": "^12.6.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/container-queries": "^0.1.1",
+    "@tailwindcss/forms": "^0.5.9",
+    "tailwindcss": "^3.4.17"
   }
 }

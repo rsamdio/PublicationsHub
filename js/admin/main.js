@@ -6,15 +6,16 @@ import { onAuthStateChange, signInWithGoogle, signOut } from '../auth.js';
 import { fbAuth, fbFunctions } from '../firebase-init.js';
 import {
   getCurrentPlatformStaff,
-  listAllPublishers,
-  countEditionsApprox,
-  subscribePublisherOrgForAdmin
+  subscribePublisherOrgForAdmin,
+  subscribePlatformPublishers,
+  subscribePlatformEditionCount,
+  subscribePlatformStaff,
+  subscribePlatformStaffInvites
 } from '../db-admin.js';
-import { fetchPublishedCatalog } from '../db-public.js';
+import { subscribePublishedCatalog } from '../db-public.js';
 import { sortEditionsNewestFirstInPlace } from '../edition-sort.js';
 import {
   listMyPendingPlatformInvitesCallable,
-  listPendingPlatformInvitesCallable,
   acceptPlatformInviteCallable,
   deleteEditionAssetsCallable,
   deleteSeriesCallable,
@@ -23,7 +24,8 @@ import {
   listMyPublisherMemberships,
   publisherCreateInvite,
   publisherRevokeInvite,
-  publisherRemoveMemberCallable
+  publisherRemoveMemberCallable,
+  subscribeMyPublisherMemberships
 } from '../db-publisher.js';
 import {
   buildSeriesPagePath,
@@ -73,6 +75,7 @@ const btnNewPublisherOpen = document.getElementById('btn-new-publisher-open');
 const newPublisherClose = document.getElementById('new-publisher-close');
 const newPublisherCancel = document.getElementById('new-publisher-cancel');
 const cpName = document.getElementById('cp-name');
+const cpInternalRef = document.getElementById('cp-internal-ref');
 const cpOwnerName = document.getElementById('cp-owner-name');
 const cpOwnerEmail = document.getElementById('cp-owner-email');
 const cpMsg = document.getElementById('cp-msg');
@@ -84,6 +87,7 @@ const editPublisherClose = document.getElementById('edit-publisher-close');
 const editPublisherCancel = document.getElementById('edit-publisher-cancel');
 const epId = document.getElementById('ep-id');
 const epName = document.getElementById('ep-name');
+const epInternalRef = document.getElementById('ep-internal-ref');
 const epMsg = document.getElementById('ep-msg');
 const btnEditPublisherSubmit = document.getElementById('btn-edit-publisher-submit');
 
@@ -114,7 +118,6 @@ const btnPi = document.getElementById('btn-platform-invite');
 const createPublisherFn = httpsCallable(fbFunctions(), 'createPublisher');
 const backfillMirrorFn = httpsCallable(fbFunctions(), 'backfillMirror');
 const setEditionFeaturedFn = httpsCallable(fbFunctions(), 'setEditionFeatured');
-const listPlatformStaffFn = httpsCallable(fbFunctions(), 'listPlatformStaff');
 const platformCreateInviteFn = httpsCallable(fbFunctions(), 'platformCreateInvite');
 const platformRevokeInviteFn = httpsCallable(fbFunctions(), 'platformRevokeInvite');
 const removePlatformStaffFn = httpsCallable(fbFunctions(), 'removePlatformStaff');
@@ -135,6 +138,31 @@ let browseSeriesTitle = '';
 let cachedOrgSnapshot = null;
 /** @type {(() => void) | null} */
 let adminOrgUnsub = null;
+/** @type {(() => void) | null} */
+let publishersListUnsub = null;
+/** @type {(() => void) | null} */
+let catalogUnsub = null;
+/** @type {(() => void) | null} */
+let editionCountUnsub = null;
+/** @type {(() => void) | null} */
+let adminMembershipUnsub = null;
+/** @type {(() => void) | null} */
+let platformStaffUnsub = null;
+/** @type {(() => void) | null} */
+let platformStaffInvitesUnsub = null;
+/** Debounced RTDB redraws — mirror updates can fire in bursts; avoid nuking the DOM every tick. */
+let catalogRedrawTimer = null;
+let publishersRedrawTimer = null;
+let orgRedrawTimer = null;
+
+const adminStatsState = {
+  publisherCount: undefined,
+  publisherError: null,
+  editionCount: undefined,
+  editionError: null,
+  catalog: undefined,
+  catalogError: null
+};
 /** @type {Array<{ publisherId: string, role: string, created_at: string | null }>} */
 let adminMyMemberships = [];
 /** @type {'publications' | 'team'} */
@@ -149,7 +177,46 @@ const FLOW_DONE =
 const FLOW_UP =
   'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border border-slate-700 text-slate-500';
 
+function stopPlatformTeamRealtime() {
+  platformStaffUnsub?.();
+  platformStaffUnsub = null;
+  platformStaffInvitesUnsub?.();
+  platformStaffInvitesUnsub = null;
+}
+
+function startPlatformTeamRealtime() {
+  stopPlatformTeamRealtime();
+  platformStaffUnsub = subscribePlatformStaff((result) => {
+    renderPlatformStaffTable(result);
+  });
+  if (adminFull) {
+    platformStaffInvitesUnsub = subscribePlatformStaffInvites((result) => {
+      renderPlatformStaffInvitesTable(result);
+    });
+  }
+}
+
+function stopAdminMembershipSubscription() {
+  adminMembershipUnsub?.();
+  adminMembershipUnsub = null;
+}
+
+function startAdminMembershipSubscription(uid) {
+  stopAdminMembershipSubscription();
+  if (!uid) return;
+  adminMembershipUnsub = subscribeMyPublisherMemberships(uid, ({ data, error }) => {
+    adminMyMemberships = !error && data ? data : [];
+    if (browsePublisherId && cachedOrgSnapshot) {
+      renderAdminOrgTeamTables();
+    }
+  });
+}
+
 function showGuest() {
+  stopPublishersListSubscription();
+  stopAdminCatalogRealtime();
+  stopAdminMembershipSubscription();
+  stopPlatformTeamRealtime();
   viewGuest?.classList.remove('hidden');
   viewDenied?.classList.add('hidden');
   viewAdmin?.classList.add('hidden');
@@ -160,6 +227,10 @@ function showGuest() {
 }
 
 function showDenied() {
+  stopPublishersListSubscription();
+  stopAdminCatalogRealtime();
+  stopAdminMembershipSubscription();
+  stopPlatformTeamRealtime();
   viewGuest?.classList.add('hidden');
   viewDenied?.classList.remove('hidden');
   viewAdmin?.classList.add('hidden');
@@ -197,6 +268,10 @@ function readerHrefForEdition(pub) {
 function resetAdminBrowse() {
   adminOrgUnsub?.();
   adminOrgUnsub = null;
+  if (orgRedrawTimer) {
+    clearTimeout(orgRedrawTimer);
+    orgRedrawTimer = null;
+  }
   adminBrowseStep = 'publishers';
   browsePublisherId = null;
   browsePublisherName = '';
@@ -254,9 +329,6 @@ function setAdminTab(tab) {
   document.getElementById('admin-panel-publishers')?.classList.toggle('hidden', tab !== 'publishers');
   document.getElementById('admin-panel-publications')?.classList.toggle('hidden', tab !== 'publications');
   document.getElementById('admin-panel-team')?.classList.toggle('hidden', tab !== 'team');
-  if (tab === 'team') {
-    void loadPlatformPendingInvitesTable();
-  }
 }
 
 function applyManagerRestrictions() {
@@ -306,34 +378,123 @@ deniedPlatformInvites?.addEventListener('click', (e) => {
   })();
 });
 
-async function loadOverviewStats() {
-  const { data, error } = await listAllPublishers();
-  const { count } = await countEditionsApprox();
-  const { data: cat } = await fetchPublishedCatalog();
-  const featuredN = (cat || []).filter((p) => p.featured).length;
-  if (statsLine) {
-    statsLine.textContent = error
-      ? 'Could not load stats.'
-      : `${data?.length ?? 0} publisher(s) · ~${count} editions in mirror · ${cat?.length ?? 0} catalog cards · ${featuredN} featured`;
+function renderAdminStatsLine() {
+  if (!statsLine) return;
+  if (adminStatsState.publisherError || adminStatsState.editionError || adminStatsState.catalogError) {
+    statsLine.textContent = 'Could not load stats.';
+    return;
   }
+  if (
+    adminStatsState.publisherCount === undefined ||
+    adminStatsState.editionCount === undefined ||
+    adminStatsState.catalog === undefined
+  ) {
+    return;
+  }
+  const pubLen = adminStatsState.publisherCount;
+  const count = adminStatsState.editionCount;
+  const cat = adminStatsState.catalog;
+  const featuredN = cat.filter((p) => p.featured).length;
+  statsLine.textContent = `${pubLen} publisher(s) · ~${count} editions in mirror · ${cat.length} catalog cards · ${featuredN} featured`;
 }
 
-async function loadPublishersTable() {
-  const { data, error } = await listAllPublishers();
+function stopAdminCatalogRealtime() {
+  if (catalogRedrawTimer) {
+    clearTimeout(catalogRedrawTimer);
+    catalogRedrawTimer = null;
+  }
+  catalogUnsub?.();
+  catalogUnsub = null;
+  editionCountUnsub?.();
+  editionCountUnsub = null;
+  adminStatsState.catalog = undefined;
+  adminStatsState.catalogError = null;
+  adminStatsState.editionCount = undefined;
+  adminStatsState.editionError = null;
+}
+
+function startAdminCatalogRealtime() {
+  stopAdminCatalogRealtime();
+  catalogUnsub = subscribePublishedCatalog(({ data, error }) => {
+    if (catalogRedrawTimer) clearTimeout(catalogRedrawTimer);
+    catalogRedrawTimer = setTimeout(() => {
+      catalogRedrawTimer = null;
+      if (error) {
+        adminStatsState.catalogError = error;
+        adminStatsState.catalog = null;
+      } else {
+        adminStatsState.catalogError = null;
+        adminStatsState.catalog = data || [];
+      }
+      renderCatalogTables(data, error);
+      renderAdminStatsLine();
+    }, 150);
+  });
+  editionCountUnsub = subscribePlatformEditionCount(({ count, error }) => {
+    if (error) {
+      adminStatsState.editionError = error;
+      adminStatsState.editionCount = null;
+    } else {
+      adminStatsState.editionError = null;
+      adminStatsState.editionCount = typeof count === 'number' ? count : 0;
+    }
+    renderAdminStatsLine();
+  });
+}
+
+function stopPublishersListSubscription() {
+  if (publishersRedrawTimer) {
+    clearTimeout(publishersRedrawTimer);
+    publishersRedrawTimer = null;
+  }
+  publishersListUnsub?.();
+  publishersListUnsub = null;
+  adminStatsState.publisherCount = undefined;
+  adminStatsState.publisherError = null;
+}
+
+function startPublishersListSubscription() {
+  stopPublishersListSubscription();
+  publishersListUnsub = subscribePlatformPublishers(({ data, error }) => {
+    if (publishersRedrawTimer) clearTimeout(publishersRedrawTimer);
+    publishersRedrawTimer = setTimeout(() => {
+      publishersRedrawTimer = null;
+      renderPublishersTable(data, error);
+      if (error) {
+        adminStatsState.publisherError = error;
+      } else {
+        adminStatsState.publisherError = null;
+        adminStatsState.publisherCount = data?.length ?? 0;
+      }
+      renderAdminStatsLine();
+    }, 150);
+  });
+}
+
+function renderPublishersTable(data, error) {
   if (!publishersTbody) return;
   publishersTbody.innerHTML = '';
-  if (error || !data?.length) {
+  if (error) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="4" class="px-4 py-10 text-center text-slate-500 text-sm">${escapeHtml(error?.message || 'No publishers or permission error.')}</td>`;
+    tr.innerHTML = `<td colspan="5" class="px-4 py-10 text-center text-slate-500 text-sm">${escapeHtml(error?.message || 'Could not load publishers.')}</td>`;
     publishersTbody.appendChild(tr);
     return;
   }
-  data.forEach((p) => {
+  const rows = data || [];
+  if (!rows.length) {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td colspan="5" class="px-4 py-10 text-center text-slate-500 text-sm">No publishers yet.</td>';
+    publishersTbody.appendChild(tr);
+    return;
+  }
+  rows.forEach((p) => {
     const tr = document.createElement('tr');
     tr.className =
       'hover:bg-surface-dark-hover/40 transition-colors cursor-pointer admin-publisher-row';
     tr.dataset.publisherId = p.id;
     tr.dataset.publisherName = p.name || '';
+    tr.dataset.internalReference = (p.internal_reference && String(p.internal_reference).trim()) || '';
     const delBtn = adminFull
       ? `<button type="button" class="admin-del-publisher-row text-xs text-red-400 hover:underline" data-publisher-id="${escapeHtml(p.id)}" data-publisher-name="${escapeHtml(p.name)}">Delete org</button>`
       : '';
@@ -343,8 +504,12 @@ async function loadPublishersTable() {
         ${delBtn}
       </span>
     </td>`;
+    const refCell = tr.dataset.internalReference
+      ? `<span class="text-slate-300">${escapeHtml(tr.dataset.internalReference)}</span>`
+      : '—';
     tr.innerHTML = `
       <td class="px-4 py-3.5 text-white font-medium">${escapeHtml(p.name)}</td>
+      <td class="px-4 py-3.5 text-sm max-w-[14rem]">${refCell}</td>
       <td class="px-4 py-3.5"><span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${p.status === 'active' ? 'bg-emerald-950/50 text-emerald-300 ring-1 ring-emerald-800/50' : 'bg-slate-800 text-slate-400 ring-1 ring-slate-700'}">${escapeHtml(p.status)}</span></td>
       <td class="px-4 py-3.5 text-slate-500 font-mono text-xs select-all">${escapeHtml(p.id)}</td>
       ${actionsCell}`;
@@ -358,6 +523,10 @@ async function loadPublishersTable() {
 function loadAndRenderOrg(pid) {
   adminOrgUnsub?.();
   adminOrgUnsub = null;
+  if (orgRedrawTimer) {
+    clearTimeout(orgRedrawTimer);
+    orgRedrawTimer = null;
+  }
   cachedOrgSnapshot = { series: {}, editions: {}, invites: {}, roster: {} };
   renderAdminOrgSeriesTable();
   renderAdminOrgTeamTables();
@@ -367,11 +536,16 @@ function loadAndRenderOrg(pid) {
   adminOrgUnsub = subscribePublisherOrgForAdmin(pid, (data) => {
     if (browsePublisherId !== pid) return;
     cachedOrgSnapshot = data;
-    renderAdminOrgSeriesTable();
-    renderAdminOrgTeamTables();
-    if (adminBrowseStep === 'editions' && browseSeriesId) {
-      renderAdminSeriesEditionsTable();
-    }
+    if (orgRedrawTimer) clearTimeout(orgRedrawTimer);
+    orgRedrawTimer = setTimeout(() => {
+      orgRedrawTimer = null;
+      if (browsePublisherId !== pid) return;
+      renderAdminOrgSeriesTable();
+      renderAdminOrgTeamTables();
+      if (adminBrowseStep === 'editions' && browseSeriesId) {
+        renderAdminSeriesEditionsTable();
+      }
+    }, 120);
   });
 }
 
@@ -606,7 +780,7 @@ document.getElementById('admin-panel-publishers')?.addEventListener('click', asy
     if (!seriesId) return;
     const ok = await studioConfirm({
       title: 'Delete publication (series)?',
-      message: `Delete series ${seriesId} and all editions under it (including GitHub PDF/cover files)? This cannot be undone.`,
+      message: `Delete series ${seriesId} and all editions under it (including R2 PDF/cover objects)? This cannot be undone.`,
       confirmText: 'Delete',
       cancelText: 'Cancel',
       danger: true
@@ -625,8 +799,6 @@ document.getElementById('admin-panel-publishers')?.addEventListener('click', asy
       syncAdminBrowsePanels();
     }
     await refreshOpenOrgFromMirror();
-    await loadPublicationsTables();
-    await loadOverviewStats();
     return;
   }
 
@@ -636,7 +808,7 @@ document.getElementById('admin-panel-publishers')?.addEventListener('click', asy
     if (!editionId) return;
     const ok = await studioConfirm({
       title: 'Delete edition?',
-      message: `Delete edition ${editionId} (Firestore + GitHub PDF/cover)? This cannot be undone.`,
+      message: `Delete edition ${editionId} (Firestore + R2 PDF/cover)? This cannot be undone.`,
       confirmText: 'Delete',
       cancelText: 'Cancel',
       danger: true
@@ -649,8 +821,6 @@ document.getElementById('admin-panel-publishers')?.addEventListener('click', asy
     }
     showToast('Edition removed.', { type: 'success' });
     await refreshOpenOrgFromMirror();
-    await loadPublicationsTables();
-    await loadOverviewStats();
     return;
   }
 
@@ -660,7 +830,7 @@ document.getElementById('admin-panel-publishers')?.addEventListener('click', asy
     const ok = await studioConfirm({
       title: 'Delete entire organization?',
       message:
-        'Permanently delete this organization and all series, editions, GitHub assets, roster, and invites? This cannot be undone.',
+        'Permanently delete this organization and all series, editions, R2 assets, roster, and invites? This cannot be undone.',
       confirmText: 'Delete organization',
       cancelText: 'Cancel',
       danger: true
@@ -674,9 +844,6 @@ document.getElementById('admin-panel-publishers')?.addEventListener('click', asy
     showToast('Organization deleted.', { type: 'success' });
     resetAdminBrowse();
     syncAdminBrowsePanels();
-    await loadOverviewStats();
-    await loadPublishersTable();
-    await loadPublicationsTables();
   }
 });
 
@@ -705,8 +872,10 @@ publishersTbody?.addEventListener('click', async (e) => {
     e.stopPropagation();
     const publisherId = editBtn.getAttribute('data-publisher-id');
     const pubName = editBtn.getAttribute('data-publisher-name') || '';
+    const row = editBtn.closest('tr.admin-publisher-row');
+    const internalRef = row?.dataset?.internalReference || '';
     if (!publisherId) return;
-    openEditPublisherModal(publisherId, pubName);
+    openEditPublisherModal(publisherId, pubName, internalRef);
     return;
   }
   const delBtn = e.target.closest('.admin-del-publisher-row');
@@ -717,7 +886,7 @@ publishersTbody?.addEventListener('click', async (e) => {
     if (!publisherId || !adminFull) return;
     const ok = await studioConfirm({
       title: 'Delete organization?',
-      message: `Permanently delete organization "${pubName}" and all series, editions, GitHub files, roster, and invites? This cannot be undone.`,
+      message: `Permanently delete organization "${pubName}" and all series, editions, R2 files, roster, and invites? This cannot be undone.`,
       confirmText: 'Delete',
       cancelText: 'Cancel',
       danger: true
@@ -733,9 +902,6 @@ publishersTbody?.addEventListener('click', async (e) => {
       resetAdminBrowse();
       syncAdminBrowsePanels();
     }
-    await loadOverviewStats();
-    await loadPublishersTable();
-    await loadPublicationsTables();
     return;
   }
   const row = e.target.closest('tr.admin-publisher-row');
@@ -755,9 +921,8 @@ function bindFeaturedToggle(tbody) {
     t.disabled = true;
     try {
       await setEditionFeaturedFn({ editionId, featured: t.checked });
-      setMsg(pubMsg, 'Featured flag saved. Catalog updates shortly.', false);
+      setMsg(pubMsg, 'Featured flag saved.', false);
       setTimeout(() => setMsg(pubMsg, '', false), 4000);
-      await loadPublicationsTables();
     } catch (err) {
       t.checked = !t.checked;
       setMsg(pubMsg, err?.message || err?.details || 'Update failed', true);
@@ -769,13 +934,20 @@ function bindFeaturedToggle(tbody) {
 bindFeaturedToggle(allEditionsTbody);
 bindFeaturedToggle(featuredOnlyTbody);
 
-async function loadPublicationsTables() {
+function renderCatalogTables(data, error) {
   setMsg(pubMsg, '', false);
-  const { data, error } = await fetchPublishedCatalog();
   if (allEditionsTbody) allEditionsTbody.innerHTML = '';
   if (featuredOnlyTbody) featuredOnlyTbody.innerHTML = '';
-  if (error || !data?.length) {
-    const empty = `<tr><td colspan="6" class="px-4 py-10 text-center text-slate-500 text-sm">${escapeHtml(error?.message || 'No catalog editions.')}</td></tr>`;
+  if (error) {
+    const empty = `<tr><td colspan="6" class="px-4 py-10 text-center text-slate-500 text-sm">${escapeHtml(error?.message || 'Could not load catalog.')}</td></tr>`;
+    if (allEditionsTbody) allEditionsTbody.innerHTML = empty;
+    if (featuredOnlyTbody) featuredOnlyTbody.innerHTML = empty;
+    cachedCatalog = [];
+    return;
+  }
+  if (!data?.length) {
+    const empty =
+      '<tr><td colspan="6" class="px-4 py-10 text-center text-slate-500 text-sm">No catalog editions.</td></tr>';
     if (allEditionsTbody) allEditionsTbody.innerHTML = empty;
     if (featuredOnlyTbody) featuredOnlyTbody.innerHTML = empty;
     cachedCatalog = [];
@@ -836,7 +1008,7 @@ function bindCatalogEditionDelete(tbody) {
     if (!editionId) return;
     const ok = await studioConfirm({
       title: 'Delete edition?',
-      message: `Delete edition ${editionId} (Firestore + GitHub PDF/cover)? This cannot be undone.`,
+      message: `Delete edition ${editionId} (Firestore + R2 PDF/cover)? This cannot be undone.`,
       confirmText: 'Delete',
       cancelText: 'Cancel',
       danger: true
@@ -849,31 +1021,30 @@ function bindCatalogEditionDelete(tbody) {
       setMsg(pubMsg, delErr.message || 'Delete failed', true);
       return;
     }
-    setMsg(pubMsg, 'Edition removed. Catalog updates shortly.', false);
+    setMsg(pubMsg, 'Edition removed.', false);
     setTimeout(() => setMsg(pubMsg, '', false), 4000);
     if (browsePublisherId) await refreshOpenOrgFromMirror();
-    await loadPublicationsTables();
-    await loadOverviewStats();
   });
 }
 
 bindCatalogEditionDelete(allEditionsTbody);
 bindCatalogEditionDelete(featuredOnlyTbody);
 
-async function loadPlatformPendingInvitesTable() {
+function renderPlatformStaffInvitesTable(result) {
   if (!platformPendingInvitesTbody || !adminFull) return;
+  const { data, error } = result || {};
   platformPendingInvitesTbody.innerHTML = '';
-  const { data, error } = await listPendingPlatformInvitesCallable();
   if (error) {
     platformPendingInvitesTbody.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-red-400 text-sm">${escapeHtml(error.message || 'Failed to load invites')}</td></tr>`;
     return;
   }
-  if (!data?.length) {
+  const rows = data || [];
+  if (!rows.length) {
     platformPendingInvitesTbody.innerHTML =
       '<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500 text-sm">No pending platform invites.</td></tr>';
     return;
   }
-  data.forEach((inv) => {
+  rows.forEach((inv) => {
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-surface-dark-hover/40';
     const iid = escapeHtml(inv.inviteId);
@@ -886,32 +1057,32 @@ async function loadPlatformPendingInvitesTable() {
   });
 }
 
-async function loadPlatformStaffTable() {
+function renderPlatformStaffTable(result) {
   if (!staffTbody) return;
+  const { data, error } = result || {};
   staffTbody.innerHTML = '';
-  try {
-    const res = await listPlatformStaffFn();
-    const staff = res.data?.staff || [];
-    if (!staff.length) {
-      staffTbody.innerHTML =
-        '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500 text-sm">No staff returned.</td></tr>';
-      return;
-    }
-    staff.forEach((s) => {
-      const tr = document.createElement('tr');
-      tr.className = 'hover:bg-surface-dark-hover/40';
-      const uid = escapeHtml(s.uid);
-      tr.innerHTML = `
+  if (error) {
+    staffTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-red-400 text-sm">${escapeHtml(error.message || 'Failed to load staff')}</td></tr>`;
+    return;
+  }
+  const staff = data || [];
+  if (!staff.length) {
+    staffTbody.innerHTML =
+      '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500 text-sm">No platform staff.</td></tr>';
+    return;
+  }
+  staff.forEach((s) => {
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-surface-dark-hover/40';
+    const uid = escapeHtml(s.uid);
+    tr.innerHTML = `
         <td class="px-4 py-3 text-slate-400 font-mono text-xs">${uid}</td>
         <td class="px-4 py-3 text-white">${escapeHtml(s.email || '—')}</td>
         <td class="px-4 py-3 text-slate-300">${escapeHtml(s.displayName || '—')}</td>
         <td class="px-4 py-3 text-slate-400 capitalize">${escapeHtml(s.tier || 'admin')}</td>
         <td class="px-4 py-3 text-right">${adminFull ? `<button type="button" class="remove-staff-btn text-xs text-red-400 hover:underline" data-uid="${uid}">Remove</button>` : '<span class="text-slate-600 text-xs">—</span>'}</td>`;
-      staffTbody.appendChild(tr);
-    });
-  } catch (e) {
-    staffTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-red-400 text-sm">${escapeHtml(e?.message || 'listPlatformStaff failed')}</td></tr>`;
-  }
+    staffTbody.appendChild(tr);
+  });
 }
 
 staffTbody?.addEventListener('click', async (e) => {
@@ -930,7 +1101,6 @@ staffTbody?.addEventListener('click', async (e) => {
   try {
     await removePlatformStaffFn({ targetUid });
     showToast('Staff member removed.', { type: 'success' });
-    await loadPlatformStaffTable();
   } catch (err) {
     showToast(err?.message || err?.details || 'Remove failed', { type: 'error' });
   }
@@ -952,7 +1122,6 @@ document.getElementById('admin-panel-team')?.addEventListener('click', async (e)
   try {
     await platformRevokeInviteFn({ inviteId });
     showToast('Platform invite revoked.', { type: 'success' });
-    await loadPlatformPendingInvitesTable();
   } catch (err) {
     showToast(err?.message || err?.details || 'Revoke failed', { type: 'error' });
   }
@@ -980,11 +1149,10 @@ async function refreshForUser(user) {
   applyManagerRestrictions();
   setAdminTab(activeAdminTab);
   syncAdminBrowsePanels();
-  await loadOverviewStats();
-  await loadPublishersTable();
-  await loadPublicationsTables();
-  await loadPlatformStaffTable();
-  await loadPlatformPendingInvitesTable();
+  startPublishersListSubscription();
+  startAdminCatalogRealtime();
+  startAdminMembershipSubscription(user.uid);
+  startPlatformTeamRealtime();
   await refreshAdminMemberships();
 }
 
@@ -1038,10 +1206,11 @@ function closeNewPublisherModal() {
   setMsg(cpMsg, '', false);
 }
 
-function openEditPublisherModal(publisherId, currentName) {
+function openEditPublisherModal(publisherId, currentName, internalRef) {
   setMsg(epMsg, '', false);
   if (epId) epId.value = publisherId;
   if (epName) epName.value = currentName || '';
+  if (epInternalRef) epInternalRef.value = (internalRef && String(internalRef)) || '';
   editPublisherModal?.classList.remove('hidden');
   editPublisherModal?.classList.add('flex');
   queueMicrotask(() => epName?.focus());
@@ -1145,6 +1314,7 @@ editPublisherForm?.addEventListener('submit', async (e) => {
   setMsg(epMsg, '', false);
   const publisherId = (epId?.value || '').trim();
   const name = (epName?.value || '').trim();
+  const internal_reference = (epInternalRef?.value || '').trim().slice(0, 200);
   if (!publisherId) {
     setMsg(epMsg, 'Missing publisher.', true);
     return;
@@ -1155,19 +1325,17 @@ editPublisherForm?.addEventListener('submit', async (e) => {
   }
   if (btnEditPublisherSubmit) btnEditPublisherSubmit.disabled = true;
   try {
-    const { error } = await updatePublisherNameCallable(publisherId, name);
+    const { error } = await updatePublisherNameCallable(publisherId, name, internal_reference);
     if (error) {
       setMsg(epMsg, error.message || 'Update failed', true);
       return;
     }
-    showToast('Publisher name updated.', { type: 'success' });
+    showToast('Publisher updated.', { type: 'success' });
     if (browsePublisherId === publisherId) {
       browsePublisherName = name;
       if (adminOrgTitle) adminOrgTitle.textContent = name;
     }
     closeEditPublisherModal();
-    await loadOverviewStats();
-    await loadPublishersTable();
   } finally {
     if (btnEditPublisherSubmit) btnEditPublisherSubmit.disabled = false;
   }
@@ -1189,15 +1357,19 @@ newPublisherForm?.addEventListener('submit', async (e) => {
   }
   if (btnNewPublisherSubmit) btnNewPublisherSubmit.disabled = true;
   try {
-    const res = await createPublisherFn({ name, owner_name, owner_email });
+    const internal_reference = (cpInternalRef?.value || '').trim().slice(0, 200);
+    const res = await createPublisherFn({
+      name,
+      owner_name,
+      owner_email,
+      internal_reference
+    });
     const pid = res.data?.publisherId || '';
     showToast(
       pid ? `Organization created. Owner invite sent to ${owner_email}.` : `Owner invite sent to ${owner_email}.`,
       { type: 'success' }
     );
     closeNewPublisherModal();
-    await loadOverviewStats();
-    await loadPublishersTable();
   } catch (err) {
     setMsg(cpMsg, err?.message || err?.details || 'Callable failed', true);
   }
@@ -1219,9 +1391,6 @@ btnBackfill?.addEventListener('click', async () => {
   try {
     await backfillMirrorFn();
     setMsg(bfMsg, 'Mirror rebuild completed.', false);
-    await loadOverviewStats();
-    await loadPublishersTable();
-    await loadPublicationsTables();
   } catch (e) {
     setMsg(bfMsg, e?.message || e?.details || 'backfillMirror failed', true);
   }
@@ -1247,7 +1416,6 @@ btnPi?.addEventListener('click', async () => {
     piMsg.classList.add('text-emerald-400');
     piName.value = '';
     piEmail.value = '';
-    await loadPlatformPendingInvitesTable();
   } catch (e) {
     piMsg.textContent = e?.message || e?.details || 'Invite failed';
     piMsg.classList.add('text-red-400');

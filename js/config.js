@@ -1,11 +1,9 @@
 /**
  * PublicationHub configuration — Firebase (auth + metadata).
  *
- * PDFs and WebP covers upload through **uploadPublicationPdf** / **uploadPublicationCover** (us-central1).
- * GitHub credentials live in **Firebase Secrets / function params**, not here.
+ * PDFs: multipart **uploadPublicationPdf** or, for large files, Storage-signed URL via **prepareEditionPdfUpload** / **finalizeEditionPdfUpload** (then R2). Covers: **uploadPublicationCover**. R2 credentials live in **Secrets / params**, not here.
  *
- * We do **not** use the Firebase Storage SDK or bucket for edition PDFs (no getStorage / uploadBytes).
- * `storageBucket` is only part of the standard Firebase web app object; PDFs live in GitHub + URLs in Firestore.
+ * No `firebase/storage` **SDK** in the browser (no getStorage / uploadBytes). `storageBucket` is standard web config; large PDFs use signed HTTPS PUT from callables.
  */
 export const config = {
   firebase: {

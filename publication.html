@@ -29,31 +29,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            primary: "#137fec",
-            "primary-dark": "#106cc9",
-            "background-light": "#f6f7f8",
-            "background-dark": "#101922",
-            "surface-dark": "#192430",
-            "surface-dark-hover": "#223040",
-            "text-secondary": "#94a3b8",
-            "reader-bg": "#0b1219",
-          },
-          fontFamily: { display: ["Inter", "sans-serif"] },
-          borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", "2xl": "1rem", full: "9999px" },
-          boxShadow: {
-            page: "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4)",
-          },
-        },
-      },
-    };
-  </script>
+  <link rel="stylesheet" href="css/tailwind-bundle.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css" />
   <link rel="stylesheet" href="css/st-page-flip.css" />
   <style>
@@ -183,6 +159,7 @@
         <div id="flipbook-container" class="relative"></div>
       </div>
     </div>
+    <!-- Optional src: if set, used for page-turn sound; otherwise viewer.js plays a short synthesized flip -->
     <audio id="page-flip-sound" preload="none" aria-hidden="true"></audio>
     <div class="absolute top-2 left-2 right-2 sm:top-4 sm:left-4 sm:right-4 z-20 flex flex-row items-start justify-between gap-2 pointer-events-none">
       <div class="pointer-events-auto flex flex-col gap-2 min-w-0 max-w-[min(18rem,calc(100vw-5.5rem))]">
@@ -195,7 +172,7 @@
           <span id="reader-edition" class="text-gray-400 text-xs font-medium"></span>
         </div>
       </div>
-      <a id="reader-download-link" href="#" target="_blank" rel="noopener" class="pointer-events-auto inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/10 text-gray-200 hover:text-white shadow-lg transition-all shrink-0" title="Download PDF">
+      <a id="reader-download-link" href="#" class="pointer-events-auto inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/10 text-gray-200 hover:text-white shadow-lg transition-all shrink-0" title="Download PDF">
         <span class="material-icons text-[22px]">download</span>
       </a>
     </div>

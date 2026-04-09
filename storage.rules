@@ -1,0 +1,9 @@
+rules_version = '2';
+// Edition PDFs use Admin-signed PUT URLs / Admin download — no client Storage SDK access.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

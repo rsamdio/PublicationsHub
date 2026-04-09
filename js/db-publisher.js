@@ -125,11 +125,12 @@ export async function fetchEditionsForPublisher(publisherId) {
 /**
  * Live updates for publisher studio (dashboard): org/{publisherId}/…
  * @param {string} publisherId
- * @param {(payload: { series: object[], editions: object[], invites: object[], roster: object[] }) => void} onData
+ * @param {(payload: { series: object[], editions: object[], invites: object[], roster: object[], profile: { id: string, name: unknown, slug: unknown, status: unknown, created_at: string | null } | null }) => void} onData
  * @returns {() => void} unsubscribe
  */
 export function subscribePublisherStudio(publisherId, onData) {
   const db = fbRtdb();
+  const profileRef = ref(db, `org/${publisherId}/profile`);
   const seriesRef = ref(db, `org/${publisherId}/series`);
   const editionsRef = ref(db, `org/${publisherId}/editions`);
   const invitesRef = ref(db, `org/${publisherId}/invites`);
@@ -138,8 +139,23 @@ export function subscribePublisherStudio(publisherId, onData) {
   let editions = [];
   let invites = [];
   let roster = [];
-  const emit = () => onData({ series, editions, invites, roster });
+  /** @type {{ id: string, name: unknown, slug: unknown, status: unknown, created_at: string | null } | null} */
+  let profile = null;
+  const emit = () => onData({ series, editions, invites, roster, profile });
 
+  const unsubProfile = onValue(profileRef, (snap) => {
+    const v = snap.val();
+    profile = v
+      ? {
+          id: publisherId,
+          name: v.name,
+          slug: v.slug,
+          status: v.status,
+          created_at: msToIso(v.created_at)
+        }
+      : null;
+    emit();
+  });
   const unsubSeries = onValue(seriesRef, (snap) => {
     series = normalizeSeriesRtdb(snap.val());
     emit();
@@ -158,11 +174,49 @@ export function subscribePublisherStudio(publisherId, onData) {
   });
 
   return () => {
+    unsubProfile();
     unsubSeries();
     unsubEditions();
     unsubInvites();
     unsubRoster();
   };
+}
+
+/**
+ * Live updates for `userMemberships/{uid}` (studio: org picker + roles).
+ * @param {string} uid
+ * @param {(result: { data: Array<{ publisherId: string, role: string, created_at: string | null }> | null, error: { message: string } | null }) => void} onUpdate
+ * @returns {() => void} unsubscribe
+ */
+export function subscribeMyPublisherMemberships(uid, onUpdate) {
+  if (!uid) {
+    onUpdate({ data: [], error: null });
+    return () => {};
+  }
+  const r = ref(fbRtdb(), `userMemberships/${uid}`);
+  return onValue(
+    r,
+    (snap) => {
+      try {
+        const val = snap.val();
+        if (!val || typeof val !== 'object') {
+          onUpdate({ data: [], error: null });
+          return;
+        }
+        const data = Object.keys(val).map((publisherId) => ({
+          publisherId,
+          role: val[publisherId].role,
+          created_at: msToIso(val[publisherId].created_at)
+        }));
+        onUpdate({ data, error: null });
+      } catch (e) {
+        onUpdate({ data: null, error: { message: e?.message || 'Failed to parse memberships' } });
+      }
+    },
+    (err) => {
+      onUpdate({ data: null, error: { message: err?.message || 'Listen failed' } });
+    }
+  );
 }
 
 export async function updateSeries(seriesId, patch) {
@@ -376,10 +430,14 @@ export async function deletePublisherCallable(publisherId) {
   }
 }
 
-export async function updatePublisherNameCallable(publisherId, name) {
+export async function updatePublisherNameCallable(publisherId, name, internalReference) {
   try {
     const fn = httpsCallable(fbFunctions(), 'updatePublisherName');
-    await fn({ publisherId, name });
+    const payload = { publisherId, name };
+    if (internalReference !== undefined) {
+      payload.internal_reference = internalReference;
+    }
+    await fn(payload);
     return { error: null };
   } catch (e) {
     return { error: { message: e?.message || e?.details || 'Update failed' } };

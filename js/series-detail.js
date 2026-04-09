@@ -170,7 +170,8 @@ function editionToReaderPub(ed) {
     pdf_url: ed.pdf_url,
     cover_url: ed.cover_url,
     created_at: ed.created_at,
-    issue_date: ed.issue_date
+    issue_date: ed.issue_date,
+    series_title: ed.series_title ?? null
   };
 }
 

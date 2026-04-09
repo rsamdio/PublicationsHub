@@ -9,6 +9,7 @@ const admin = require('firebase-admin');
 
 const callableOptions = { region: 'us-central1' };
 
+/** Uses default app `databaseURL` from `admin.initializeApp` in `index.js` (not a URL argument — `admin.database(url)` is for named apps). */
 function rtdb() {
   return admin.database();
 }
@@ -52,7 +53,7 @@ function editionOrgPayload(d) {
     description: d.description ?? null,
     pdf_url: d.pdf_url,
     cover_url: d.cover_url ?? null,
-    /** GitHub repo path of the PDF (studio cover upload + regenerate). */
+    /** Object key of the PDF in R2 (studio cover upload + regenerate). */
     pdf_repo_path: d.pdf_repo_path ?? null,
     status: d.status,
     publisher_name: d.publisher_name ?? null,
@@ -81,12 +82,12 @@ function editionPublicPayload(d) {
 }
 
 async function applyEditionMirror(editionId, change) {
-  const before = change.before.exists ? change.before.data() : null;
-  const after = change.after.exists ? change.after.data() : null;
+  const before = change.before?.exists ? change.before.data() : null;
+  const after = change.after?.exists ? change.after.data() : null;
 
-  if (!change.before.exists && change.after.exists) {
+  if (!change.before?.exists && change.after?.exists) {
     await adjustEditionCount(1);
-  } else if (change.before.exists && !change.after.exists) {
+  } else if (change.before?.exists && !change.after?.exists) {
     await adjustEditionCount(-1);
   }
 
@@ -125,8 +126,8 @@ exports.mirrorEdition = onDocumentWritten('editions/{editionId}', async (event) 
 });
 
 async function applySeriesMirror(seriesId, change) {
-  const before = change.before.exists ? change.before.data() : null;
-  const after = change.after.exists ? change.after.data() : null;
+  const before = change.before?.exists ? change.before.data() : null;
+  const after = change.after?.exists ? change.after.data() : null;
 
   if (!after) {
     const pubId = before?.publisher_id;
@@ -182,8 +183,8 @@ exports.mirrorSeries = onDocumentWritten('series/{seriesId}', async (event) => {
 });
 
 async function applyPublisherMirror(publisherId, change) {
-  const before = change.before.exists ? change.before.data() : null;
-  const after = change.after.exists ? change.after.data() : null;
+  const before = change.before?.exists ? change.before.data() : null;
+  const after = change.after?.exists ? change.after.data() : null;
 
   if (!after) {
     await rtdb().ref(`org/${publisherId}`).remove();
@@ -198,10 +199,16 @@ async function applyPublisherMirror(publisherId, change) {
     created_at: tsMs(after.created_at)
   };
 
+  const internalRef =
+    after.internal_reference != null && String(after.internal_reference).trim()
+      ? String(after.internal_reference).trim()
+      : '';
+
   await rtdb().ref(`org/${publisherId}/profile`).set(profile);
   await rtdb().ref(`platform/publishers/${publisherId}`).set({
     ...profile,
-    id: publisherId
+    id: publisherId,
+    internal_reference: internalRef
   });
 }
 
@@ -215,7 +222,7 @@ exports.mirrorPublisher = onDocumentWritten('publishers/{publisherId}', async (e
 });
 
 async function applyMembershipMirror(uid, publisherId, change) {
-  const after = change.after.exists ? change.after.data() : null;
+  const after = change.after?.exists ? change.after.data() : null;
   const path = `userMemberships/${uid}/${publisherId}`;
   if (!after) {
     await rtdb().ref(path).remove();
@@ -240,7 +247,7 @@ exports.mirrorPublisherMembership = onDocumentWritten(
 );
 
 async function applyPublisherInviteMirror(publisherId, inviteId, change) {
-  const after = change.after.exists ? change.after.data() : null;
+  const after = change.after?.exists ? change.after.data() : null;
   const path = `org/${publisherId}/invites/${inviteId}`;
   if (!after || after.status !== 'pending') {
     await rtdb().ref(path).remove();
@@ -273,7 +280,7 @@ exports.mirrorPublisherInvite = onDocumentWritten(
 );
 
 async function applyPublisherRosterMirror(publisherId, memberUid, change) {
-  const after = change.after.exists ? change.after.data() : null;
+  const after = change.after?.exists ? change.after.data() : null;
   const path = `org/${publisherId}/roster/${memberUid}`;
   if (!after) {
     await rtdb().ref(path).remove();
@@ -305,12 +312,31 @@ exports.mirrorPublisherRoster = onDocumentWritten(
 );
 
 async function applyPlatformAdminMirror(uid, change) {
-  const path = `platformAdmins/${uid}`;
-  if (!change.after.exists) {
-    await rtdb().ref(path).remove();
+  const flagPath = `platformAdmins/${uid}`;
+  const staffPath = `platform/staff/${uid}`;
+  if (!change.after?.exists) {
+    await rtdb().ref(flagPath).remove();
+    await rtdb().ref(staffPath).remove();
     return;
   }
-  await rtdb().ref(path).set(true);
+  await rtdb().ref(flagPath).set(true);
+  let email = '';
+  let displayName = '';
+  try {
+    const u = await admin.auth().getUser(uid);
+    email = String(u.email || '').toLowerCase();
+    displayName = u.displayName || '';
+  } catch (e) {
+    logger.warn('getUser for platform staff mirror failed', { uid, err: e?.message });
+  }
+  const d = change.after.data();
+  await rtdb().ref(staffPath).set({
+    uid,
+    tier: d?.tier === 'manager' ? 'manager' : 'admin',
+    email,
+    display_name: displayName,
+    created_at: tsMs(d?.created_at)
+  });
 }
 
 exports.mirrorPlatformAdmin = onDocumentWritten('platform_admins/{uid}', async (event) => {
@@ -318,6 +344,31 @@ exports.mirrorPlatformAdmin = onDocumentWritten('platform_admins/{uid}', async (
     await applyPlatformAdminMirror(event.params.uid, event.data);
   } catch (e) {
     logger.error('mirrorPlatformAdmin failed', { err: e });
+    throw e;
+  }
+});
+
+async function applyPlatformStaffInviteMirror(inviteId, change) {
+  const path = `platform/staffInvites/${inviteId}`;
+  const after = change.after?.exists ? change.after.data() : null;
+  if (!after || after.status !== 'pending') {
+    await rtdb().ref(path).remove();
+    return;
+  }
+  await rtdb().ref(path).set({
+    inviteId,
+    invitee_name: after.invitee_name || '',
+    email_normalized: after.email_normalized || '',
+    intended_tier: after.intended_tier === 'manager' ? 'manager' : 'admin',
+    created_at: tsMs(after.created_at)
+  });
+}
+
+exports.mirrorPlatformStaffInvite = onDocumentWritten('platform_invites/{inviteId}', async (event) => {
+  try {
+    await applyPlatformStaffInviteMirror(event.params.inviteId, event.data);
+  } catch (e) {
+    logger.error('mirrorPlatformStaffInvite failed', { err: e });
     throw e;
   }
 });
@@ -341,6 +392,8 @@ async function runBackfill() {
   await r.ref('org').remove();
   await r.ref('userMemberships').remove();
   await r.ref('platform/publishers').remove();
+  await r.ref('platform/staff').remove();
+  await r.ref('platform/staffInvites').remove();
   await r.ref('platformAdmins').remove();
   await r.ref('platform/stats/editionCount').set(0);
 
@@ -396,6 +449,11 @@ async function runBackfill() {
     await applyPlatformAdminMirror(doc.id, syntheticCreate(doc.data()));
   }
 
+  const platInvSnap = await db.collection('platform_invites').where('status', '==', 'pending').get();
+  for (const doc of platInvSnap.docs) {
+    await applyPlatformStaffInviteMirror(doc.id, syntheticCreate(doc.data()));
+  }
+
   const legacySnap = await db.collection('publications').get();
   for (const doc of legacySnap.docs) {
     const d = doc.data();
@@ -415,7 +473,14 @@ async function runBackfill() {
   }
 }
 
-exports.backfillMirror = onCall(callableOptions, async (request) => {
+const backfillMirrorOptions = {
+  region: 'us-central1',
+  timeoutSeconds: 540,
+  memory: '512MiB',
+  maxInstances: 2
+};
+
+exports.backfillMirror = onCall(backfillMirrorOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Sign in required');
   }

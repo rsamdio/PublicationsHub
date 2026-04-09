@@ -90,7 +90,7 @@ Created manually in Console, via `acceptPlatformInvite`, or break-glass `setPlat
 | `slug` | string | optional |
 | `description` | string | optional |
 | `frequency` | string | optional; publisher-defined cadence, e.g. `monthly`, `bimonthly`, `quarterly`, `half_yearly`, `one_time` |
-| `cover_url` | string | optional; public URL after **`uploadSeriesCover`** (WebP in GitHub) |
+| `cover_url` | string | optional; public URL after **`uploadSeriesCover`** (WebP in R2) |
 | `cover_repo_path` | string | optional; e.g. `…/series/{seriesId}/series-cover.webp` |
 | `created_at` | timestamp | |
 | `created_by_uid` | string | |
@@ -104,8 +104,8 @@ Created manually in Console, via `acceptPlatformInvite`, or break-glass `setPlat
 | `title` | string | |
 | `description` | string | optional |
 | `pdf_url` | string | |
-| `cover_url` | string | optional; auto from first PDF page (WebP/JPEG in GitHub) |
-| `pdf_repo_path` | string | optional; GitHub path of the PDF (studio cover upload / regenerate) |
+| `cover_url` | string | optional; auto from first PDF page (WebP/JPEG in R2) |
+| `pdf_repo_path` | string | optional; object key of the PDF in R2 (same path shape as before; studio cover upload / regenerate) |
 | `issue_date` | timestamp | optional; calendar issue date for reader + catalog |
 | `status` | string | `draft` \| `published` |
 | `publisher_name` | string | Denormalized for public catalog |

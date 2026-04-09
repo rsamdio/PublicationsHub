@@ -22,7 +22,7 @@ Do not open HTML as `file://` — ES modules and Firebase will not work.
 
 ## Configuration
 
-Edit **`js/config.js`** with your Firebase web app config only. **Do not put a GitHub PAT in the frontend** — PDF upload uses the **`uploadPublicationPdf`** HTTPS function, which reads **`GITHUB_TOKEN`** from **Secret Manager** and repo coordinates from function params.
+Edit **`js/config.js`** with your Firebase web app config only. **R2 keys never go in the frontend** — PDFs and covers upload through **`uploadPublicationPdf`** / callables, which use **`R2_ACCESS_KEY_ID`** / **`R2_SECRET_ACCESS_KEY`** in **Secret Manager** and **`R2_*`** params from **`functions/.env`** (see [`docs/STORAGE.md`](docs/STORAGE.md)).
 
 ### Firebase (Auth + Firestore + Functions)
 
@@ -40,7 +40,7 @@ Edit **`js/config.js`** with your Firebase web app config only. **Do not put a G
 
    Ensure **`firestore.indexes.json`** is deployed (included in `firestore`) so **collection-group** queries work for `listMyPendingInvites` and **`platform_invites`**.
 
-   (**Firebase Storage is not in [`firebase.json`](firebase.json)** — the app does not use it; PDFs go to GitHub via Cloud Functions.)
+   Deploy **Storage** rules so PDFs **over ~28 MB** can stage in the default bucket before **`finalizeEditionPdfUpload`** streams them to **R2**: `firebase deploy --only storage`, then set bucket **CORS** as in [`docs/STORAGE.md`](docs/STORAGE.md). (Smaller PDFs still use multipart **`uploadPublicationPdf`** only.)
 
 5. **Realtime Database mirror** — Clients read catalog, org data, and admin lists from **RTDB**; **Firestore** is the write path and system of record. Deploy [`database.rules.json`](database.rules.json) with the command above. After deploying **Functions** (step 6), open **admin.html** as a platform admin and use **Rebuild mirror (backfillMirror)** once (or invoke the `backfillMirror` callable) so RTDB is populated. If `platform_admins` existed before mirror triggers were deployed, run backfill so `platformAdmins/{uid}` exists in RTDB.
 
@@ -48,8 +48,9 @@ Edit **`js/config.js`** with your Firebase web app config only. **Do not put a G
 
    ```bash
    cd functions && npm install && cp .env.example .env && cd ..
-   # Edit functions/.env with GITHUB_OWNER, GITHUB_REPO, GITHUB_BRANCH
-   echo -n 'YOUR_GITHUB_PAT' | firebase functions:secrets:set GITHUB_TOKEN
+   # Edit functions/.env: R2_ACCOUNT_ID, R2_BUCKET_NAME, R2_PUBLIC_BASE_URL
+   echo -n 'YOUR_R2_ACCESS_KEY_ID' | firebase functions:secrets:set R2_ACCESS_KEY_ID
+   echo -n 'YOUR_R2_SECRET_ACCESS_KEY' | firebase functions:secrets:set R2_SECRET_ACCESS_KEY
    firebase deploy --only functions
    ```
 
@@ -57,11 +58,11 @@ Edit **`js/config.js`** with your Firebase web app config only. **Do not put a G
 
    The **`uploadPublicationPdf`** function writes PDFs to  
    `publications/publishers/{publisherId}/series/{seriesId}/{timestamp}-{filename}.pdf`  
-   in the repo you configure. **`uploadPublicationCover`** writes `…-cover.webp` or `…-cover.jpg` beside that path. Both check the caller’s Firebase ID token and **publisher membership** before calling GitHub.
+   in **R2**. **`uploadPublicationCover`** writes `…-cover.webp` beside that object key. Both check the caller’s Firebase ID token and **publisher membership** before writing to R2.
 
    **Suggested deploy order:** `functions` (installs `sharp` in `functions/`) → **`firestore:rules`** + **`firestore:indexes`** → **`database`** rules → **publish the static site** (repo root to Netlify or your CDN; not Firebase Hosting unless you add it).
 
-   If a GitHub PAT was ever committed in `config.js` or chat logs, **revoke and rotate it** in GitHub.
+   Configure **R2 public access** (custom domain or `*.r2.dev`) and **CORS** on the bucket so **PDF.js** can **GET** PDFs from your site origin (see [`docs/STORAGE.md`](docs/STORAGE.md)).
 
 7. **Data model** — see [`docs/FIRESTORE_SCHEMA.md`](docs/FIRESTORE_SCHEMA.md) (Firestore + RTDB mirror map). **Firestore client reads** on mirrored paths are **denied** by [`firestore.rules`](firestore.rules); use RTDB for reads.
 
@@ -109,12 +110,9 @@ Cloud Functions treat you as a platform admin only if a Firestore document exist
 
 If you have the old flat `publications` collection, run the Admin migration (see [`docs/MIGRATION.md`](docs/MIGRATION.md)).
 
-### GitHub (PDF storage via Functions)
+### Cloudflare R2 (PDF + cover storage)
 
-1. Create a **PAT** (fine-grained or classic) with **Contents: Read and write** on the data repo only.
-2. Store it as secret **`GITHUB_TOKEN`** (command above). Set **`GITHUB_OWNER`**, **`GITHUB_REPO`**, **`GITHUB_BRANCH`** in **`functions/.env`** (see **`functions/.env.example`**).
-
-See [`docs/STORAGE.md`](docs/STORAGE.md) for Firebase Storage as a future alternative.
+See **[`docs/STORAGE.md`](docs/STORAGE.md)** for bucket creation, API token, public URL (`R2_PUBLIC_BASE_URL`), secrets, and CORS.
 
 ### Troubleshooting: `listMyPendingInvites` 500 / pending invites never appear
 
@@ -126,13 +124,13 @@ firebase deploy --only firestore:indexes
 
 In the Firebase console, **Build → Firestore Database → Indexes**, wait until that index shows **Enabled** (not “Building”). Until then, invitees may see a generic error or “No organization access” with no Accept button.
 
-### Troubleshooting: GitHub 403 (upload)
+### Troubleshooting: R2 upload failures
 
-Fine-grained token: grant **Contents: Read and write** on the target repo; authorize **SSO** if the repo is under an org. Classic token: **repo** or **public_repo** as appropriate, plus SSO authorization. Errors surface in the dashboard as the JSON `error` from the function.
+Check Cloud Function logs. Typical issues: wrong **`R2_ACCOUNT_ID`**, bucket name, or **public URL**; API token missing **Object Read & Write**; **`R2_PUBLIC_BASE_URL`** not matching how the bucket is exposed. Ensure both R2 secrets are set and the deploy picked up **`functions/.env`** params.
 
 ### CORS for PDFs
 
-Prefer the `download_url` / `raw.githubusercontent.com` URL returned by the GitHub API.
+`pdf_url` must be reachable from the browser (public R2 URL). Add your **site origins** to the R2 bucket **CORS** policy so PDF.js can fetch the file.
 
 ## Production checklist (before go-live)
 
@@ -140,7 +138,7 @@ Prefer the `download_url` / `raw.githubusercontent.com` URL returned by the GitH
 2. **SEO / links** — Canonical and Open Graph URLs in `index.html`, `studio.html`, the publication page (`/publication` in meta; file `publication.html`), and `admin.html` use your real site origin (currently `https://publications.rsamdio.org`). Update if the primary domain differs.
 3. **`robots.txt`** — Uses path rules only; if you add a **sitemap**, reference it here.
 4. **`_redirects`** — Netlify: confirm primary-domain redirect rules match production (see file comments).
-5. **Cloud Functions + rules** — Deployed (`firebase deploy --only functions,firestore:rules,firestore:indexes,database` as needed). **Secrets**: `GITHUB_TOKEN` in Secret Manager; **`functions/.env`** on the machine used to deploy (owner/repo/branch) — never commit `.env`.
+5. **Cloud Functions + rules** — Deployed (`firebase deploy --only functions,firestore:rules,firestore:indexes,database` as needed). **Secrets**: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; **`functions/.env`** params for R2 — never commit `.env`.
 6. **RTDB mirror** — Run **Rebuild mirror** from **admin** once after first deploy so catalog/org paths exist.
 7. **Netlify** — [`netlify.toml`](netlify.toml) sets `publish = "."` (repo root). No build step is required.
 
@@ -158,7 +156,7 @@ js/
   config.js
   firebase-init.js   # Auth, Firestore, Realtime Database, Functions (us-central1)
   auth.js
-  storage.js         # Multipart upload to uploadPublicationPdf (no PAT in browser)
+  storage.js         # PDF/cover uploads via HTTPS Functions → R2 (multipart or Storage staging for large PDFs)
   db-public.js       # Published catalog reads (RTDB)
   db-publisher.js    # RTDB reads; Firestore writes for series/editions
   db-admin.js        # Admin reads (RTDB)
@@ -187,7 +185,7 @@ AGENTS.md
 
 - HTML, vanilla JS (ES modules), Tailwind CDN
 - Firebase Auth, Firestore, **2nd gen** Callable + HTTPS Functions (`firebase-functions` v7; v10 modular web SDK from `gstatic`)
-- GitHub REST API for PDF binaries (server-side only, via `uploadPublicationPdf`)
+- Cloudflare R2 (S3 API) for PDFs and covers (server-side only, via Functions)
 - PDF.js 3.11.174, StPageFlip 2.0.7 (CDN)
 
 No bundler is required for the static app; Cloud Functions use Node.js 22 (`functions/package.json` `engines`).

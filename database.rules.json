@@ -35,6 +35,14 @@
         ".read": "auth != null && root.child('platformAdmins').child(auth.uid).val() === true",
         ".write": false
       },
+      "staff": {
+        ".read": "auth != null && root.child('platformAdmins').child(auth.uid).val() === true",
+        ".write": false
+      },
+      "staffInvites": {
+        ".read": "auth != null && root.child('platformAdmins').child(auth.uid).val() === true",
+        ".write": false
+      },
       "stats": {
         ".read": "auth != null && root.child('platformAdmins').child(auth.uid).val() === true",
         ".write": false

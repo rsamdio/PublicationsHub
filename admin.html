@@ -27,28 +27,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            primary: '#137fec',
-            'primary-dark': '#106cc9',
-            'background-dark': '#101922',
-            'surface-dark': '#192430',
-            'surface-dark-hover': '#223040',
-            'card-dark': '#182430',
-            'text-secondary': '#94a3b8',
-          },
-          fontFamily: { display: ['Inter', 'sans-serif'] },
-          borderRadius: { lg: '0.5rem', xl: '0.75rem', '2xl': '1rem' },
-          boxShadow: { 'primary-glow': '0 0 40px -10px rgba(19, 127, 236, 0.35)' },
-        },
-      },
-    };
-  </script>
+  <link rel="stylesheet" href="css/tailwind-bundle.css"/>
   <style>
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: #101922; }
@@ -171,10 +150,11 @@
               </div>
             </div>
             <div class="overflow-x-auto">
-              <table class="w-full text-sm text-left min-w-[560px]">
+              <table class="w-full text-sm text-left min-w-[720px]">
                 <thead class="bg-surface-dark text-text-secondary text-xs font-semibold uppercase tracking-wide">
                   <tr>
                     <th scope="col" class="px-4 py-3.5">Name</th>
+                    <th scope="col" class="px-4 py-3.5">Internal reference</th>
                     <th scope="col" class="px-4 py-3.5">Status</th>
                     <th scope="col" class="px-4 py-3.5">Document ID</th>
                     <th scope="col" class="px-4 py-3.5 w-28 text-right">Actions</th>
@@ -263,7 +243,7 @@
               </div>
             </div>
             <div id="admin-org-danger-zone" class="hidden rounded-xl border border-red-900/40 bg-red-950/20 p-5" data-full-admin-only>
-              <p class="text-xs text-red-200/90 mb-3">Remove the entire publisher (Firestore, memberships, GitHub assets for all editions).</p>
+              <p class="text-xs text-red-200/90 mb-3">Remove the entire publisher (Firestore, memberships, stored PDFs/covers for all editions).</p>
               <button type="button" id="btn-admin-del-publisher-org" class="px-3 py-2 rounded-lg border border-red-800/60 bg-red-950/40 text-red-300 text-xs font-semibold hover:bg-red-900/50">Delete entire publisher</button>
             </div>
           </div>
@@ -462,6 +442,11 @@
           <input type="text" id="cp-name" required autocomplete="organization" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="e.g. District 3191"/>
         </div>
         <div>
+          <label for="cp-internal-ref" class="block text-sm font-medium text-slate-300 mb-1.5">Internal reference <span class="text-slate-500 font-normal normal-case">(optional)</span></label>
+          <input type="text" id="cp-internal-ref" maxlength="200" autocomplete="off" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="e.g. D3234 paid vs D3234 pro bono — platform team only"/>
+          <p class="text-xs text-slate-500 mt-1.5">Only visible in this admin console. Not shown to publishers or public readers.</p>
+        </div>
+        <div>
           <label for="cp-owner-name" class="block text-sm font-medium text-slate-300 mb-1.5">Owner name</label>
           <input type="text" id="cp-owner-name" required autocomplete="name" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="Alex Kim"/>
         </div>
@@ -487,7 +472,7 @@
           </span>
           <div class="min-w-0">
             <h2 class="text-lg font-bold text-white">Edit publisher</h2>
-            <p class="text-xs text-text-secondary mt-0.5">Update the display name (URL slug is unchanged)</p>
+            <p class="text-xs text-text-secondary mt-0.5">Name and internal reference (slug unchanged). Internal reference is admin-only.</p>
           </div>
         </div>
         <button type="button" id="edit-publisher-close" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors shrink-0" aria-label="Close"><span class="material-icons">close</span></button>
@@ -497,6 +482,11 @@
         <div>
           <label for="ep-name" class="block text-sm font-medium text-slate-300 mb-1.5">Publisher name</label>
           <input type="text" id="ep-name" required autocomplete="organization" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="Publisher name"/>
+        </div>
+        <div>
+          <label for="ep-internal-ref" class="block text-sm font-medium text-slate-300 mb-1.5">Internal reference <span class="text-slate-500 font-normal normal-case">(optional)</span></label>
+          <input type="text" id="ep-internal-ref" maxlength="200" autocomplete="off" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="Admin note to tell same-named publishers apart"/>
+          <p class="text-xs text-slate-500 mt-1.5">Not shown to publisher teams or readers.</p>
         </div>
         <p id="ep-msg" class="text-sm hidden min-h-[1.25rem]"></p>
         <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">

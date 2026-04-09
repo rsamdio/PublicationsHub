@@ -1,5 +1,5 @@
+const crypto = require('crypto');
 const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
-const { defineSecret, defineString } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const admin = require('firebase-admin');
 const busboy = require('busboy');
@@ -7,15 +7,90 @@ const { encodeCoverToLosslessWebp } = require('./cover-encode');
 
 const callableOptions = { region: 'us-central1' };
 
-admin.initializeApp();
+function activeGcpProjectId() {
+  return (
+    process.env.GCLOUD_PROJECT ||
+    process.env.GCP_PROJECT ||
+    process.env.GOOGLE_CLOUD_PROJECT ||
+    ''
+  ).trim();
+}
+
+/**
+ * Bucket name for admin.storage() — must match the default bucket in Firebase Console
+ * (client `config.firebase.storageBucket`; new projects use *.firebasestorage.app).
+ * Optional override: set STORAGE_BUCKET in `functions/.env` for deploy.
+ */
+function resolveStorageBucketForAdmin() {
+  const fromEnv = typeof process.env.STORAGE_BUCKET === 'string' ? process.env.STORAGE_BUCKET.trim() : '';
+  if (fromEnv) return fromEnv;
+  try {
+    const cfg = JSON.parse(process.env.FIREBASE_CONFIG || '{}');
+    if (cfg.storageBucket) return cfg.storageBucket;
+  } catch (_) {}
+  const pid = activeGcpProjectId();
+  return pid ? `${pid}.firebasestorage.app` : undefined;
+}
+
+/**
+ * Realtime Database URL for `admin.database()` (mirror.js). `FIREBASE_CONFIG` in Cloud Functions
+ * often omits this when the default RTDB instance is in a non-us-central region.
+ * Optional: set `FIREBASE_DATABASE_URL` in `functions/.env` (same value as `js/config.js` `databaseURL`).
+ */
+function resolveDatabaseUrlForAdmin() {
+  const fromEnv =
+    typeof process.env.FIREBASE_DATABASE_URL === 'string' ? process.env.FIREBASE_DATABASE_URL.trim() : '';
+  if (fromEnv) return fromEnv;
+  try {
+    const cfg = JSON.parse(process.env.FIREBASE_CONFIG || '{}');
+    if (cfg.databaseURL) return cfg.databaseURL;
+  } catch (_) {}
+  let pid = activeGcpProjectId();
+  if (!pid) {
+    try {
+      pid = String(JSON.parse(process.env.FIREBASE_CONFIG || '{}').projectId || '').trim();
+    } catch (_) {}
+  }
+  // Must match Firebase Console RTDB instance / client `config.firebase.databaseURL`.
+  if (pid === 'rsapublicationhub') {
+    return 'https://rsapublicationhub-default-rtdb.asia-southeast1.firebasedatabase.app';
+  }
+  return undefined;
+}
+
+const resolvedStorageBucket = resolveStorageBucketForAdmin();
+const resolvedDatabaseUrl = resolveDatabaseUrlForAdmin();
+admin.initializeApp({
+  ...(resolvedStorageBucket ? { storageBucket: resolvedStorageBucket } : {}),
+  ...(resolvedDatabaseUrl ? { databaseURL: resolvedDatabaseUrl } : {})
+});
+
 const db = admin.firestore();
 
-const githubToken = defineSecret('GITHUB_TOKEN');
-const githubOwner = defineString('GITHUB_OWNER');
-const githubRepo = defineString('GITHUB_REPO');
-const githubBranch = defineString('GITHUB_BRANCH', { default: 'main' });
+/** @returns {import('@google-cloud/storage').Bucket} */
+function getStorageBucket() {
+  const name = admin.app().options.storageBucket;
+  if (!name) {
+    throw new HttpsError(
+      'failed-precondition',
+      'Firebase Storage bucket is not configured. Enable Storage in the Firebase Console, then redeploy functions.'
+    );
+  }
+  return admin.storage().bucket(name);
+}
 
-const MAX_PDF_BYTES = 30 * 1024 * 1024;
+const {
+  r2AccessKeyId,
+  r2SecretAccessKey,
+  getR2Context,
+  putObjectBuffer,
+  putObjectStream
+} = require('./r2.js');
+
+/** Max PDF size after upload (Storage path); multipart POST is capped lower (Gen2 HTTP ~32 MiB). */
+const MAX_PDF_BYTES = 75 * 1024 * 1024;
+/** Larger PDFs must use `prepareEditionPdfUpload` + Storage signed URL + `finalizeEditionPdfUpload`. */
+const MULTIPART_PDF_MAX_BYTES = 28 * 1024 * 1024;
 const MAX_COVER_BYTES = 4 * 1024 * 1024;
 
 function safeFilename(name) {
@@ -32,6 +107,191 @@ function idLooksSafe(id) {
 function publicationsPathPrefix(publisherId, seriesId) {
   return `publications/publishers/${publisherId}/series/${seriesId}/`;
 }
+
+/**
+ * @returns {Promise<{ download_url: string, path: string }>}
+ */
+async function putPdfBufferToR2({ fileBuffer, originalFilename, publisherId, seriesId }) {
+  const ctx = getR2Context();
+  const safeName = safeFilename(originalFilename);
+  const key = `publications/publishers/${publisherId}/series/${seriesId}/${Date.now()}-${safeName}`;
+  return putObjectBuffer(ctx, key, fileBuffer, 'application/pdf');
+}
+
+async function assertEditionUploadMembership(uid, publisherId, seriesId) {
+  const mem = await db.doc(`users/${uid}/publisherMemberships/${publisherId}`).get();
+  if (!mem.exists) {
+    throw new HttpsError('permission-denied', 'Not a member of this publisher');
+  }
+  const pub = await db.doc(`publishers/${publisherId}`).get();
+  if (!pub.exists || pub.data().status !== 'active') {
+    throw new HttpsError('permission-denied', 'Publisher not found or inactive');
+  }
+  const ser = await db.doc(`series/${seriesId}`).get();
+  if (!ser.exists || ser.data().publisher_id !== publisherId) {
+    throw new HttpsError('permission-denied', 'Series does not belong to this publisher');
+  }
+}
+
+/**
+ * Callable: start large PDF upload (Firebase Storage signed URL). Client PUTs the file, then calls finalizeEditionPdfUpload.
+ */
+exports.prepareEditionPdfUpload = onCall(callableOptions, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Sign in required');
+  }
+  const uid = request.auth.uid;
+  const data = request.data || {};
+  const publisherId = typeof data.publisherId === 'string' ? data.publisherId.trim() : '';
+  const seriesId = typeof data.seriesId === 'string' ? data.seriesId.trim() : '';
+  const filename = typeof data.filename === 'string' ? data.filename : 'edition.pdf';
+  const byteSize = Number(data.byteSize);
+
+  if (!idLooksSafe(publisherId) || !idLooksSafe(seriesId)) {
+    throw new HttpsError('invalid-argument', 'Invalid publisherId or seriesId');
+  }
+  if (!Number.isFinite(byteSize) || byteSize < 1 || byteSize > MAX_PDF_BYTES) {
+    throw new HttpsError(
+      'invalid-argument',
+      `PDF must be between 1 and ${MAX_PDF_BYTES / (1024 * 1024)} MB`
+    );
+  }
+  const lower = String(filename).toLowerCase();
+  if (!lower.endsWith('.pdf')) {
+    throw new HttpsError('invalid-argument', 'Only PDF uploads are allowed');
+  }
+
+  await assertEditionUploadMembership(uid, publisherId, seriesId);
+
+  const uploadId = crypto.randomBytes(16).toString('hex');
+  const safeName = safeFilename(filename);
+  const storagePath = `pdf-uploads/${publisherId}/${seriesId}/${uploadId}/${safeName}`;
+
+  try {
+    const bucket = getStorageBucket();
+    const file = bucket.file(storagePath);
+
+    const [uploadUrl] = await file.getSignedUrl({
+      version: 'v4',
+      action: 'write',
+      expires: Date.now() + 20 * 60 * 1000,
+      contentType: 'application/pdf'
+    });
+
+    await db
+      .collection('pdf_upload_sessions')
+      .doc(uploadId)
+      .set({
+        uid,
+        publisherId,
+        seriesId,
+        storagePath,
+        originalFilename: safeName,
+        byteSize,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+    return { uploadUrl, uploadId };
+  } catch (e) {
+    if (e instanceof HttpsError) throw e;
+    const msg = String(e?.message || e || 'unknown');
+    logger.error('prepareEditionPdfUpload failed', {
+      message: msg,
+      code: e?.code,
+      storageBucket: admin.app().options.storageBucket
+    });
+    if (/sign|Sign|iam\.|IAM|permission|Permission|credential|Credential|access token/i.test(msg)) {
+      throw new HttpsError(
+        'failed-precondition',
+        'Could not create a signed upload URL. In IAM, ensure the Cloud Functions runtime service account has "Service Account Token Creator" (on itself) and roles that allow Storage object create — see Google Cloud documentation for signed URL permissions.'
+      );
+    }
+    if (/not exist|Not Found|404|No such bucket|bucket/i.test(msg)) {
+      throw new HttpsError(
+        'failed-precondition',
+        `Storage bucket mismatch or bucket missing (${admin.app().options.storageBucket || 'unset'}). Set STORAGE_BUCKET in functions/.env to the exact default bucket from Firebase → Storage, then redeploy.`
+      );
+    }
+    throw new HttpsError('internal', `prepareEditionPdfUpload failed: ${msg.slice(0, 280)}`);
+  }
+});
+
+/**
+ * Callable: after client PUT to Storage, copy stream to R2 and delete temp object.
+ */
+exports.finalizeEditionPdfUpload = onCall(
+  {
+    region: 'us-central1',
+    secrets: [r2AccessKeyId, r2SecretAccessKey],
+    timeoutSeconds: 540,
+    memory: '2GiB',
+    cpu: 2
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Sign in required');
+    }
+    const uid = request.auth.uid;
+    const uploadId = String(request.data?.uploadId || '').trim();
+    if (!uploadId || !/^[a-f0-9]{32}$/.test(uploadId)) {
+      throw new HttpsError('invalid-argument', 'Invalid uploadId');
+    }
+
+    const sessRef = db.collection('pdf_upload_sessions').doc(uploadId);
+    const sessSnap = await sessRef.get();
+    if (!sessSnap.exists) {
+      throw new HttpsError('not-found', 'Upload session not found or already finalized');
+    }
+    const s = sessSnap.data();
+    if (s.uid !== uid) {
+      throw new HttpsError('permission-denied', 'Not your upload');
+    }
+
+    const bucket = getStorageBucket();
+    const file = bucket.file(s.storagePath);
+
+    let meta;
+    try {
+      [meta] = await file.getMetadata();
+    } catch (e) {
+      await sessRef.delete().catch(() => {});
+      throw new HttpsError('failed-precondition', 'Upload file not found in storage');
+    }
+
+    const size = Number(meta.size);
+    if (!Number.isFinite(size) || size < 1) {
+      await file.delete().catch(() => {});
+      await sessRef.delete().catch(() => {});
+      throw new HttpsError('failed-precondition', 'Upload missing or empty');
+    }
+    if (size > MAX_PDF_BYTES) {
+      await file.delete().catch(() => {});
+      await sessRef.delete().catch(() => {});
+      throw new HttpsError('invalid-argument', `PDF must be under ${MAX_PDF_BYTES / (1024 * 1024)} MB`);
+    }
+
+    const ctx = getR2Context();
+    const safeName = s.originalFilename || safeFilename('edition.pdf');
+    const key = `publications/publishers/${s.publisherId}/series/${s.seriesId}/${Date.now()}-${safeName}`;
+
+    try {
+      const readStream = file.createReadStream();
+      const out = await putObjectStream(ctx, key, readStream, 'application/pdf', size);
+      await file.delete().catch((err) => logger.warn('finalizeEditionPdfUpload temp delete', err));
+      await sessRef.delete().catch(() => {});
+      return out;
+    } catch (e) {
+      await file.delete().catch(() => {});
+      await sessRef.delete().catch(() => {});
+      const msg = String(e?.message || e || 'R2 upload failed');
+      logger.error('finalizeEditionPdfUpload R2 failed', { message: msg, uploadId, key });
+      if (/Server missing R2_/i.test(msg) || /missing R2/i.test(msg)) {
+        throw new HttpsError('failed-precondition', msg);
+      }
+      throw new HttpsError('internal', `Could not store PDF in R2: ${msg.slice(0, 400)}`);
+    }
+  }
+);
 
 /**
  * @param {string} pdfRepoPath
@@ -67,6 +327,12 @@ function normalizeEmailInvite(email) {
     .toLowerCase();
 }
 
+function trimInternalReference(raw) {
+  return String(raw ?? '')
+    .trim()
+    .slice(0, 200);
+}
+
 exports.createPublisher = onCall(callableOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Sign in required');
@@ -77,6 +343,7 @@ exports.createPublisher = onCall(callableOptions, async (request) => {
   let slug = (data?.slug || '').trim().toLowerCase();
   const ownerName = (data?.owner_name || '').trim();
   const ownerEmail = normalizeEmailInvite(data?.owner_email);
+  const internal_reference = trimInternalReference(data?.internal_reference);
   if (!name) {
     throw new HttpsError('invalid-argument', 'name is required');
   }
@@ -100,6 +367,7 @@ exports.createPublisher = onCall(callableOptions, async (request) => {
     name,
     slug,
     status: 'active',
+    internal_reference,
     created_at: admin.firestore.FieldValue.serverTimestamp()
   });
   const invRef = ref.collection('invites').doc();
@@ -135,7 +403,11 @@ exports.updatePublisherName = onCall(callableOptions, async (request) => {
   if (!pSnap.exists) {
     throw new HttpsError('not-found', 'Publisher not found');
   }
-  await pref.update({ name });
+  const payload = { name };
+  if (Object.prototype.hasOwnProperty.call(data, 'internal_reference')) {
+    payload.internal_reference = trimInternalReference(data.internal_reference);
+  }
+  await pref.update(payload);
   return { ok: true };
 });
 
@@ -244,15 +516,15 @@ exports.setPlatformAdmin = onCall(callableOptions, async (request) => {
 
 /**
  * Multipart upload: fields idToken, publisherId, seriesId + file (PDF).
- * Stores under repo path: publications/publishers/{publisherId}/series/{seriesId}/{timestamp}-{name}.pdf
+ * Stores in R2 under: publications/publishers/{publisherId}/series/{seriesId}/{timestamp}-{name}.pdf
  */
 exports.uploadPublicationPdf = onRequest(
   {
     region: 'us-central1',
     cors: true,
-    secrets: [githubToken],
-    timeoutSeconds: 120,
-    memory: '512MiB',
+    secrets: [r2AccessKeyId, r2SecretAccessKey],
+    timeoutSeconds: 300,
+    memory: '1GiB',
     invoker: 'public'
   },
   async (req, res) => {
@@ -273,7 +545,7 @@ exports.uploadPublicationPdf = onRequest(
       let originalFilename = 'edition.pdf';
       let fileTooLarge = false;
 
-      const bb = busboy({ headers: req.headers, limits: { files: 1, fileSize: MAX_PDF_BYTES } });
+      const bb = busboy({ headers: req.headers, limits: { files: 1, fileSize: MULTIPART_PDF_MAX_BYTES } });
       bb.on('field', (name, val) => {
         if (name === 'idToken') idToken = val;
         if (name === 'publisherId') publisherId = typeof val === 'string' ? val.trim() : '';
@@ -325,8 +597,10 @@ exports.uploadPublicationPdf = onRequest(
             resolve();
             return;
           }
-          if (fileTooLarge || fileBuffer.length > MAX_PDF_BYTES) {
-            res.status(413).json({ error: `PDF must be under ${MAX_PDF_BYTES / (1024 * 1024)} MB` });
+          if (fileTooLarge || fileBuffer.length > MULTIPART_PDF_MAX_BYTES) {
+            res.status(413).json({
+              error: `PDF must be under ${MULTIPART_PDF_MAX_BYTES / (1024 * 1024)} MB for direct upload. Use Publisher Studio (Storage path) for up to ${MAX_PDF_BYTES / (1024 * 1024)} MB.`
+            });
             resolve();
             return;
           }
@@ -357,50 +631,21 @@ exports.uploadPublicationPdf = onRequest(
             return;
           }
 
-          const owner = githubOwner.value();
-          const repo = githubRepo.value();
-          const branch = githubBranch.value();
-          const token = githubToken.value();
-          if (!owner || !repo || !token) {
-            res.status(500).json({ error: 'Server missing GITHUB_OWNER, GITHUB_REPO, or GITHUB_TOKEN secret' });
+          try {
+            const result = await putPdfBufferToR2({
+              fileBuffer,
+              originalFilename,
+              publisherId,
+              seriesId
+            });
+            res.status(200).json(result);
             resolve();
-            return;
-          }
-
-          const safeName = safeFilename(originalFilename);
-          const repoPath = `publications/publishers/${publisherId}/series/${seriesId}/${Date.now()}-${safeName}`;
-          const pathForApi = repoPath.split('/').map(encodeURIComponent).join('/');
-          const contentBase64 = fileBuffer.toString('base64');
-
-          const ghRes = await fetch(
-            `https://api.github.com/repos/${owner}/${repo}/contents/${pathForApi}`,
-            {
-              method: 'PUT',
-              headers: {
-                Accept: 'application/vnd.github+json',
-                Authorization: `Bearer ${token}`,
-                'X-GitHub-Api-Version': '2022-11-28',
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                message: `Upload ${repoPath}`,
-                content: contentBase64,
-                branch
-              })
-            }
-          );
-          const ghJson = await ghRes.json().catch(() => ({}));
-          if (!ghRes.ok) {
-            const msg = ghJson.message || `GitHub API error ${ghRes.status}`;
-            res.status(502).json({ error: msg });
+          } catch (r2Err) {
+            const msg = r2Err?.message || 'R2 upload failed';
+            const isConfig = /missing R2/i.test(msg);
+            res.status(isConfig ? 500 : 502).json({ error: msg });
             resolve();
-            return;
           }
-          const downloadUrl =
-            ghJson.content?.download_url ||
-            `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${repoPath}`;
-          res.status(200).json({ download_url: downloadUrl, path: repoPath });
-          resolve();
         } catch (e) {
           logger.error('uploadPublicationPdf failed', e);
           if (!res.headersSent) {
@@ -436,14 +681,14 @@ exports.uploadPublicationPdf = onRequest(
 );
 
 /**
- * Multipart: idToken, publisherId, seriesId, pdfRepoPath (GitHub path of the PDF), file (JPEG, PNG, or WebP).
+ * Multipart: idToken, publisherId, seriesId, pdfRepoPath (object key of the PDF in R2), file (JPEG, PNG, or WebP).
  * Decodes with sharp and writes lossless WebP alongside PDF: …-cover.webp
  */
 exports.uploadPublicationCover = onRequest(
   {
     region: 'us-central1',
     cors: true,
-    secrets: [githubToken],
+    secrets: [r2AccessKeyId, r2SecretAccessKey],
     timeoutSeconds: 120,
     memory: '512MiB',
     invoker: 'public'
@@ -572,60 +817,17 @@ exports.uploadPublicationCover = onRequest(
             return;
           }
 
-          const owner = githubOwner.value();
-          const repo = githubRepo.value();
-          const branch = githubBranch.value();
-          const token = githubToken.value();
-          if (!owner || !repo || !token) {
-            res.status(500).json({ error: 'Server missing GITHUB_OWNER, GITHUB_REPO, or GITHUB_TOKEN secret' });
+          let ctx;
+          try {
+            ctx = getR2Context();
+          } catch (cfgErr) {
+            res.status(500).json({ error: cfgErr?.message || 'R2 not configured' });
             resolve();
             return;
           }
 
-          const pathForApi = coverRepoPath.split('/').map(encodeURIComponent).join('/');
-          const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${pathForApi}?ref=${encodeURIComponent(branch)}`;
-          const getRes = await fetch(getUrl, {
-            headers: {
-              Accept: 'application/vnd.github+json',
-              Authorization: `Bearer ${token}`,
-              'X-GitHub-Api-Version': '2022-11-28'
-            }
-          });
-          let existingSha;
-          if (getRes.ok) {
-            const gj = await getRes.json().catch(() => ({}));
-            if (gj.sha) existingSha = gj.sha;
-          }
-
-          const contentBase64 = losslessWebpBuffer.toString('base64');
-          const putBody = {
-            message: `Upload cover ${coverRepoPath}`,
-            content: contentBase64,
-            branch
-          };
-          if (existingSha) putBody.sha = existingSha;
-
-          const ghRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${pathForApi}`, {
-            method: 'PUT',
-            headers: {
-              Accept: 'application/vnd.github+json',
-              Authorization: `Bearer ${token}`,
-              'X-GitHub-Api-Version': '2022-11-28',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(putBody)
-          });
-          const ghJson = await ghRes.json().catch(() => ({}));
-          if (!ghRes.ok) {
-            const msg = ghJson.message || `GitHub API error ${ghRes.status}`;
-            res.status(502).json({ error: msg });
-            resolve();
-            return;
-          }
-          const downloadUrl =
-            ghJson.content?.download_url ||
-            `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${coverRepoPath}`;
-          res.status(200).json({ download_url: downloadUrl, path: coverRepoPath });
+          const coverOut = await putObjectBuffer(ctx, coverRepoPath, losslessWebpBuffer, 'image/webp');
+          res.status(200).json(coverOut);
           resolve();
         } catch (e) {
           logger.error('uploadPublicationCover failed', e);

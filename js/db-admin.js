@@ -1,7 +1,7 @@
 /**
  * Platform admin: RTDB reads. Writes use Cloud Functions callables.
  */
-import { ref, get } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
+import { ref, get, onValue } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
 import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 import { fbAuth, fbRtdb, fbDb } from './firebase-init.js';
 import { subscribePublisherStudio } from './db-publisher.js';
@@ -99,27 +99,64 @@ export function subscribePublisherOrgForAdmin(publisherId, onUpdate) {
   });
 }
 
+/**
+ * @param {unknown} val RTDB `platform/publishers` object snapshot value
+ * @returns {Array<{ id: string, name: unknown, slug: unknown, status: unknown, internal_reference: string, created_at: string | null }>}
+ */
+export function normalizePlatformPublishersVal(val) {
+  if (!val || typeof val !== 'object') {
+    return [];
+  }
+  const data = Object.keys(val).map((id) => {
+    const p = val[id];
+    return {
+      id: p.id || id,
+      name: p.name,
+      slug: p.slug,
+      status: p.status,
+      internal_reference: p.internal_reference != null ? String(p.internal_reference) : '',
+      created_at: msToIso(p.created_at)
+    };
+  });
+  data.sort((a, b) => {
+    const an = String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+    if (an !== 0) return an;
+    return String(a.id).localeCompare(String(b.id));
+  });
+  return data;
+}
+
 export async function listAllPublishers() {
   try {
     const snap = await get(ref(fbRtdb(), 'platform/publishers'));
-    const val = snap.val();
-    if (!val || typeof val !== 'object') {
-      return { data: [], error: null };
-    }
-    const data = Object.keys(val).map((id) => {
-      const p = val[id];
-      return {
-        id: p.id || id,
-        name: p.name,
-        slug: p.slug,
-        status: p.status,
-        created_at: msToIso(p.created_at)
-      };
-    });
+    const data = normalizePlatformPublishersVal(snap.val());
     return { data, error: null };
   } catch (e) {
     return { data: null, error: { message: e?.message } };
   }
+}
+
+/**
+ * Live updates for `platform/publishers` (platform admin list only — same path as {@link listAllPublishers}).
+ * @param {(result: { data: ReturnType<typeof normalizePlatformPublishersVal> | null, error: { message: string } | null }) => void} onUpdate
+ * @returns {() => void} unsubscribe
+ */
+export function subscribePlatformPublishers(onUpdate) {
+  const r = ref(fbRtdb(), 'platform/publishers');
+  return onValue(
+    r,
+    (snap) => {
+      try {
+        const data = normalizePlatformPublishersVal(snap.val());
+        onUpdate({ data, error: null });
+      } catch (e) {
+        onUpdate({ data: null, error: { message: e?.message || 'Failed to parse publishers' } });
+      }
+    },
+    (err) => {
+      onUpdate({ data: null, error: { message: err?.message || 'Listen failed' } });
+    }
+  );
 }
 
 export async function countEditionsApprox() {
@@ -131,4 +168,112 @@ export async function countEditionsApprox() {
   } catch (e) {
     return { count: 0, error: { message: e?.message } };
   }
+}
+
+/**
+ * Live mirror total edition count (admin stats line).
+ * @param {(result: { count: number | null, error: { message: string } | null }) => void} onUpdate
+ * @returns {() => void} unsubscribe
+ */
+export function subscribePlatformEditionCount(onUpdate) {
+  const r = ref(fbRtdb(), 'platform/stats/editionCount');
+  return onValue(
+    r,
+    (snap) => {
+      const v = snap.val();
+      const count = typeof v === 'number' ? v : 0;
+      onUpdate({ count, error: null });
+    },
+    (err) => {
+      onUpdate({ count: null, error: { message: err?.message || 'Listen failed' } });
+    }
+  );
+}
+
+/**
+ * @param {unknown} val RTDB `platform/staff`
+ * @returns {Array<{ uid: string, email: string, displayName: string, tier: string }>}
+ */
+export function normalizePlatformStaffRtdb(val) {
+  if (!val || typeof val !== 'object') return [];
+  const rows = Object.keys(val).map((uid) => {
+    const s = val[uid];
+    return {
+      uid: s?.uid || uid,
+      email: s?.email != null ? String(s.email) : '',
+      displayName: s?.display_name != null ? String(s.display_name) : '',
+      tier: s?.tier === 'manager' ? 'manager' : 'admin'
+    };
+  });
+  rows.sort((a, b) => String(a.email || '').localeCompare(String(b.email || ''), undefined, { sensitivity: 'base' }));
+  return rows;
+}
+
+/**
+ * Live platform team list (mirrored from `platform_admins`).
+ * @param {(result: { data: ReturnType<typeof normalizePlatformStaffRtdb>, error: { message: string } | null }) => void} onUpdate
+ * @returns {() => void} unsubscribe
+ */
+export function subscribePlatformStaff(onUpdate) {
+  const r = ref(fbRtdb(), 'platform/staff');
+  return onValue(
+    r,
+    (snap) => {
+      try {
+        const data = normalizePlatformStaffRtdb(snap.val());
+        onUpdate({ data, error: null });
+      } catch (e) {
+        onUpdate({ data: [], error: { message: e?.message || 'Failed to parse staff' } });
+      }
+    },
+    (err) => {
+      onUpdate({ data: [], error: { message: err?.message || 'Listen failed' } });
+    }
+  );
+}
+
+/**
+ * @param {unknown} val RTDB `platform/staffInvites`
+ * @returns {Array<{ inviteId: string, invitee_name: string, email_normalized: string, intended_tier: string }>}
+ */
+export function normalizePlatformStaffInvitesRtdb(val) {
+  if (!val || typeof val !== 'object') return [];
+  const rows = Object.keys(val).map((id) => {
+    const x = val[id];
+    return {
+      inviteId: x?.inviteId || id,
+      invitee_name: x?.invitee_name != null ? String(x.invitee_name) : '',
+      email_normalized: x?.email_normalized != null ? String(x.email_normalized) : '',
+      intended_tier: x?.intended_tier === 'manager' ? 'manager' : 'admin'
+    };
+  });
+  rows.sort((a, b) =>
+    String(a.email_normalized || '').localeCompare(String(b.email_normalized || ''), undefined, {
+      sensitivity: 'base'
+    })
+  );
+  return rows;
+}
+
+/**
+ * Pending platform staff invites (full admin only in UI; same read rule as other `platform/*`).
+ * @param {(result: { data: ReturnType<typeof normalizePlatformStaffInvitesRtdb>, error: { message: string } | null }) => void} onUpdate
+ * @returns {() => void} unsubscribe
+ */
+export function subscribePlatformStaffInvites(onUpdate) {
+  const r = ref(fbRtdb(), 'platform/staffInvites');
+  return onValue(
+    r,
+    (snap) => {
+      try {
+        const data = normalizePlatformStaffInvitesRtdb(snap.val());
+        onUpdate({ data, error: null });
+      } catch (e) {
+        onUpdate({ data: [], error: { message: e?.message || 'Failed to parse invites' } });
+      }
+    },
+    (err) => {
+      onUpdate({ data: [], error: { message: err?.message || 'Listen failed' } });
+    }
+  );
 }

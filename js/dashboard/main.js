@@ -1,11 +1,12 @@
 /**
- * Publisher studio (studio.html): Google auth, series + editions, GitHub upload, reader.
+ * Publisher studio (studio.html): Google auth, series + editions, PDF/cover upload, reader.
  */
 import { onAuthStateChange, signInWithGoogle, signOut } from '../auth.js';
 import {
   listMyPublisherMemberships,
   fetchPublisher,
   subscribePublisherStudio,
+  subscribeMyPublisherMemberships,
   createSeries,
   insertPublishedEdition,
   updateEdition,
@@ -222,6 +223,10 @@ let pendingSeriesIdForCover = null;
 let activeStudioTab = 'content';
 /** Unsubscribe RTDB org/{publisherId}/series + editions (set when studio is active). */
 let studioUnsubscribe = null;
+/** Unsubscribe RTDB userMemberships/{uid}. */
+let membershipUnsubscribe = null;
+/** Latest pending publisher invites (callable); used when rendering no-org UI. */
+let latestPendingInvites = [];
 
 /** Latest editions list for reader hash deep links on studio.html (see `js/url-routes.js`). */
 let studioEditionsForHash = [];
@@ -238,6 +243,19 @@ function stopStudioSubscription() {
     studioUnsubscribe();
     studioUnsubscribe = null;
   }
+}
+
+function stopMembershipSubscription() {
+  membershipUnsubscribe?.();
+  membershipUnsubscribe = null;
+}
+
+function startMembershipSubscription(uid) {
+  stopMembershipSubscription();
+  if (!uid) return;
+  membershipUnsubscribe = subscribeMyPublisherMemberships(uid, ({ data, error }) => {
+    void applyStudioMembershipSnapshot(data, error);
+  });
 }
 
 function setNoOrgInvitesLoadError(message) {
@@ -268,6 +286,7 @@ function clearStudioPublisherNameLabel() {
 
 function showGuest() {
   stopStudioSubscription();
+  stopMembershipSubscription();
   activeStudioTab = 'content';
   studioEditionsForHash = [];
   studioLiveEditions = [];
@@ -603,7 +622,8 @@ function studioEditionToReaderPub(ed) {
     pdf_url: ed.pdf_url,
     cover_url: ed.cover_url,
     created_at: ed.created_at,
-    issue_date: ed.issue_date
+    issue_date: ed.issue_date,
+    series_title: ed.series_title ?? null
   };
 }
 
@@ -854,7 +874,7 @@ function onSeriesListClick(e) {
       void (async () => {
         const ok = await studioConfirm({
           title: 'Delete publication?',
-          message: `Delete this publication and ${edCount} edition(s) in it? GitHub files and Firestore documents will be removed. This cannot be undone.`,
+          message: `Delete this publication and ${edCount} edition(s) in it? Stored PDFs/covers and Firestore documents will be removed. This cannot be undone.`,
           confirmText: 'Delete publication',
           cancelText: 'Cancel',
           danger: true
@@ -886,20 +906,89 @@ async function loadPublisherContext(publisherId) {
   stopStudioSubscription();
   resetContentFlow();
   currentPublisherId = publisherId;
+  currentPublisherRecord = null;
   syncCurrentUserRole();
   clearStudioPublisherNameLabel();
   try {
     localStorage.setItem(PUB_STORAGE_KEY, publisherId);
   } catch (_) {}
 
-  const pubRes = await fetchPublisher(publisherId);
-  if (currentPublisherId !== publisherId) return;
-  currentPublisherRecord = pubRes.data;
-  syncStudioPublisherNameLabel();
+  studioUnsubscribe = subscribePublisherStudio(
+    publisherId,
+    ({ series, editions, invites, roster, profile }) => {
+      if (currentPublisherId !== publisherId) return;
+      if (profile) {
+        currentPublisherRecord = profile;
+        syncStudioPublisherNameLabel();
+      }
+      renderStudioFromLiveData(publisherId, series, editions, invites, roster);
+    }
+  );
+}
 
-  studioUnsubscribe = subscribePublisherStudio(publisherId, ({ series, editions, invites, roster }) => {
-    renderStudioFromLiveData(publisherId, series, editions, invites, roster);
-  });
+async function pickPublisherAndLoad() {
+  let stored = null;
+  try {
+    stored = localStorage.getItem(PUB_STORAGE_KEY);
+  } catch (_) {}
+  let pick =
+    memberships.find((m) => m.publisherId === stored)?.publisherId || memberships[0]?.publisherId;
+  const tried = new Set();
+  while (pick && tried.size < memberships.length) {
+    tried.add(pick);
+    const prof = await fetchPublisher(pick);
+    if (prof.data) break;
+    try {
+      localStorage.removeItem(PUB_STORAGE_KEY);
+    } catch (_) {}
+    const next = memberships.find((m) => !tried.has(m.publisherId));
+    pick = next?.publisherId || null;
+  }
+
+  if (!pick) {
+    renderNoOrgPendingInvites(latestPendingInvites);
+    showNoMembership();
+    return;
+  }
+
+  await loadPublisherContext(pick);
+  await refreshStudioExternalInvitesBanner();
+}
+
+async function applyStudioMembershipSnapshot(data, error) {
+  if (error || !data) {
+    renderNoOrgPendingInvites(latestPendingInvites);
+    showNoMembership();
+    return;
+  }
+  memberships = data;
+  if (!memberships.length) {
+    renderNoOrgPendingInvites(latestPendingInvites);
+    showNoMembership();
+    return;
+  }
+
+  showStudio();
+  setStudioTab(activeStudioTab);
+
+  const stillMember =
+    currentPublisherId && memberships.some((m) => m.publisherId === currentPublisherId);
+
+  if (!stillMember) {
+    await pickPublisherAndLoad();
+    return;
+  }
+
+  syncCurrentUserRole();
+  syncStudioPublisherNameLabel();
+  renderStudioFromLiveData(
+    currentPublisherId,
+    seriesItems,
+    studioLiveEditions,
+    latestInvites,
+    latestRoster
+  );
+  void refreshStudioExternalInvitesBanner();
 }
 
 async function refreshMembershipsAndUi(user) {
@@ -910,28 +999,12 @@ async function refreshMembershipsAndUi(user) {
 
   const pendingRes = await listMyPendingInvitesCallable();
   setNoOrgInvitesLoadError(pendingRes.error?.message || '');
-  const pendingInvites = pendingRes.data || [];
+  latestPendingInvites = pendingRes.data || [];
+  renderNoOrgPendingInvites(latestPendingInvites);
 
   const { data, error } = await listMyPublisherMemberships();
-  if (error || !data) {
-    renderNoOrgPendingInvites(pendingInvites);
-    showNoMembership();
-    return;
-  }
-  memberships = data;
-  if (!memberships.length) {
-    renderNoOrgPendingInvites(pendingInvites);
-    showNoMembership();
-    return;
-  }
-
-  showStudio();
-  setStudioTab(activeStudioTab);
-  const pick =
-    memberships.find((m) => m.publisherId === localStorage.getItem(PUB_STORAGE_KEY))?.publisherId ||
-    memberships[0].publisherId;
-  await loadPublisherContext(pick);
-  await refreshStudioExternalInvitesBanner();
+  await applyStudioMembershipSnapshot(data, error);
+  startMembershipSubscription(user.uid);
 }
 
 onAuthStateChange((state, user) => {
@@ -1132,8 +1205,8 @@ function openEditEditionModal(ed) {
   if (editRegenerateCover) {
     editRegenerateCover.disabled = !hasPath;
     editRegenerateCover.title = hasPath
-      ? 'Re-render first page of the PDF and upload cover (browser must be able to fetch the PDF URL; GitHub raw usually allows this)'
-      : 'Re-publish this edition (new PDF upload) once to store the GitHub path, then you can regenerate the cover.';
+      ? 'Re-render first page of the PDF and upload cover (browser must be able to fetch the PDF URL; ensure R2/public CDN CORS allows your site)'
+      : 'Re-publish this edition (new PDF upload) once to store the object path, then you can regenerate the cover.';
   }
   editModal?.classList.remove('hidden');
   editModal?.classList.add('flex');

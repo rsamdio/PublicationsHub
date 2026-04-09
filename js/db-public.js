@@ -1,7 +1,7 @@
 /**
  * Public catalog reads (Explore / index.html). Realtime Database mirror — no auth.
  */
-import { ref, get } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
+import { ref, get, onValue } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
 import { fbRtdb } from './firebase-init.js';
 import { sortEditionsNewestFirstInPlace } from './edition-sort.js';
 
@@ -46,6 +46,34 @@ export async function fetchPublishedCatalog() {
     const message = e?.message || 'Failed to load catalog';
     return { data: null, error: { message } };
   }
+}
+
+/**
+ * @param {(result: { data: ReturnType<typeof mapEditionToCard>[] | null, error: { message: string } | null }) => void} onUpdate
+ * @returns {() => void} unsubscribe
+ */
+export function subscribePublishedCatalog(onUpdate) {
+  const r = ref(fbRtdb(), 'public/catalog/editions');
+  return onValue(
+    r,
+    (snap) => {
+      try {
+        const val = snap.val();
+        if (!val || typeof val !== 'object') {
+          onUpdate({ data: [], error: null });
+          return;
+        }
+        const data = Object.keys(val).map((id) => mapEditionToCard(id, val[id]));
+        sortEditionsNewestFirstInPlace(data);
+        onUpdate({ data, error: null });
+      } catch (e) {
+        onUpdate({ data: null, error: { message: e?.message || 'Failed to parse catalog' } });
+      }
+    },
+    (err) => {
+      onUpdate({ data: null, error: { message: err?.message || 'Listen failed' } });
+    }
+  );
 }
 
 /**

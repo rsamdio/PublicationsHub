@@ -1,10 +1,17 @@
 /**
- * Edition PDF + cover WebP upload via Cloud Functions — GitHub PAT never touches the browser.
+ * Edition PDF + cover WebP upload via Cloud Functions — R2 credentials never touch the browser.
  */
+import { httpsCallable } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-functions.js';
 import { config } from './config.js';
-import { fbAuth } from './firebase-init.js';
+import { fbAuth, fbFunctions } from './firebase-init.js';
+
+/** Same cap as `MAX_PDF_BYTES` in functions/index.js */
+const MAX_PDF_BYTES = 75 * 1024 * 1024;
+/** Multipart POST to `uploadPublicationPdf` must stay under Cloud Functions HTTP body limit (~32 MiB). */
+const MULTIPART_PDF_MAX_BYTES = 28 * 1024 * 1024;
 
 /**
+ * PDFs larger than this use Firebase Storage (signed URL) then `finalizeEditionPdfUpload`.
  * @param {File} file PDF only
  * @param {{ publisherId: string, seriesId: string }} scope
  * @returns {Promise<{ download_url: string, path?: string, error?: string }>}
@@ -14,11 +21,30 @@ export async function uploadEditionPdf(file, { publisherId, seriesId }) {
   if (!projectId) {
     return { download_url: '', error: 'Missing Firebase projectId in config.js' };
   }
+  if (file.size > MAX_PDF_BYTES) {
+    return {
+      download_url: '',
+      error: `PDF must be ${MAX_PDF_BYTES / (1024 * 1024)} MB or smaller`
+    };
+  }
+
   const auth = fbAuth();
   const user = auth.currentUser;
   if (!user) {
     return { download_url: '', error: 'Sign in required' };
   }
+
+  if (file.size > MULTIPART_PDF_MAX_BYTES) {
+    if (config.uploadPublicationPdfUrl) {
+      return {
+        download_url: '',
+        error:
+          'PDFs over ~28 MB are not supported when using a custom uploadPublicationPdfUrl (emulator). Test with a smaller file or deploy without that override.'
+      };
+    }
+    return uploadEditionPdfViaStorage(file, { publisherId, seriesId });
+  }
+
   let idToken;
   try {
     idToken = await user.getIdToken();
@@ -51,6 +77,66 @@ export async function uploadEditionPdf(file, { publisherId, seriesId }) {
     return { download_url: '', error: 'Upload succeeded but no download URL returned' };
   }
   return { download_url: data.download_url, path: data.path };
+}
+
+/**
+ * @param {File} file
+ * @param {{ publisherId: string, seriesId: string }} scope
+ */
+async function uploadEditionPdfViaStorage(file, { publisherId, seriesId }) {
+  const prepareFn = httpsCallable(fbFunctions(), 'prepareEditionPdfUpload');
+  let prep;
+  try {
+    const prepRes = await prepareFn({
+      publisherId,
+      seriesId,
+      filename: file.name,
+      byteSize: file.size
+    });
+    prep = prepRes.data;
+  } catch (e) {
+    const msg =
+      e?.message ||
+      e?.details ||
+      'Could not start large upload. Ensure Firebase Storage is enabled and `storage.rules` are deployed.';
+    return { download_url: '', error: msg };
+  }
+
+  const uploadUrl = prep?.uploadUrl;
+  const uploadId = prep?.uploadId;
+  if (!uploadUrl || !uploadId) {
+    return { download_url: '', error: 'Upload service did not return a storage URL' };
+  }
+
+  let putRes;
+  try {
+    putRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': 'application/pdf' }
+    });
+  } catch (e) {
+    return { download_url: '', error: e?.message || 'Could not upload file to storage' };
+  }
+
+  if (!putRes.ok) {
+    return {
+      download_url: '',
+      error: `Storage upload failed (${putRes.status}). If this persists, confirm Storage CORS allows PUT from your site (see docs/STORAGE.md).`
+    };
+  }
+
+  const finalizeFn = httpsCallable(fbFunctions(), 'finalizeEditionPdfUpload');
+  try {
+    const done = await finalizeFn({ uploadId });
+    const d = done.data;
+    if (!d?.download_url) {
+      return { download_url: '', error: 'Finalize succeeded but no download URL returned' };
+    }
+    return { download_url: d.download_url, path: d.path };
+  } catch (e) {
+    return { download_url: '', error: e?.message || e?.details || 'Could not finalize upload' };
+  }
 }
 
 /**
