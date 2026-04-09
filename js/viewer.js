@@ -66,7 +66,7 @@ const ZOOM_STEP = 0.25;
 /** Invalidates in-flight openReader work when the user closes or opens another edition. */
 let loadGeneration = 0;
 
-/** Skip page-flip sound on first `flip` after open (library may emit an initial flip). */
+/** Last page index used for flip SFX (play when index changes, including first user flip). */
 let lastFlipSoundPageIndex = -1;
 
 let downloadClickBound = false;
@@ -574,7 +574,7 @@ function bindReaderDownloadOnce() {
   });
 }
 
-/** Web Audio fallback: soft rustle + brief low thump (no `<source>` on `#page-flip-sound`). */
+/** Web Audio fallback when `#page-flip-sound` has no usable `<source>` (HTML uses `/images/pageturn.mp3`). */
 function playFlipSoundSynthesized() {
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -586,53 +586,81 @@ function playFlipSoundSynthesized() {
     if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 
     const t0 = ctx.currentTime;
-    const rustleDur = 0.14;
+    const rustleDur = 0.165;
     const sampleRate = ctx.sampleRate;
     const n = Math.max(1, Math.floor(sampleRate * rustleDur));
     const buffer = ctx.createBuffer(1, n, sampleRate);
     const data = buffer.getChannelData(0);
     let leak = 0;
     for (let i = 0; i < n; i++) {
-      leak = 0.97 * leak + 0.03 * (Math.random() * 2 - 1);
+      leak = 0.965 * leak + 0.035 * (Math.random() * 2 - 1);
       data[i] = leak;
     }
 
     const noise = ctx.createBufferSource();
     noise.buffer = buffer;
 
+    const hpBody = ctx.createBiquadFilter();
+    hpBody.type = 'highpass';
+    hpBody.frequency.value = 320;
+    hpBody.Q.value = 0.55;
+
     const lp = ctx.createBiquadFilter();
     lp.type = 'lowpass';
-    lp.frequency.value = 2400;
-    lp.Q.value = 0.5;
+    lp.frequency.value = 3100;
+    lp.Q.value = 0.55;
 
     const gRustle = ctx.createGain();
     gRustle.gain.setValueAtTime(0.0001, t0);
-    gRustle.gain.exponentialRampToValueAtTime(0.085, t0 + 0.016);
+    gRustle.gain.exponentialRampToValueAtTime(0.2, t0 + 0.014);
     gRustle.gain.exponentialRampToValueAtTime(0.0001, t0 + rustleDur);
 
-    noise.connect(lp);
+    noise.connect(hpBody);
+    hpBody.connect(lp);
     lp.connect(gRustle);
+
+    const nCrisp = Math.max(1, Math.floor(sampleRate * 0.055));
+    const bufCrisp = ctx.createBuffer(1, nCrisp, sampleRate);
+    const d2 = bufCrisp.getChannelData(0);
+    for (let i = 0; i < nCrisp; i++) {
+      d2[i] = (Math.random() * 2 - 1) * (1 - i / nCrisp) ** 1.6;
+    }
+    const noiseHi = ctx.createBufferSource();
+    noiseHi.buffer = bufCrisp;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 4800;
+    bp.Q.value = 0.85;
+    const gCrisp = ctx.createGain();
+    gCrisp.gain.setValueAtTime(0.0001, t0);
+    gCrisp.gain.exponentialRampToValueAtTime(0.07, t0 + 0.004);
+    gCrisp.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.052);
+    noiseHi.connect(bp);
+    bp.connect(gCrisp);
 
     const osc = ctx.createOscillator();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(92, t0);
-    osc.frequency.exponentialRampToValueAtTime(58, t0 + 0.038);
+    osc.frequency.setValueAtTime(98, t0);
+    osc.frequency.exponentialRampToValueAtTime(52, t0 + 0.042);
     const gThump = ctx.createGain();
     gThump.gain.setValueAtTime(0.0001, t0);
-    gThump.gain.exponentialRampToValueAtTime(0.035, t0 + 0.007);
-    gThump.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.048);
+    gThump.gain.exponentialRampToValueAtTime(0.068, t0 + 0.006);
+    gThump.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.055);
     osc.connect(gThump);
 
     const out = ctx.createGain();
-    out.gain.value = 0.78;
+    out.gain.value = 0.92;
     gRustle.connect(out);
+    gCrisp.connect(out);
     gThump.connect(out);
     out.connect(ctx.destination);
 
     noise.start(t0);
     noise.stop(t0 + rustleDur + 0.02);
+    noiseHi.start(t0);
+    noiseHi.stop(t0 + 0.058);
     osc.start(t0);
-    osc.stop(t0 + 0.055);
+    osc.stop(t0 + 0.06);
   } catch (_) {}
 }
 
@@ -645,7 +673,7 @@ function playFlipSound() {
   if (hasSrc) {
     try {
       const clone = audio.cloneNode(true);
-      clone.volume = 0.28;
+      clone.volume = 0.48;
       clone.play().catch(() => {});
     } catch (_) {}
     return;
@@ -822,7 +850,7 @@ async function buildFlipFromPdfDoc(pdfDoc, myLoad) {
     flipBook.loadFromHTML(Array.from(flipbookContainer.querySelectorAll('.page')));
     flipBook.on('flip', () => {
       const cur = flipBook.getCurrentPageIndex();
-      if (lastFlipSoundPageIndex >= 0 && cur !== lastFlipSoundPageIndex) {
+      if (cur !== lastFlipSoundPageIndex) {
         playFlipSound();
       }
       lastFlipSoundPageIndex = cur;

@@ -177,9 +177,10 @@
         <div id="flipbook-container" class="relative"></div>
       </div>
     </div>
-    <!-- Optional flip sound: add lib/page-flip.mp3 and a <source> if you want audio (viewer.js handles missing audio). -->
-    <!-- Optional src: if set, used for page-turn sound; otherwise viewer.js plays a short synthesized flip -->
-    <audio id="page-flip-sound" preload="none" aria-hidden="true"></audio>
+    <!-- Page-turn SFX; swap file or remove <source> to use viewer.js synthesized fallback -->
+    <audio id="page-flip-sound" preload="auto" aria-hidden="true">
+      <source src="/images/pageturn.mp3" type="audio/mpeg" />
+    </audio>
     <div class="absolute top-2 left-2 right-2 sm:top-4 sm:left-4 sm:right-4 z-20 flex flex-row items-start justify-between gap-2 pointer-events-none">
       <div class="pointer-events-auto flex flex-col gap-2 min-w-0 max-w-[min(18rem,calc(100vw-5.5rem))]">
         <button type="button" id="reader-close" class="inline-flex items-center gap-2 text-gray-200 hover:text-white bg-black/60 hover:bg-black/80 backdrop-blur-sm px-3 py-2.5 sm:py-2 rounded-lg border border-white/10 shadow-lg transition-all group w-fit min-h-[44px]">
