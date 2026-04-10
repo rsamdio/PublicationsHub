@@ -276,8 +276,8 @@ function renderPublicationSeriesGrid(container, groups) {
       </div>
       <div class="p-5 flex-1 flex flex-col">
         <div class="flex items-center text-xs text-slate-500 dark:text-slate-400 mb-2">
-          <span class="material-icons text-xs mr-1" style="font-size:14px">schedule</span>
-          ${escapeHtml(updatedIso ? `Updated ${formatDate(updatedIso)}` : 'Publication')}
+          <span class="material-icons text-xs mr-1" style="font-size:14px">new_releases</span>
+          ${escapeHtml(updatedIso ? `Latest Issue · ${formatDate(updatedIso)}` : 'Latest Issue')}
         </div>
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-1 line-clamp-1">${escapeHtml(s.publisherName || 'Publisher')}</p>
         <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors line-clamp-2">${escapeHtml(s.seriesTitle)}</h3>

@@ -366,7 +366,7 @@ function fillHero(group) {
   }
   if (heroBadgeUpdated && group.latestEdition) {
     const latestWhen = formatDate(group.latestEdition.issue_date || group.latestEdition.created_at);
-    if (latestWhen) heroBadgeUpdated.textContent = `Latest issue ${latestWhen}`;
+    if (latestWhen) heroBadgeUpdated.textContent = `Latest Issue · ${latestWhen}`;
   }
   if (editionsCount) editionsCount.textContent = String(group.editionCount);
 }
