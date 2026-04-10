@@ -263,7 +263,7 @@ function renderPublicationSeriesGrid(container, groups) {
     );
     const coverUrl = s.coverUrl || '';
     const img = coverUrl
-      ? `<img alt="" class="book-cover w-full h-full object-cover" src="${escapeHtml(coverUrl)}"/>`
+      ? `<img alt="" class="book-cover w-full h-full object-cover" src="${escapeHtml(coverUrl)}" width="300" height="400" loading="lazy" decoding="async"/>`
       : `<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-slate-500 font-display font-bold">PDF</div>`;
     const updatedIso = s.lastActivityIso || '';
     const freqBadge = seriesFrequencyBadgeAttrs(s.frequency, { compact: true });
@@ -284,7 +284,7 @@ function renderPublicationSeriesGrid(container, groups) {
         <span class="${freqBadge.className}">${escapeHtml(freqBadge.text)}</span>
         <div class="flex-1"></div>
         <div class="flex items-center gap-3 mt-auto">
-          <button type="button" class="shelf-series-open-btn flex-1 bg-primary/10 hover:bg-primary text-primary hover:text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
+          <button type="button" class="shelf-series-open-btn flex-1 border border-primary/50 bg-blue-50 text-blue-950 hover:bg-primary hover:text-white hover:border-primary dark:bg-primary/15 dark:text-sky-100 dark:border-primary/40 dark:hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
             <span class="material-icons text-base">library_books</span>
             Open publication
           </button>
@@ -314,7 +314,7 @@ function renderPublicationSeriesGrid(container, groups) {
 function renderFeaturedGrid(container, pubs) {
   if (!container) return;
   container.innerHTML = '';
-  pubs.forEach((pub) => {
+  pubs.forEach((pub, idx) => {
     const card = document.createElement('article');
     card.className =
       'group relative flex flex-col cursor-pointer edition-card';
@@ -326,8 +326,9 @@ function renderFeaturedGrid(container, pubs) {
     const coverUrl = pub.cover_url || '';
     const badgeLabel = (pub.publisher_name || '').trim() || 'Publisher';
     const seriesLine = (pub.series_title || '').trim() || '—';
+    const eagerFeatured = idx < 6;
     const coverInner = coverUrl
-      ? `<div class="w-full h-full bg-cover bg-center transition-transform duration-300 group-hover:scale-105" style="background-image:url('${escapeHtml(coverUrl)}')"></div>`
+      ? `<img alt="" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" src="${escapeHtml(coverUrl)}" width="300" height="400" loading="${eagerFeatured ? 'eager' : 'lazy'}" decoding="async"${eagerFeatured && idx === 0 ? ' fetchpriority="high"' : ''}/>`
       : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/30 to-blue-600/20 text-slate-400 font-bold text-sm">PDF</div>`;
     card.innerHTML = `
       <div class="aspect-[3/4] rounded-lg overflow-hidden bg-surface-dark relative shadow-lg shadow-black/20 group-hover:shadow-primary/20 group-hover:shadow-2xl transition-all duration-300 transform group-hover:-translate-y-1 book-cover border border-slate-800">
@@ -365,7 +366,7 @@ function renderEditionGrid(container, pubs, options = {}) {
     const coverUrl = pub.cover_url || '';
     const vol = String(sorted.length - i);
     const img = coverUrl
-      ? `<img alt="" class="book-cover w-full h-full object-cover" src="${escapeHtml(coverUrl)}"/>`
+      ? `<img alt="" class="book-cover w-full h-full object-cover" src="${escapeHtml(coverUrl)}" width="300" height="400" loading="lazy" decoding="async"/>`
       : `<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-slate-500 font-display font-bold">PDF</div>`;
     card.innerHTML = `
       <div class="relative aspect-[3/4] bg-gray-200 dark:bg-gray-800 overflow-hidden">
@@ -382,7 +383,7 @@ function renderEditionGrid(container, pubs, options = {}) {
         <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors line-clamp-2">${escapeHtml(pub.title)}</h3>
         <p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">${escapeHtml(pub.publisher_name ? `${pub.publisher_name}${pub.series_title ? ` · ${pub.series_title}` : ''}` : pub.description || '')}</p>
         <div class="flex items-center gap-3 mt-auto">
-          <button type="button" class="flex-1 bg-primary/10 hover:bg-primary text-primary hover:text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
+          <button type="button" class="flex-1 border border-primary/50 bg-blue-50 text-blue-950 hover:bg-primary hover:text-white hover:border-primary dark:bg-primary/15 dark:text-sky-100 dark:border-primary/40 dark:hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
             <span class="material-icons text-base">auto_stories</span>
             Read
           </button>

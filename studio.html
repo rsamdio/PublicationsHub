@@ -28,9 +28,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons&amp;display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/tailwind-bundle.css"/>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css" />
   <link rel="stylesheet" href="css/st-page-flip.css" />
   <style>
     ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -484,7 +483,7 @@
       </div>
     </div>
     <!-- Optional src: if set, used for page-turn sound; otherwise viewer.js plays a short synthesized flip -->
-    <audio id="page-flip-sound" preload="auto" aria-hidden="true">
+    <audio id="page-flip-sound" preload="none" aria-hidden="true">
       <source src="/images/pageturn.mp3" type="audio/mpeg" />
     </audio>
     <div class="absolute top-2 left-2 right-2 sm:top-4 sm:left-4 sm:right-4 z-20 flex flex-row items-start justify-between gap-2 pointer-events-none">

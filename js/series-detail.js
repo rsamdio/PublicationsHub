@@ -185,7 +185,7 @@ function renderEditions(group) {
     card.className =
       'edition-card group flex flex-col bg-white dark:bg-[#182430] rounded-xl border border-slate-200 dark:border-slate-800 transition-colors hover:border-primary/50 cursor-pointer';
     const img = ed.cover_url
-      ? `<img alt="" class="book-cover w-full h-full object-cover" src="${escapeHtml(ed.cover_url)}"/>`
+      ? `<img alt="" class="book-cover w-full h-full object-cover" src="${escapeHtml(ed.cover_url)}" width="300" height="400" loading="lazy" decoding="async"/>`
       : `<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-xs font-bold text-primary">PDF</div>`;
     card.innerHTML = `
       <div class="relative aspect-[3/4] bg-gray-200 dark:bg-gray-800 overflow-hidden">
@@ -202,7 +202,7 @@ function renderEditions(group) {
         <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1 group-hover:text-primary transition-colors line-clamp-2">${escapeHtml(ed.title || 'Edition')}</h3>
         <p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">${escapeHtml(ed.description || '')}</p>
         <div class="flex items-center gap-3 mt-auto">
-          <button type="button" class="series-read-btn flex-1 bg-primary/10 hover:bg-primary text-primary hover:text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
+          <button type="button" class="series-read-btn flex-1 border border-primary/50 bg-blue-50 text-blue-950 hover:bg-primary hover:text-white hover:border-primary dark:bg-primary/15 dark:text-sky-100 dark:border-primary/40 dark:hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
             <span class="material-icons text-base">auto_stories</span>
             Read now
           </button>
@@ -341,12 +341,10 @@ function fillHero(group) {
   }
   if (heroCover) {
     if (group.coverUrl) {
-      heroCover.style.backgroundImage = `url(${JSON.stringify(group.coverUrl)})`;
-      heroCover.classList.add('bg-cover', 'bg-center');
+      heroCover.innerHTML = `<img src="${escapeHtml(group.coverUrl)}" alt="" class="w-full h-full object-cover" width="300" height="400" fetchpriority="high" decoding="async"/>`;
       heroCover.classList.remove('bg-gradient-to-br', 'from-primary/20', 'to-blue-600/10');
     } else {
-      heroCover.style.backgroundImage = 'none';
-      heroCover.classList.remove('bg-cover', 'bg-center');
+      heroCover.innerHTML = '';
       heroCover.classList.add('bg-gradient-to-br', 'from-primary/20', 'to-blue-600/10');
     }
   }

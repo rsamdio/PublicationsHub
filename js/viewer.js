@@ -12,6 +12,27 @@ import { formatReadLocationHash, parseReadRefFromHash, isReaderLocationHash } fr
 const PDFJS_VERSION = '3.11.174';
 const PDFJS_CDN = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.min.js`;
 const PDFJS_WORKER_CDN = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.js`;
+const PDFJS_VIEWER_CSS = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf_viewer.min.css`;
+
+let pdfViewerCssPromise = null;
+
+/** Injects pdf.js viewer CSS on first reader open (avoids render-blocking on library pages). */
+function ensurePdfViewerCss() {
+  if (typeof document === 'undefined') return Promise.resolve();
+  const id = 'pdfjs-viewer-css';
+  if (document.getElementById(id)) return Promise.resolve();
+  if (pdfViewerCssPromise) return pdfViewerCssPromise;
+  pdfViewerCssPromise = new Promise((resolve) => {
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = PDFJS_VIEWER_CSS;
+    link.onload = () => resolve();
+    link.onerror = () => resolve();
+    document.head.appendChild(link);
+  });
+  return pdfViewerCssPromise;
+}
 
 let pdfjsLib = null;
 let pdfjsLoadPromise = null;
@@ -950,6 +971,8 @@ export function openReader(publication) {
   return enqueueReaderOp(async () => {
     try {
       if (myLoad !== loadGeneration) return;
+
+      await ensurePdfViewerCss();
 
       try {
         await ensurePdfJs();
