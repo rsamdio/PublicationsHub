@@ -33,6 +33,78 @@
     ::-webkit-scrollbar-track { background: #101922; }
     ::-webkit-scrollbar-thumb { background: #2e3b4b; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #3e4f63; }
+    /* Featured column: real CSS (Tailwind bundle may omit peer/pseudo combos from JS strings). */
+    .admin-featured-switch {
+      position: relative;
+      display: inline-flex;
+      width: 2.75rem;
+      height: 1.5rem;
+      flex-shrink: 0;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+      cursor: pointer;
+    }
+    .admin-featured-switch .fe-toggle {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .admin-featured-switch-track {
+      position: absolute;
+      inset: 0;
+      border-radius: 9999px;
+      background: #475569;
+      transition: background 0.2s ease;
+      pointer-events: none;
+    }
+    .admin-featured-switch .fe-toggle:checked + .admin-featured-switch-track {
+      background: #137fec;
+    }
+    .admin-featured-switch-thumb {
+      position: absolute;
+      left: 2px;
+      top: 2px;
+      width: 1.25rem;
+      height: 1.25rem;
+      border-radius: 9999px;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s ease;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .admin-featured-switch .fe-toggle:checked + .admin-featured-switch-track + .admin-featured-switch-thumb {
+      transform: translateX(1.25rem);
+    }
+    .admin-featured-switch .fe-toggle:focus-visible + .admin-featured-switch-track {
+      outline: 2px solid rgba(19, 127, 236, 0.55);
+      outline-offset: 2px;
+    }
+    .admin-featured-switch .fe-toggle:disabled {
+      cursor: not-allowed;
+    }
+    .admin-featured-switch .fe-toggle:disabled ~ .admin-featured-switch-track,
+    .admin-featured-switch .fe-toggle:disabled ~ .admin-featured-switch-thumb {
+      opacity: 0.45;
+    }
+    @keyframes admin-spin { to { transform: rotate(360deg); } }
+    .admin-spinner {
+      display: inline-block;
+      width: 1.25rem;
+      height: 1.25rem;
+      border: 2px solid #137fec;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: admin-spin 0.7s linear infinite;
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
   </style>
 </head>
 <body class="bg-background-dark text-slate-100 font-display antialiased min-h-screen flex flex-col">
@@ -440,6 +512,7 @@
         <div>
           <label for="cp-name" class="block text-sm font-medium text-slate-300 mb-1.5">Publisher name</label>
           <input type="text" id="cp-name" required autocomplete="organization" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="e.g. District 3191"/>
+          <p class="text-xs text-slate-500 mt-1.5">A unique URL slug is derived from this name. If creation fails with “slug already in use,” change the name slightly.</p>
         </div>
         <div>
           <label for="cp-internal-ref" class="block text-sm font-medium text-slate-300 mb-1.5">Internal reference <span class="text-slate-500 font-normal normal-case">(optional)</span></label>
@@ -537,6 +610,10 @@
     </div>
   </div>
 
+  <div id="admin-blocking-status" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[75] max-w-[min(22rem,calc(100vw-2rem))] flex items-center gap-3 rounded-xl border border-slate-700 bg-card-dark shadow-xl px-4 py-3 pointer-events-none" role="status" aria-live="polite">
+    <span class="admin-spinner" aria-hidden="true"></span>
+    <span id="admin-blocking-status-text" class="text-sm font-medium text-slate-100">Working…</span>
+  </div>
   <div id="studio-toast-root" class="fixed bottom-4 right-4 z-[80] flex flex-col gap-2 pointer-events-none max-w-md w-[min(24rem,calc(100vw-2rem))]" aria-live="polite"></div>
   <div id="studio-confirm-dialog" class="fixed inset-0 z-[80] hidden items-center justify-center bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="studio-confirm-title">
     <div class="w-full max-w-md bg-card-dark rounded-2xl shadow-2xl border border-slate-800 p-6 pointer-events-auto">

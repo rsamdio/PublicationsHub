@@ -46,16 +46,59 @@ const PUB_STORAGE_KEY = 'pubhub.selectedPublisherId';
 function setSubmitBusy(btn, busy, busyText) {
   if (!btn) return;
   if (busy) {
-    if (btn.dataset.studioOrigText == null) btn.dataset.studioOrigText = btn.textContent;
+    if (btn.dataset.studioOrigContent == null) btn.dataset.studioOrigContent = btn.innerHTML;
     btn.disabled = true;
-    btn.textContent = busyText;
+    btn.setAttribute('aria-busy', 'true');
+    btn.innerHTML = '';
+    const wrap = document.createElement('span');
+    wrap.className = 'inline-flex items-center justify-center gap-2';
+    const spin = document.createElement('span');
+    spin.className = 'studio-spinner';
+    spin.setAttribute('aria-hidden', 'true');
+    const lab = document.createElement('span');
+    lab.className = 'studio-busy-label';
+    lab.textContent = busyText;
+    wrap.appendChild(spin);
+    wrap.appendChild(lab);
+    btn.appendChild(wrap);
   } else {
     btn.disabled = false;
-    if (btn.dataset.studioOrigText != null) {
-      btn.textContent = btn.dataset.studioOrigText;
-      delete btn.dataset.studioOrigText;
+    btn.removeAttribute('aria-busy');
+    if (btn.dataset.studioOrigContent != null) {
+      btn.innerHTML = btn.dataset.studioOrigContent;
+      delete btn.dataset.studioOrigContent;
     }
   }
+}
+
+/** Updates label on a button already in `setSubmitBusy(..., true, ...)` state. */
+function setSubmitBusyLabel(btn, text) {
+  if (!btn) return;
+  btn.querySelector('.studio-busy-label')?.replaceChildren(document.createTextNode(text));
+}
+
+const uploadProgressPanel = document.getElementById('upload-progress-panel');
+const uploadProgressTitle = document.getElementById('upload-progress-title');
+const uploadProgressDetail = document.getElementById('upload-progress-detail');
+const studioBlockingStatus = document.getElementById('studio-blocking-status');
+const studioBlockingStatusText = document.getElementById('studio-blocking-status-text');
+
+function setUploadProgressVisible(visible, title, detail) {
+  if (!uploadProgressPanel) return;
+  uploadProgressPanel.classList.toggle('hidden', !visible);
+  if (visible) {
+    if (title && uploadProgressTitle) uploadProgressTitle.textContent = title;
+    if (uploadProgressDetail) uploadProgressDetail.textContent = detail || '';
+  }
+}
+
+function showStudioBlockingStatus(message) {
+  if (studioBlockingStatusText) studioBlockingStatusText.textContent = message;
+  studioBlockingStatus?.classList.remove('hidden');
+}
+
+function hideStudioBlockingStatus() {
+  studioBlockingStatus?.classList.add('hidden');
 }
 
 const viewGuest = document.getElementById('view-guest');
@@ -128,6 +171,12 @@ const readerPageJump = document.getElementById('reader-page-jump');
 const uploadIssueDate = document.getElementById('upload-issue-date');
 const editIssueDate = document.getElementById('edit-issue-date');
 const seriesCoverInput = document.getElementById('series-cover-input');
+
+function setUploadModalFieldsDisabled(disabled) {
+  [uploadTitle, uploadDescription, uploadIssueDate, uploadFile, uploadCancel, uploadClose].forEach((el) => {
+    if (el) el.disabled = disabled;
+  });
+}
 const studioPanelContent = document.getElementById('studio-panel-content');
 const studioPanelTeam = document.getElementById('studio-panel-team');
 const coverRequiredBanner = document.getElementById('cover-required-banner');
@@ -604,14 +653,26 @@ function renderNoOrgPendingInvites(invites) {
   });
 }
 
-async function onAcceptInvite(publisherId, inviteId) {
-  const { error } = await acceptPublisherInviteCallable({ publisherId, inviteId });
-  if (error) {
-    showToast(error.message || 'Could not accept invite', { type: 'error' });
-    return;
+/**
+ * @param {string} publisherId
+ * @param {string} inviteId
+ * @param {HTMLButtonElement | null} [triggerBtn]
+ */
+async function onAcceptInvite(publisherId, inviteId, triggerBtn) {
+  showStudioBlockingStatus('Joining publisher…');
+  setSubmitBusy(triggerBtn, true, 'Joining…');
+  try {
+    const { error } = await acceptPublisherInviteCallable({ publisherId, inviteId });
+    if (error) {
+      showToast(error.message || 'Could not accept invite', { type: 'error' });
+      return;
+    }
+    const user = fbAuth().currentUser;
+    if (user) await refreshMembershipsAndUi(user);
+  } finally {
+    hideStudioBlockingStatus();
+    setSubmitBusy(triggerBtn, false, '');
   }
-  const user = fbAuth().currentUser;
-  if (user) await refreshMembershipsAndUi(user);
 }
 
 function studioEditionToReaderPub(ed) {
@@ -788,12 +849,19 @@ function renderStudioFromLiveData(publisherId, series, editions, invites, roster
             danger: true
           });
           if (!ok) return;
-          const { error } = await deleteEditionAssetsCallable(ed.id);
-          if (error) {
-            showToast(error.message || 'Delete failed', { type: 'error' });
-            return;
+          showStudioBlockingStatus('Deleting edition…');
+          delBtn.disabled = true;
+          try {
+            const { error } = await deleteEditionAssetsCallable(ed.id);
+            if (error) {
+              showToast(error.message || 'Delete failed', { type: 'error' });
+              return;
+            }
+            showToast('Edition removed.', { type: 'success' });
+          } finally {
+            hideStudioBlockingStatus();
+            delBtn.disabled = false;
           }
-          showToast('Edition removed.', { type: 'success' });
         })();
       });
       const editBtn = document.createElement('button');
@@ -841,6 +909,7 @@ function openEditSeriesModal(s) {
 }
 
 function closeEditSeriesModal() {
+  if (seriesEditSave?.getAttribute('aria-busy') === 'true') return;
   if (seriesEditCoverFile) seriesEditCoverFile.value = '';
   revokeSeriesEditPreviewObjectUrl();
   seriesEditCurrentCoverUrl = '';
@@ -880,12 +949,19 @@ function onSeriesListClick(e) {
           danger: true
         });
         if (!ok) return;
-        const { error } = await deleteSeriesCallable(sid);
-        if (error) {
-          showToast(error.message || 'Delete failed', { type: 'error' });
-          return;
+        showStudioBlockingStatus('Deleting publication…');
+        btn.disabled = true;
+        try {
+          const { error } = await deleteSeriesCallable(sid);
+          if (error) {
+            showToast(error.message || 'Delete failed', { type: 'error' });
+            return;
+          }
+          showToast('Publication deleted.', { type: 'success' });
+        } finally {
+          hideStudioBlockingStatus();
+          btn.disabled = false;
         }
-        showToast('Publication deleted.', { type: 'success' });
       })();
       return;
     }
@@ -1018,10 +1094,15 @@ onAuthStateChange((state, user) => {
 
 btnGoogleSignin?.addEventListener('click', async () => {
   guestError?.classList.add('hidden');
-  const { error } = await signInWithGoogle();
-  if (error) {
-    guestError.textContent = error.message || 'Sign-in failed';
-    guestError.classList.remove('hidden');
+  setSubmitBusy(btnGoogleSignin, true, 'Signing in…');
+  try {
+    const { error } = await signInWithGoogle();
+    if (error) {
+      guestError.textContent = error.message || 'Sign-in failed';
+      guestError.classList.remove('hidden');
+    }
+  } finally {
+    setSubmitBusy(btnGoogleSignin, false, '');
   }
 });
 
@@ -1053,6 +1134,7 @@ function openNewPublicationModal() {
 }
 
 function closeNewPublicationModal() {
+  if (btnNewPublicationSubmit?.getAttribute('aria-busy') === 'true') return;
   newPublicationModal?.classList.add('hidden');
   newPublicationModal?.classList.remove('flex');
 }
@@ -1082,7 +1164,7 @@ newPublicationForm?.addEventListener('submit', async (e) => {
     return;
   }
   const coverFile = newSeriesCoverFile?.files?.[0];
-  setSubmitBusy(btnNewPublicationSubmit, true, 'Creating…');
+  setSubmitBusy(btnNewPublicationSubmit, true, 'Creating publication…');
   const { data, error } = await createSeries({
     publisherId: currentPublisherId,
     title,
@@ -1099,6 +1181,7 @@ newPublicationForm?.addEventListener('submit', async (e) => {
   }
   const seriesId = data?.id;
   if (coverFile && seriesId) {
+    setSubmitBusyLabel(btnNewPublicationSubmit, 'Uploading cover…');
     const up = await uploadSeriesCoverFile(coverFile, {
       publisherId: currentPublisherId,
       seriesId
@@ -1163,11 +1246,15 @@ function openUploadModal() {
       uploadPublicationSlug.classList.add('hidden');
     }
   }
+  setUploadProgressVisible(false);
   uploadModal?.classList.remove('hidden');
   uploadModal?.classList.add('flex');
 }
 
 function closeUploadModal() {
+  if (uploadSubmit?.getAttribute('aria-busy') === 'true') return;
+  setUploadProgressVisible(false);
+  setUploadModalFieldsDisabled(false);
   uploadModal?.classList.add('hidden');
   uploadModal?.classList.remove('flex');
 }
@@ -1213,6 +1300,12 @@ function openEditEditionModal(ed) {
 }
 
 function closeEditEditionModal() {
+  if (
+    editSave?.getAttribute('aria-busy') === 'true' ||
+    editRegenerateCover?.getAttribute('aria-busy') === 'true'
+  ) {
+    return;
+  }
   editingEdition = null;
   editModal?.classList.add('hidden');
   editModal?.classList.remove('flex');
@@ -1242,57 +1335,58 @@ editRegenerateCover?.addEventListener('click', async () => {
   editError?.classList.add('hidden');
   editSuccess?.classList.add('hidden');
   editCoverHint?.classList.add('hidden');
-  editRegenerateCover.disabled = true;
-  let res;
+  setSubmitBusy(editRegenerateCover, true, 'Downloading PDF…');
   try {
-    res = await fetch(ed.pdf_url, { mode: 'cors', credentials: 'omit' });
-  } catch (e) {
-    editCoverHint.textContent =
-      e?.message || 'Could not fetch PDF (network). The PDF host must allow cross-origin requests.';
-    editCoverHint.classList.remove('hidden');
-    editRegenerateCover.disabled = false;
-    return;
+    let res;
+    try {
+      res = await fetch(ed.pdf_url, { mode: 'cors', credentials: 'omit' });
+    } catch (e) {
+      editCoverHint.textContent =
+        e?.message || 'Could not fetch PDF (network). The PDF host must allow cross-origin requests.';
+      editCoverHint.classList.remove('hidden');
+      return;
+    }
+    if (!res.ok) {
+      editCoverHint.textContent = `Could not load PDF (HTTP ${res.status}).`;
+      editCoverHint.classList.remove('hidden');
+      return;
+    }
+    setSubmitBusyLabel(editRegenerateCover, 'Rendering cover…');
+    const buf = await res.arrayBuffer();
+    const { blob, error: genErr } = await renderFirstPageWebpFromPdfFile(
+      new File([buf], 'edition.pdf', { type: 'application/pdf' }),
+      {}
+    );
+    if (!blob) {
+      editCoverHint.textContent = genErr || 'Could not render the first PDF page.';
+      editCoverHint.classList.remove('hidden');
+      return;
+    }
+    setSubmitBusyLabel(editRegenerateCover, 'Uploading cover…');
+    const cup = await uploadEditionCoverWebp(blob, {
+      publisherId: currentPublisherId,
+      seriesId: ed.series_id,
+      pdfRepoPath: pdfPath
+    });
+    if (cup.error) {
+      editError.textContent = cup.error;
+      editError.classList.remove('hidden');
+      return;
+    }
+    setSubmitBusyLabel(editRegenerateCover, 'Saving…');
+    const { error: upErr } = await updateEdition(ed.id, { cover_url: cup.download_url });
+    if (upErr) {
+      editError.textContent = upErr.message || 'Cover uploaded but Firestore update failed';
+      editError.classList.remove('hidden');
+      return;
+    }
+    editSuccess.textContent = 'Cover updated.';
+    editSuccess.classList.remove('hidden');
+    showToast('Cover updated.', { type: 'success' });
+    editingEdition = { ...ed, cover_url: cup.download_url, pdf_repo_path: pdfPath };
+  } finally {
+    setSubmitBusy(editRegenerateCover, false, '');
   }
-  if (!res.ok) {
-    editCoverHint.textContent = `Could not load PDF (HTTP ${res.status}).`;
-    editCoverHint.classList.remove('hidden');
-    editRegenerateCover.disabled = false;
-    return;
-  }
-  const buf = await res.arrayBuffer();
-  const { blob, error: genErr } = await renderFirstPageWebpFromPdfFile(
-    new File([buf], 'edition.pdf', { type: 'application/pdf' }),
-    {}
-  );
-  if (!blob) {
-    editCoverHint.textContent = genErr || 'Could not render the first PDF page.';
-    editCoverHint.classList.remove('hidden');
-    editRegenerateCover.disabled = false;
-    return;
-  }
-  const cup = await uploadEditionCoverWebp(blob, {
-    publisherId: currentPublisherId,
-    seriesId: ed.series_id,
-    pdfRepoPath: pdfPath
-  });
-  if (cup.error) {
-    editError.textContent = cup.error;
-    editError.classList.remove('hidden');
-    editRegenerateCover.disabled = false;
-    return;
-  }
-  const { error: upErr } = await updateEdition(ed.id, { cover_url: cup.download_url });
-  if (upErr) {
-    editError.textContent = upErr.message || 'Cover uploaded but Firestore update failed';
-    editError.classList.remove('hidden');
-    editRegenerateCover.disabled = false;
-    return;
-  }
-  editSuccess.textContent = 'Cover updated.';
-  editSuccess.classList.remove('hidden');
-  showToast('Cover updated.', { type: 'success' });
-  editingEdition = { ...ed, cover_url: cup.download_url, pdf_repo_path: pdfPath };
-  editRegenerateCover.disabled = false;
 });
 
 editForm?.addEventListener('submit', async (e) => {
@@ -1363,58 +1457,84 @@ uploadForm?.addEventListener('submit', async (e) => {
     uploadError.classList.remove('hidden');
     return;
   }
+  setUploadProgressVisible(
+    true,
+    'Publishing your edition',
+    'Uploading PDF to storage… This can take a minute for large files.'
+  );
+  setUploadModalFieldsDisabled(true);
   setSubmitBusy(uploadSubmit, true, 'Publishing…');
-  const up = await uploadEditionPdf(file, {
-    publisherId: currentPublisherId,
-    seriesId
-  });
-  if (up.error) {
-    uploadError.textContent = up.error;
-    uploadError.classList.remove('hidden');
-    setSubmitBusy(uploadSubmit, false, '');
-    return;
-  }
-  let coverUrl = null;
-  if (up.path) {
-    const { blob: coverBlob } = await renderFirstPageWebpFromPdfFile(file, {});
-    if (coverBlob) {
-      const cup = await uploadEditionCoverWebp(coverBlob, {
-        publisherId: currentPublisherId,
-        seriesId,
-        pdfRepoPath: up.path
-      });
-      if (!cup.error) {
-        coverUrl = cup.download_url;
+  try {
+    const up = await uploadEditionPdf(file, {
+      publisherId: currentPublisherId,
+      seriesId
+    });
+    if (up.error) {
+      uploadError.textContent = up.error;
+      uploadError.classList.remove('hidden');
+      return;
+    }
+    let coverUrl = null;
+    if (up.path) {
+      setUploadProgressVisible(
+        true,
+        'Publishing your edition',
+        'Building cover preview from the first page…'
+      );
+      setSubmitBusyLabel(uploadSubmit, 'Cover preview…');
+      const { blob: coverBlob } = await renderFirstPageWebpFromPdfFile(file, {});
+      if (coverBlob) {
+        setUploadProgressVisible(
+          true,
+          'Publishing your edition',
+          'Uploading cover image…'
+        );
+        setSubmitBusyLabel(uploadSubmit, 'Uploading cover…');
+        const cup = await uploadEditionCoverWebp(coverBlob, {
+          publisherId: currentPublisherId,
+          seriesId,
+          pdfRepoPath: up.path
+        });
+        if (!cup.error) {
+          coverUrl = cup.download_url;
+        }
       }
     }
-  }
-  const series = seriesItems.find((s) => s.id === seriesId);
-  const pubName = currentPublisherRecord?.name || null;
-  const seriesTitle = series?.title || null;
-  const ins = await insertPublishedEdition({
-    publisher_id: currentPublisherId,
-    series_id: seriesId,
-    title,
-    description: description || null,
-    pdf_url: up.download_url,
-    cover_url: coverUrl,
-    pdf_repo_path: up.path || null,
-    publisher_name: pubName,
-    series_title: seriesTitle,
-    issue_date: issueRaw
-  });
-  if (ins.error) {
-    uploadError.textContent = ins.error.message || 'Saved file but Firestore write failed';
-    uploadError.classList.remove('hidden');
+    setUploadProgressVisible(
+      true,
+      'Publishing your edition',
+      'Saving edition to the catalog…'
+    );
+    setSubmitBusyLabel(uploadSubmit, 'Saving…');
+    const series = seriesItems.find((s) => s.id === seriesId);
+    const pubName = currentPublisherRecord?.name || null;
+    const seriesTitle = series?.title || null;
+    const ins = await insertPublishedEdition({
+      publisher_id: currentPublisherId,
+      series_id: seriesId,
+      title,
+      description: description || null,
+      pdf_url: up.download_url,
+      cover_url: coverUrl,
+      pdf_repo_path: up.path || null,
+      publisher_name: pubName,
+      series_title: seriesTitle,
+      issue_date: issueRaw
+    });
+    if (ins.error) {
+      uploadError.textContent = ins.error.message || 'Saved file but Firestore write failed';
+      uploadError.classList.remove('hidden');
+      return;
+    }
+    uploadSuccess.textContent = 'Published to the catalog.';
+    uploadSuccess.classList.remove('hidden');
+    showToast('Edition published to the catalog.', { type: 'success' });
+    setTimeout(closeUploadModal, 800);
+  } finally {
+    setUploadProgressVisible(false);
+    setUploadModalFieldsDisabled(false);
     setSubmitBusy(uploadSubmit, false, '');
-    return;
   }
-  uploadSuccess.textContent = 'Published to the catalog.';
-  uploadSuccess.classList.remove('hidden');
-  setSubmitBusy(uploadSubmit, false, '');
-  showToast('Edition published to the catalog.', { type: 'success' });
-  // Mirror updates org/.../editions; RTDB subscription shows the new card without a full page refresh.
-  setTimeout(closeUploadModal, 800);
 });
 
 readerPrev?.addEventListener('click', flipPrev);
@@ -1441,20 +1561,26 @@ seriesCoverInput?.addEventListener('change', async (e) => {
   if (!file || !pendingSeriesIdForCover || !currentPublisherId) return;
   const sid = pendingSeriesIdForCover;
   pendingSeriesIdForCover = null;
-  const up = await uploadSeriesCoverFile(file, { publisherId: currentPublisherId, seriesId: sid });
-  if (up.error) {
-    showToast(up.error, { type: 'error' });
-    return;
+  showStudioBlockingStatus('Uploading publication cover…');
+  try {
+    const up = await uploadSeriesCoverFile(file, { publisherId: currentPublisherId, seriesId: sid });
+    if (up.error) {
+      showToast(up.error, { type: 'error' });
+      return;
+    }
+    showStudioBlockingStatus('Saving cover to publication…');
+    const { error } = await updateSeries(sid, {
+      cover_url: up.download_url,
+      cover_repo_path: up.path || null
+    });
+    if (error) {
+      showToast(error.message || 'Could not save cover URL', { type: 'error' });
+      return;
+    }
+    showToast('Cover updated.', { type: 'success' });
+  } finally {
+    hideStudioBlockingStatus();
   }
-  const { error } = await updateSeries(sid, {
-    cover_url: up.download_url,
-    cover_repo_path: up.path || null
-  });
-  if (error) {
-    showToast(error.message || 'Could not save cover URL', { type: 'error' });
-    return;
-  }
-  showToast('Cover updated.', { type: 'success' });
 });
 
 seriesEditForm?.addEventListener('submit', async (e) => {
@@ -1483,6 +1609,7 @@ seriesEditForm?.addEventListener('submit', async (e) => {
   setSubmitBusy(seriesEditSave, true, 'Saving…');
 
   if (coverFile) {
+    setSubmitBusyLabel(seriesEditSave, 'Uploading cover…');
     const up = await uploadSeriesCoverFile(coverFile, {
       publisherId: currentPublisherId,
       seriesId: id
@@ -1495,6 +1622,7 @@ seriesEditForm?.addEventListener('submit', async (e) => {
       }
       return;
     }
+    setSubmitBusyLabel(seriesEditSave, 'Saving publication…');
     const { error } = await updateSeries(id, {
       title,
       description,
@@ -1563,7 +1691,7 @@ btnSendInvite?.addEventListener('click', async () => {
 });
 
 studioPanelTeam?.addEventListener('click', async (e) => {
-  const rev = e.target.closest('.revoke-invite-btn');
+  const rev = /** @type {HTMLButtonElement | null} */ (e.target.closest('.revoke-invite-btn'));
   if (rev && currentPublisherId) {
     const inviteId = rev.getAttribute('data-invite-id');
     if (!inviteId) return;
@@ -1575,15 +1703,22 @@ studioPanelTeam?.addEventListener('click', async (e) => {
       danger: true
     });
     if (!ok) return;
-    const { error } = await publisherRevokeInvite({ publisherId: currentPublisherId, inviteId });
-    if (error) {
-      showToast(error.message || 'Revoke failed', { type: 'error' });
-      return;
+    showStudioBlockingStatus('Revoking invite…');
+    setSubmitBusy(rev, true, 'Revoking…');
+    try {
+      const { error } = await publisherRevokeInvite({ publisherId: currentPublisherId, inviteId });
+      if (error) {
+        showToast(error.message || 'Revoke failed', { type: 'error' });
+        return;
+      }
+      showToast('Invite revoked.', { type: 'success' });
+    } finally {
+      hideStudioBlockingStatus();
+      setSubmitBusy(rev, false, '');
     }
-    showToast('Invite revoked.', { type: 'success' });
     return;
   }
-  const rem = e.target.closest('.remove-member-btn');
+  const rem = /** @type {HTMLButtonElement | null} */ (e.target.closest('.remove-member-btn'));
   if (rem && currentPublisherId) {
     const targetUid = rem.getAttribute('data-target-uid');
     if (!targetUid) return;
@@ -1595,29 +1730,36 @@ studioPanelTeam?.addEventListener('click', async (e) => {
       danger: true
     });
     if (!ok) return;
-    const { error } = await publisherRemoveMemberCallable({ publisherId: currentPublisherId, targetUid });
-    if (error) {
-      showToast(error.message || 'Remove failed', { type: 'error' });
-      return;
+    showStudioBlockingStatus('Removing member…');
+    setSubmitBusy(rem, true, 'Removing…');
+    try {
+      const { error } = await publisherRemoveMemberCallable({ publisherId: currentPublisherId, targetUid });
+      if (error) {
+        showToast(error.message || 'Remove failed', { type: 'error' });
+        return;
+      }
+      showToast('Member removed.', { type: 'success' });
+    } finally {
+      hideStudioBlockingStatus();
+      setSubmitBusy(rem, false, '');
     }
-    showToast('Member removed.', { type: 'success' });
   }
 });
 
 document.getElementById('no-org-invites-list')?.addEventListener('click', (e) => {
-  const b = e.target.closest('.accept-invite-btn');
+  const b = /** @type {HTMLButtonElement | null} */ (e.target.closest('.accept-invite-btn'));
   if (!b) return;
   const publisherId = b.getAttribute('data-publisher-id');
   const inviteId = b.getAttribute('data-invite-id');
-  if (publisherId && inviteId) void onAcceptInvite(publisherId, inviteId);
+  if (publisherId && inviteId) void onAcceptInvite(publisherId, inviteId, b);
 });
 
 studioPendingActions?.addEventListener('click', (e) => {
-  const b = e.target.closest('.accept-invite-btn');
+  const b = /** @type {HTMLButtonElement | null} */ (e.target.closest('.accept-invite-btn'));
   if (!b) return;
   const publisherId = b.dataset.publisherId;
   const inviteId = b.dataset.inviteId;
-  if (publisherId && inviteId) void onAcceptInvite(publisherId, inviteId);
+  if (publisherId && inviteId) void onAcceptInvite(publisherId, inviteId, b);
 });
 
 window.addEventListener('hashchange', () => {

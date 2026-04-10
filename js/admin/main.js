@@ -34,6 +34,57 @@ import {
 } from '../url-routes.js';
 import { showToast, studioConfirm } from '../dashboard/studio-feedback.js';
 
+/** @param {HTMLButtonElement | null} btn */
+function setAdminSubmitBusy(btn, busy, busyText) {
+  if (!btn) return;
+  if (busy) {
+    if (btn.dataset.adminOrigContent == null) btn.dataset.adminOrigContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
+    btn.innerHTML = '';
+    const wrap = document.createElement('span');
+    wrap.className = 'inline-flex items-center justify-center gap-2';
+    const spin = document.createElement('span');
+    spin.className = 'admin-spinner';
+    spin.setAttribute('aria-hidden', 'true');
+    const lab = document.createElement('span');
+    lab.className = 'admin-busy-label';
+    lab.textContent = busyText;
+    wrap.appendChild(spin);
+    wrap.appendChild(lab);
+    btn.appendChild(wrap);
+  } else {
+    btn.disabled = false;
+    btn.removeAttribute('aria-busy');
+    if (btn.dataset.adminOrigContent != null) {
+      btn.innerHTML = btn.dataset.adminOrigContent;
+      delete btn.dataset.adminOrigContent;
+    }
+  }
+}
+
+function setAdminSubmitBusyLabel(btn, text) {
+  if (!btn) return;
+  btn.querySelector('.admin-busy-label')?.replaceChildren(document.createTextNode(text));
+}
+
+/** @param {unknown} err */
+function formatCreatePublisherError(err) {
+  const e = err && typeof err === 'object' ? /** @type {{ message?: string, code?: string }} */ (err) : {};
+  const raw = String(e.message || '').trim();
+  const code = String(e.code || '');
+  if (code.includes('already-exists') || /slug already/i.test(raw)) {
+    return 'That name maps to a URL slug that is already in use. Try a slightly different publisher name.';
+  }
+  if (code.includes('permission-denied')) {
+    return raw || 'You do not have permission to create publishers.';
+  }
+  if (code.includes('unauthenticated')) {
+    return 'Sign in again, then retry.';
+  }
+  return raw || 'Could not create publisher.';
+}
+
 const viewGuest = document.getElementById('view-guest');
 const viewDenied = document.getElementById('view-denied');
 const viewAdmin = document.getElementById('view-admin');
@@ -54,6 +105,7 @@ const adminStepOrg = document.getElementById('admin-step-org');
 const adminStepEditions = document.getElementById('admin-step-editions');
 const btnAdminBackPublishers = document.getElementById('btn-admin-back-publishers');
 const btnAdminBackOrg = document.getElementById('btn-admin-back-org');
+const btnAdminDelPublisherOrg = document.getElementById('btn-admin-del-publisher-org');
 const adminOrgTitle = document.getElementById('admin-org-title');
 const adminOrgMeta = document.getElementById('admin-org-meta');
 const adminOrgPanelPublications = document.getElementById('admin-org-panel-publications');
@@ -114,6 +166,59 @@ const piEmail = document.getElementById('pi-email');
 const piTier = document.getElementById('pi-tier');
 const piMsg = document.getElementById('pi-msg');
 const btnPi = document.getElementById('btn-platform-invite');
+
+function adminModalSubmitBusy() {
+  return (
+    btnNewPublisherSubmit?.getAttribute('aria-busy') === 'true' ||
+    btnEditPublisherSubmit?.getAttribute('aria-busy') === 'true' ||
+    btnAdminTeamInviteSubmit?.getAttribute('aria-busy') === 'true'
+  );
+}
+
+const adminBlockingStatus = document.getElementById('admin-blocking-status');
+const adminBlockingStatusText = document.getElementById('admin-blocking-status-text');
+
+function showAdminBlockingStatus(message) {
+  if (adminBlockingStatusText) adminBlockingStatusText.textContent = message;
+  adminBlockingStatus?.classList.remove('hidden');
+}
+
+function hideAdminBlockingStatus() {
+  adminBlockingStatus?.classList.add('hidden');
+}
+
+/**
+ * @param {string} publisherId
+ * @param {string} displayName
+ * @param {HTMLButtonElement | null} busyBtn
+ * @returns {Promise<boolean>} true if the organization was deleted
+ */
+async function confirmAndDeletePublisher(publisherId, displayName, busyBtn) {
+  const label = String(displayName || '').trim() || publisherId;
+  const ok = await studioConfirm({
+    title: `Delete “${label}”?`,
+    message: `Organization ID: ${publisherId}. This permanently deletes every publication, edition, stored PDF/cover, team member, and pending invite. This cannot be undone.`,
+    confirmText: 'Delete organization',
+    cancelText: 'Cancel',
+    danger: true
+  });
+  if (!ok) return false;
+
+  showAdminBlockingStatus('Deleting organization…');
+  setAdminSubmitBusy(busyBtn, true, 'Deleting…');
+  try {
+    const { error: delErr } = await deletePublisherCallable(publisherId);
+    if (delErr) {
+      showToast(delErr.message || 'Delete failed', { type: 'error' });
+      return false;
+    }
+    showToast(`“${label}” was deleted.`, { type: 'success' });
+    return true;
+  } finally {
+    hideAdminBlockingStatus();
+    setAdminSubmitBusy(busyBtn, false);
+  }
+}
 
 const createPublisherFn = httpsCallable(fbFunctions(), 'createPublisher');
 const backfillMirrorFn = httpsCallable(fbFunctions(), 'backfillMirror');
@@ -364,17 +469,24 @@ async function tryShowDeniedWithPlatformInvite() {
 }
 
 deniedPlatformInvites?.addEventListener('click', (e) => {
-  const b = e.target.closest('.accept-platform-invite');
+  const b = /** @type {HTMLButtonElement | null} */ (e.target.closest('.accept-platform-invite'));
   if (!b) return;
   const inviteId = b.getAttribute('data-invite-id');
   if (!inviteId) return;
   void (async () => {
-    const { error } = await acceptPlatformInviteCallable(inviteId);
-    if (error) {
-      showToast(error.message || 'Accept failed', { type: 'error' });
-      return;
+    showAdminBlockingStatus('Accepting invite…');
+    setAdminSubmitBusy(b, true, 'Accepting…');
+    try {
+      const { error } = await acceptPlatformInviteCallable(inviteId);
+      if (error) {
+        showToast(error.message || 'Accept failed', { type: 'error' });
+        return;
+      }
+      window.location.reload();
+    } finally {
+      hideAdminBlockingStatus();
+      setAdminSubmitBusy(b, false);
     }
-    window.location.reload();
   })();
 });
 
@@ -679,7 +791,7 @@ function renderAdminSeriesEditionsTable() {
     tr.innerHTML = `
       <td class="px-4 py-3 text-white font-medium">${escapeHtml(ed.title || ed.id)}</td>
       <td class="px-4 py-3 text-slate-500 font-mono text-xs select-all">${escapeHtml(ed.id)}</td>
-      <td class="px-4 py-3"><a href="${escapeHtml(reader)}" class="text-primary text-xs font-medium hover:underline" target="_blank" rel="noopener">Open</a></td>
+      <td class="px-4 py-3"><a href="${escapeHtml(reader)}" class="text-primary text-xs font-medium hover:underline" target="_blank" rel="noopener noreferrer">Open</a></td>
       <td class="px-4 py-3 text-right"><button type="button" class="admin-del-edition-row text-xs text-red-400 hover:underline" data-edition-id="${escapeHtml(ed.id)}">Delete</button></td>`;
     adminSeriesEditionsTbody.appendChild(tr);
   });
@@ -732,12 +844,17 @@ document.getElementById('admin-panel-publishers')?.addEventListener('click', asy
       danger: true
     });
     if (!ok) return;
-    const { error } = await publisherRevokeInvite({ publisherId, inviteId });
-    if (error) {
-      showToast(error.message || 'Revoke failed', { type: 'error' });
-      return;
+    showAdminBlockingStatus('Revoking invite…');
+    try {
+      const { error } = await publisherRevokeInvite({ publisherId, inviteId });
+      if (error) {
+        showToast(error.message || 'Revoke failed', { type: 'error' });
+        return;
+      }
+      showToast('Invite revoked.', { type: 'success' });
+    } finally {
+      hideAdminBlockingStatus();
     }
-    showToast('Invite revoked.', { type: 'success' });
     return;
   }
 
@@ -755,14 +872,19 @@ document.getElementById('admin-panel-publishers')?.addEventListener('click', asy
       danger: true
     });
     if (!ok) return;
-    const { error } = await publisherRemoveMemberCallable({ publisherId, targetUid });
-    if (error) {
-      showToast(error.message || 'Remove failed', { type: 'error' });
-      return;
+    showAdminBlockingStatus('Removing member…');
+    try {
+      const { error } = await publisherRemoveMemberCallable({ publisherId, targetUid });
+      if (error) {
+        showToast(error.message || 'Remove failed', { type: 'error' });
+        return;
+      }
+      showToast('Member removed.', { type: 'success' });
+      await refreshAdminMemberships();
+      loadAndRenderOrg(publisherId);
+    } finally {
+      hideAdminBlockingStatus();
     }
-    showToast('Member removed.', { type: 'success' });
-    await refreshAdminMemberships();
-    loadAndRenderOrg(publisherId);
     return;
   }
 
@@ -786,19 +908,24 @@ document.getElementById('admin-panel-publishers')?.addEventListener('click', asy
       danger: true
     });
     if (!ok) return;
-    const { error: delErr } = await deleteSeriesCallable(seriesId);
-    if (delErr) {
-      showToast(delErr.message || 'Delete failed', { type: 'error' });
-      return;
+    showAdminBlockingStatus('Deleting publication…');
+    try {
+      const { error: delErr } = await deleteSeriesCallable(seriesId);
+      if (delErr) {
+        showToast(delErr.message || 'Delete failed', { type: 'error' });
+        return;
+      }
+      showToast('Series deleted.', { type: 'success' });
+      if (browseSeriesId === seriesId) {
+        adminBrowseStep = 'org';
+        browseSeriesId = null;
+        browseSeriesTitle = '';
+        syncAdminBrowsePanels();
+      }
+      await refreshOpenOrgFromMirror();
+    } finally {
+      hideAdminBlockingStatus();
     }
-    showToast('Series deleted.', { type: 'success' });
-    if (browseSeriesId === seriesId) {
-      adminBrowseStep = 'org';
-      browseSeriesId = null;
-      browseSeriesTitle = '';
-      syncAdminBrowsePanels();
-    }
-    await refreshOpenOrgFromMirror();
     return;
   }
 
@@ -814,34 +941,30 @@ document.getElementById('admin-panel-publishers')?.addEventListener('click', asy
       danger: true
     });
     if (!ok) return;
-    const { error: delErr } = await deleteEditionAssetsCallable(editionId);
-    if (delErr) {
-      showToast(delErr.message || 'Delete failed', { type: 'error' });
-      return;
+    showAdminBlockingStatus('Deleting edition…');
+    try {
+      const { error: delErr } = await deleteEditionAssetsCallable(editionId);
+      if (delErr) {
+        showToast(delErr.message || 'Delete failed', { type: 'error' });
+        return;
+      }
+      showToast('Edition removed.', { type: 'success' });
+      await refreshOpenOrgFromMirror();
+    } finally {
+      hideAdminBlockingStatus();
     }
-    showToast('Edition removed.', { type: 'success' });
-    await refreshOpenOrgFromMirror();
     return;
   }
 
   if (e.target.closest('#btn-admin-del-publisher-org')) {
     const publisherId = browsePublisherId;
     if (!publisherId || !adminFull) return;
-    const ok = await studioConfirm({
-      title: 'Delete entire organization?',
-      message:
-        'Permanently delete this organization and all series, editions, R2 assets, roster, and invites? This cannot be undone.',
-      confirmText: 'Delete organization',
-      cancelText: 'Cancel',
-      danger: true
-    });
-    if (!ok) return;
-    const { error: delErr } = await deletePublisherCallable(publisherId);
-    if (delErr) {
-      showToast(delErr.message || 'Delete failed', { type: 'error' });
-      return;
-    }
-    showToast('Organization deleted.', { type: 'success' });
+    const deleted = await confirmAndDeletePublisher(
+      publisherId,
+      browsePublisherName || '',
+      btnAdminDelPublisherOrg
+    );
+    if (!deleted) return;
     resetAdminBrowse();
     syncAdminBrowsePanels();
   }
@@ -878,26 +1001,14 @@ publishersTbody?.addEventListener('click', async (e) => {
     openEditPublisherModal(publisherId, pubName, internalRef);
     return;
   }
-  const delBtn = e.target.closest('.admin-del-publisher-row');
+  const delBtn = /** @type {HTMLButtonElement | null} */ (e.target.closest('.admin-del-publisher-row'));
   if (delBtn) {
     e.stopPropagation();
     const publisherId = delBtn.getAttribute('data-publisher-id');
     const pubName = delBtn.getAttribute('data-publisher-name') || publisherId;
     if (!publisherId || !adminFull) return;
-    const ok = await studioConfirm({
-      title: 'Delete organization?',
-      message: `Permanently delete organization "${pubName}" and all series, editions, R2 files, roster, and invites? This cannot be undone.`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-      danger: true
-    });
-    if (!ok) return;
-    const { error: delErr } = await deletePublisherCallable(publisherId);
-    if (delErr) {
-      showToast(delErr.message || 'Delete failed', { type: 'error' });
-      return;
-    }
-    showToast('Organization deleted.', { type: 'success' });
+    const deleted = await confirmAndDeletePublisher(publisherId, pubName || '', delBtn);
+    if (!deleted) return;
     if (browsePublisherId === publisherId) {
       resetAdminBrowse();
       syncAdminBrowsePanels();
@@ -911,6 +1022,16 @@ publishersTbody?.addEventListener('click', async (e) => {
   await goToAdminOrg(pid, pname);
 });
 
+/** Switch UI; `.fe-toggle` checkbox + styles in admin.html (`.admin-featured-switch`). */
+function adminFeaturedToggleCellHtml(idAttr, featured, ariaLabel) {
+  const checked = featured ? ' checked' : '';
+  return `<label class="admin-featured-switch">
+        <input type="checkbox" class="fe-toggle" data-edition-id="${idAttr}"${checked} aria-label="${escapeHtml(ariaLabel)}" />
+        <span class="admin-featured-switch-track" aria-hidden="true"></span>
+        <span class="admin-featured-switch-thumb" aria-hidden="true"></span>
+      </label>`;
+}
+
 function bindFeaturedToggle(tbody) {
   if (!tbody) return;
   tbody.addEventListener('change', async (e) => {
@@ -919,6 +1040,7 @@ function bindFeaturedToggle(tbody) {
     const editionId = t.getAttribute('data-edition-id');
     if (!editionId) return;
     t.disabled = true;
+    showAdminBlockingStatus('Updating featured…');
     try {
       await setEditionFeaturedFn({ editionId, featured: t.checked });
       setMsg(pubMsg, 'Featured flag saved.', false);
@@ -926,8 +1048,10 @@ function bindFeaturedToggle(tbody) {
     } catch (err) {
       t.checked = !t.checked;
       setMsg(pubMsg, err?.message || err?.details || 'Update failed', true);
+    } finally {
+      hideAdminBlockingStatus();
+      t.disabled = false;
     }
-    t.disabled = false;
   });
 }
 
@@ -960,16 +1084,15 @@ function renderCatalogTables(data, error) {
     tr.className = 'hover:bg-surface-dark-hover/40 transition-colors';
     const id = pub.id;
     const idAttr = escapeHtml(id);
-    const checked = pub.featured ? ' checked' : '';
     const reader = readerHrefForEdition(pub);
     tr.innerHTML = `
       <td class="px-4 py-3">
-        <input type="checkbox" class="fe-toggle h-4 w-4 rounded border-slate-600 bg-[#15202B] text-primary focus:ring-primary/40" data-edition-id="${idAttr}"${checked} aria-label="Feature on Explore home"/>
+        ${adminFeaturedToggleCellHtml(idAttr, !!pub.featured, 'Feature on Explore home')}
       </td>
       <td class="px-4 py-3 text-white font-medium">${escapeHtml(pub.title || 'Untitled')}</td>
       <td class="px-4 py-3 text-slate-400">${escapeHtml(pub.publisher_name || '—')}</td>
       <td class="px-4 py-3 text-slate-500 font-mono text-xs select-all">${idAttr}</td>
-      <td class="px-4 py-3"><a href="${escapeHtml(reader)}" class="text-primary text-xs font-medium hover:underline">Open</a></td>
+      <td class="px-4 py-3"><a href="${escapeHtml(reader)}" class="text-primary text-xs font-medium hover:underline" target="_blank" rel="noopener noreferrer">Open</a></td>
       <td class="px-4 py-3 text-right"><button type="button" class="admin-del-edition-catalog text-xs text-red-400 hover:underline" data-edition-id="${idAttr}">Delete</button></td>`;
     allEditionsTbody?.appendChild(tr);
   });
@@ -988,12 +1111,12 @@ function renderCatalogTables(data, error) {
       const idAttr = escapeHtml(id);
       tr.innerHTML = `
       <td class="px-4 py-3">
-        <input type="checkbox" class="fe-toggle h-4 w-4 rounded border-slate-600 bg-[#15202B] text-primary focus:ring-primary/40" data-edition-id="${idAttr}" checked aria-label="Featured on Explore"/>
+        ${adminFeaturedToggleCellHtml(idAttr, true, 'Featured on Explore')}
       </td>
       <td class="px-4 py-3 text-white font-medium">${escapeHtml(pub.title || 'Untitled')}</td>
       <td class="px-4 py-3 text-slate-400">${escapeHtml(pub.publisher_name || '—')}</td>
       <td class="px-4 py-3 text-slate-500 font-mono text-xs select-all">${idAttr}</td>
-      <td class="px-4 py-3"><a href="${escapeHtml(readerHrefForEdition(pub))}" class="text-primary text-xs font-medium hover:underline">Open</a></td>
+      <td class="px-4 py-3"><a href="${escapeHtml(readerHrefForEdition(pub))}" class="text-primary text-xs font-medium hover:underline" target="_blank" rel="noopener noreferrer">Open</a></td>
       <td class="px-4 py-3 text-right"><button type="button" class="admin-del-edition-catalog text-xs text-red-400 hover:underline" data-edition-id="${idAttr}">Delete</button></td>`;
       featuredOnlyTbody?.appendChild(tr);
     });
@@ -1002,7 +1125,7 @@ function renderCatalogTables(data, error) {
 
 function bindCatalogEditionDelete(tbody) {
   tbody?.addEventListener('click', async (e) => {
-    const b = e.target.closest('.admin-del-edition-catalog');
+    const b = /** @type {HTMLButtonElement | null} */ (e.target.closest('.admin-del-edition-catalog'));
     if (!b) return;
     const editionId = b.getAttribute('data-edition-id');
     if (!editionId) return;
@@ -1014,16 +1137,21 @@ function bindCatalogEditionDelete(tbody) {
       danger: true
     });
     if (!ok) return;
-    b.disabled = true;
-    const { error: delErr } = await deleteEditionAssetsCallable(editionId);
-    b.disabled = false;
-    if (delErr) {
-      setMsg(pubMsg, delErr.message || 'Delete failed', true);
-      return;
+    showAdminBlockingStatus('Deleting edition…');
+    setAdminSubmitBusy(b, true, 'Deleting…');
+    try {
+      const { error: delErr } = await deleteEditionAssetsCallable(editionId);
+      if (delErr) {
+        setMsg(pubMsg, delErr.message || 'Delete failed', true);
+        return;
+      }
+      setMsg(pubMsg, 'Edition removed.', false);
+      setTimeout(() => setMsg(pubMsg, '', false), 4000);
+      if (browsePublisherId) await refreshOpenOrgFromMirror();
+    } finally {
+      hideAdminBlockingStatus();
+      setAdminSubmitBusy(b, false);
     }
-    setMsg(pubMsg, 'Edition removed.', false);
-    setTimeout(() => setMsg(pubMsg, '', false), 4000);
-    if (browsePublisherId) await refreshOpenOrgFromMirror();
   });
 }
 
@@ -1086,7 +1214,7 @@ function renderPlatformStaffTable(result) {
 }
 
 staffTbody?.addEventListener('click', async (e) => {
-  const b = e.target.closest('.remove-staff-btn');
+  const b = /** @type {HTMLButtonElement | null} */ (e.target.closest('.remove-staff-btn'));
   if (!b || !adminFull) return;
   const targetUid = b.getAttribute('data-uid');
   if (!targetUid) return;
@@ -1098,16 +1226,21 @@ staffTbody?.addEventListener('click', async (e) => {
     danger: true
   });
   if (!ok) return;
+  showAdminBlockingStatus('Removing staff…');
+  setAdminSubmitBusy(b, true, 'Removing…');
   try {
     await removePlatformStaffFn({ targetUid });
     showToast('Staff member removed.', { type: 'success' });
   } catch (err) {
     showToast(err?.message || err?.details || 'Remove failed', { type: 'error' });
+  } finally {
+    hideAdminBlockingStatus();
+    setAdminSubmitBusy(b, false);
   }
 });
 
 document.getElementById('admin-panel-team')?.addEventListener('click', async (e) => {
-  const b = e.target.closest('.revoke-platform-pending-invite');
+  const b = /** @type {HTMLButtonElement | null} */ (e.target.closest('.revoke-platform-pending-invite'));
   if (!b || !adminFull) return;
   const inviteId = b.getAttribute('data-invite-id');
   if (!inviteId) return;
@@ -1119,11 +1252,16 @@ document.getElementById('admin-panel-team')?.addEventListener('click', async (e)
     danger: true
   });
   if (!ok) return;
+  showAdminBlockingStatus('Revoking invite…');
+  setAdminSubmitBusy(b, true, 'Revoking…');
   try {
     await platformRevokeInviteFn({ inviteId });
     showToast('Platform invite revoked.', { type: 'success' });
   } catch (err) {
     showToast(err?.message || err?.details || 'Revoke failed', { type: 'error' });
+  } finally {
+    hideAdminBlockingStatus();
+    setAdminSubmitBusy(b, false);
   }
 });
 
@@ -1182,10 +1320,15 @@ onAuthStateChange((state, user) => {
 
 btnGoogleSignin?.addEventListener('click', async () => {
   guestError?.classList.add('hidden');
-  const { error } = await signInWithGoogle();
-  if (error) {
-    guestError.textContent = error.message || 'Sign-in failed';
-    guestError.classList.remove('hidden');
+  setAdminSubmitBusy(btnGoogleSignin, true, 'Signing in…');
+  try {
+    const { error } = await signInWithGoogle();
+    if (error) {
+      guestError.textContent = error.message || 'Sign-in failed';
+      guestError.classList.remove('hidden');
+    }
+  } finally {
+    setAdminSubmitBusy(btnGoogleSignin, false);
   }
 });
 
@@ -1200,7 +1343,9 @@ function openNewPublisherModal() {
   queueMicrotask(() => cpName?.focus());
 }
 
-function closeNewPublisherModal() {
+/** @param {boolean} [force] When true, close even if a submit is in progress (after success path). */
+function closeNewPublisherModal(force) {
+  if (!force && adminModalSubmitBusy()) return;
   newPublisherModal?.classList.add('hidden');
   newPublisherModal?.classList.remove('flex');
   setMsg(cpMsg, '', false);
@@ -1216,7 +1361,9 @@ function openEditPublisherModal(publisherId, currentName, internalRef) {
   queueMicrotask(() => epName?.focus());
 }
 
-function closeEditPublisherModal() {
+/** @param {boolean} [force] When true, close even if a submit is in progress (after success path). */
+function closeEditPublisherModal(force) {
+  if (!force && adminModalSubmitBusy()) return;
   editPublisherModal?.classList.add('hidden');
   editPublisherModal?.classList.remove('flex');
   setMsg(epMsg, '', false);
@@ -1260,7 +1407,9 @@ function openAdminTeamInviteModal() {
   queueMicrotask(() => atiName?.focus());
 }
 
-function closeAdminTeamInviteModal() {
+/** @param {boolean} [force] When true, close even if a submit is in progress (after success path). */
+function closeAdminTeamInviteModal(force) {
+  if (!force && adminModalSubmitBusy()) return;
   adminTeamInviteModal?.classList.add('hidden');
   adminTeamInviteModal?.classList.remove('flex');
   setMsg(atiMsg, '', false);
@@ -1289,7 +1438,7 @@ adminTeamInviteForm?.addEventListener('submit', async (e) => {
     setMsg(atiMsg, 'Name and email are required.', true);
     return;
   }
-  if (btnAdminTeamInviteSubmit) btnAdminTeamInviteSubmit.disabled = true;
+  setAdminSubmitBusy(btnAdminTeamInviteSubmit, true, 'Sending…');
   try {
     const { error } = await publisherCreateInvite({
       publisherId,
@@ -1302,10 +1451,10 @@ adminTeamInviteForm?.addEventListener('submit', async (e) => {
       return;
     }
     showToast('Invite sent.', { type: 'success' });
-    closeAdminTeamInviteModal();
+    closeAdminTeamInviteModal(true);
     loadAndRenderOrg(publisherId);
   } finally {
-    if (btnAdminTeamInviteSubmit) btnAdminTeamInviteSubmit.disabled = false;
+    setAdminSubmitBusy(btnAdminTeamInviteSubmit, false);
   }
 });
 
@@ -1323,7 +1472,7 @@ editPublisherForm?.addEventListener('submit', async (e) => {
     setMsg(epMsg, 'Publisher name is required.', true);
     return;
   }
-  if (btnEditPublisherSubmit) btnEditPublisherSubmit.disabled = true;
+  setAdminSubmitBusy(btnEditPublisherSubmit, true, 'Saving…');
   try {
     const { error } = await updatePublisherNameCallable(publisherId, name, internal_reference);
     if (error) {
@@ -1335,9 +1484,9 @@ editPublisherForm?.addEventListener('submit', async (e) => {
       browsePublisherName = name;
       if (adminOrgTitle) adminOrgTitle.textContent = name;
     }
-    closeEditPublisherModal();
+    closeEditPublisherModal(true);
   } finally {
-    if (btnEditPublisherSubmit) btnEditPublisherSubmit.disabled = false;
+    setAdminSubmitBusy(btnEditPublisherSubmit, false);
   }
 });
 
@@ -1355,9 +1504,12 @@ newPublisherForm?.addEventListener('submit', async (e) => {
     setMsg(cpMsg, 'Owner name and email are required (invite before first sign-in).', true);
     return;
   }
-  if (btnNewPublisherSubmit) btnNewPublisherSubmit.disabled = true;
+  showAdminBlockingStatus('Creating organization…');
+  setAdminSubmitBusy(btnNewPublisherSubmit, true, 'Creating…');
   try {
     const internal_reference = (cpInternalRef?.value || '').trim().slice(0, 200);
+    setAdminSubmitBusyLabel(btnNewPublisherSubmit, 'Sending owner invite…');
+    showAdminBlockingStatus('Saving publisher and sending owner invite…');
     const res = await createPublisherFn({
       name,
       owner_name,
@@ -1365,15 +1517,23 @@ newPublisherForm?.addEventListener('submit', async (e) => {
       internal_reference
     });
     const pid = res.data?.publisherId || '';
+    closeNewPublisherModal(true);
     showToast(
-      pid ? `Organization created. Owner invite sent to ${owner_email}.` : `Owner invite sent to ${owner_email}.`,
-      { type: 'success' }
+      pid
+        ? `“${name}” is ready. Owner invite sent to ${owner_email}.\nOrganization ID: ${pid}`
+        : `Owner invite sent to ${owner_email}.`,
+      { type: 'success', duration: 8000 }
     );
-    closeNewPublisherModal();
+    if (pid) {
+      setAdminTab('publishers');
+      await goToAdminOrg(pid, name);
+    }
   } catch (err) {
-    setMsg(cpMsg, err?.message || err?.details || 'Callable failed', true);
+    setMsg(cpMsg, formatCreatePublisherError(err), true);
+  } finally {
+    hideAdminBlockingStatus();
+    setAdminSubmitBusy(btnNewPublisherSubmit, false);
   }
-  if (btnNewPublisherSubmit) btnNewPublisherSubmit.disabled = false;
 });
 
 btnBackfill?.addEventListener('click', async () => {
@@ -1387,14 +1547,17 @@ btnBackfill?.addEventListener('click', async () => {
     danger: true
   });
   if (!ok) return;
-  btnBackfill.disabled = true;
+  showAdminBlockingStatus('Rebuilding mirror…');
+  setAdminSubmitBusy(btnBackfill, true, 'Rebuilding…');
   try {
     await backfillMirrorFn();
     setMsg(bfMsg, 'Mirror rebuild completed.', false);
   } catch (e) {
     setMsg(bfMsg, e?.message || e?.details || 'backfillMirror failed', true);
+  } finally {
+    hideAdminBlockingStatus();
+    setAdminSubmitBusy(btnBackfill, false);
   }
-  btnBackfill.disabled = false;
 });
 
 btnPi?.addEventListener('click', async () => {
@@ -1409,7 +1572,7 @@ btnPi?.addEventListener('click', async () => {
     piMsg.classList.add('text-red-400');
     return;
   }
-  btnPi.disabled = true;
+  setAdminSubmitBusy(btnPi, true, 'Sending…');
   try {
     await platformCreateInviteFn({ invitee_name, email, intended_tier });
     piMsg.textContent = 'Invite created. They can accept after signing in with that Google account.';
@@ -1419,6 +1582,7 @@ btnPi?.addEventListener('click', async () => {
   } catch (e) {
     piMsg.textContent = e?.message || e?.details || 'Invite failed';
     piMsg.classList.add('text-red-400');
+  } finally {
+    setAdminSubmitBusy(btnPi, false);
   }
-  btnPi.disabled = false;
 });
