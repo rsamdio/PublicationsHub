@@ -13,8 +13,12 @@ const PDFJS_VERSION = '3.11.174';
 const PDFJS_CDN = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.min.js`;
 const PDFJS_WORKER_CDN = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.js`;
 const PDFJS_VIEWER_CSS = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf_viewer.min.css`;
+const PAGEFLIP_CDN = 'https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js';
+/** Same-origin path (all entry HTML lives at site root). */
+const ST_PAGEFLIP_CSS = 'css/st-page-flip.css';
 
 let pdfViewerCssPromise = null;
+let pageFlipCssPromise = null;
 
 /** Injects pdf.js viewer CSS on first reader open (avoids render-blocking on library pages). */
 function ensurePdfViewerCss() {
@@ -34,10 +38,51 @@ function ensurePdfViewerCss() {
   return pdfViewerCssPromise;
 }
 
+/** Injects StPageFlip base CSS on first reader open (see `css/st-page-flip.css`). */
+function ensurePageFlipCss() {
+  if (typeof document === 'undefined') return Promise.resolve();
+  const id = 'st-page-flip-css';
+  if (document.getElementById(id)) return Promise.resolve();
+  if (pageFlipCssPromise) return pageFlipCssPromise;
+  pageFlipCssPromise = new Promise((resolve) => {
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = ST_PAGEFLIP_CSS;
+    link.onload = () => resolve();
+    link.onerror = () => resolve();
+    document.head.appendChild(link);
+  });
+  return pageFlipCssPromise;
+}
+
+function getPageFlipCtor() {
+  return (window.St && window.St.PageFlip) || window.PageFlip || window.StPageFlip || window.pageFlip;
+}
+
+let pageFlipLoadPromise = null;
+
+function ensurePageFlip() {
+  if (typeof document === 'undefined') return Promise.resolve();
+  if (getPageFlipCtor()) return Promise.resolve();
+  if (pageFlipLoadPromise) return pageFlipLoadPromise;
+  pageFlipLoadPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = PAGEFLIP_CDN;
+    script.onload = () => {
+      if (getPageFlipCtor()) resolve();
+      else reject(new Error('PageFlip not found'));
+    };
+    script.onerror = () => reject(new Error('Failed to load PageFlip'));
+    document.head.appendChild(script);
+  });
+  return pageFlipLoadPromise;
+}
+
 let pdfjsLib = null;
 let pdfjsLoadPromise = null;
 
-function ensurePdfJs() {
+export function ensurePdfJs() {
   if (typeof window.pdfjsLib !== 'undefined' && window.pdfjsLib.getDocument) {
     window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_CDN;
     return Promise.resolve(window.pdfjsLib);
@@ -710,10 +755,6 @@ function applyTransform() {
   pan.style.transformOrigin = 'center center';
 }
 
-function getPageFlipCtor() {
-  return (window.St && window.St.PageFlip) || window.PageFlip || window.StPageFlip || window.pageFlip;
-}
-
 function isReaderOpen() {
   const rv = document.getElementById('reader-view');
   return rv && !rv.classList.contains('hidden');
@@ -972,14 +1013,14 @@ export function openReader(publication) {
     try {
       if (myLoad !== loadGeneration) return;
 
-      await ensurePdfViewerCss();
+      await Promise.all([ensurePdfViewerCss(), ensurePageFlipCss()]);
 
       try {
-        await ensurePdfJs();
-        pdfjsLib = window.pdfjsLib;
+        const [lib] = await Promise.all([ensurePdfJs(), ensurePageFlip()]);
+        pdfjsLib = lib;
       } catch (e) {
         if (myLoad !== loadGeneration) return;
-        setReaderError(e.message || 'Failed to load PDF engine');
+        setReaderError(e.message || 'Failed to load reader');
         return;
       }
 

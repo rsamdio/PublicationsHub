@@ -1,28 +1,8 @@
 /**
  * Render PDF page 1 to a WebP blob (dashboard: first-page cover preview).
- * Expects PDF.js on window (dashboard loads pdf.min.js before the module).
+ * Loads PDF.js on demand via `viewer.js` (studio no longer includes pdf.min.js in HTML).
  */
-const PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-function waitForPdfJs(maxMs = 10000) {
-  const start = Date.now();
-  return new Promise((resolve, reject) => {
-    const tick = () => {
-      const lib = typeof window !== 'undefined' ? window.pdfjsLib : null;
-      if (lib?.getDocument) {
-        lib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
-        resolve(lib);
-        return;
-      }
-      if (Date.now() - start > maxMs) {
-        reject(new Error('PDF.js did not load'));
-        return;
-      }
-      requestAnimationFrame(tick);
-    };
-    tick();
-  });
-}
+import { ensurePdfJs } from './viewer.js';
 
 /**
  * @param {HTMLCanvasElement} canvas
@@ -58,7 +38,7 @@ export async function renderFirstPageWebpFromPdfFile(file, options = {}) {
   const maxLongEdge = options.maxLongEdge ?? 1200;
   const webpFallbackQuality = options.quality ?? 1;
   try {
-    const pdfjsLib = await waitForPdfJs();
+    const pdfjsLib = await ensurePdfJs();
     const data = await file.arrayBuffer();
     const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(data) });
     const pdf = await loadingTask.promise;

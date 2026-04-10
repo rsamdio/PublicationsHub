@@ -36,7 +36,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons&amp;display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/tailwind-bundle.css"/>
-  <link rel="stylesheet" href="css/st-page-flip.css" />
   <style>
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: #101922; }
@@ -62,7 +61,7 @@
           <a href="https://rsamdio.org/" target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors">RSAMDIO</a>
         </div>
         <div class="flex items-center gap-3 sm:gap-4">
-          <a href="studio.html" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg text-white bg-primary hover:bg-primary-dark shadow-sm shadow-primary/20 transition-all">
+          <a href="studio.html" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg text-white bg-blue-700 hover:bg-blue-800 shadow-sm shadow-blue-900/25 transition-all">
             Publisher Studio
           </a>
         </div>
@@ -85,7 +84,7 @@
             <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">digital editions</span>
           </h1>
           <p class="text-lg md:text-xl text-slate-600 dark:text-slate-400 mb-6 max-w-2xl mx-auto leading-relaxed">
-            Browse and read publications. Publishers use <a href="studio.html" class="text-primary hover:underline font-medium">Publisher Studio</a> to upload editions.
+            Browse and read publications. Publishers use <a href="studio.html" class="text-blue-800 dark:text-sky-200 hover:underline font-medium">Publisher Studio</a> to upload editions.
           </p>
         </div>
       </div>
@@ -99,7 +98,7 @@
       </div>
       <h2 class="text-2xl font-bold text-white mb-2">No publications yet</h2>
       <p class="text-slate-400 max-w-md mx-auto mb-8">When a publisher uploads a PDF, it will appear here for everyone to read.</p>
-      <a href="studio.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-medium transition-colors">
+      <a href="studio.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-medium transition-colors">
         <span class="material-icons text-sm">login</span>
         Publisher Studio
       </a>
@@ -143,7 +142,7 @@
             </p>
           </div>
           <div class="flex flex-col sm:flex-row gap-3 mt-6 md:mt-0 shrink-0">
-            <a href="studio.html" class="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-medium shadow-lg shadow-primary/20 transition-colors">
+            <a href="studio.html" class="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-medium shadow-lg shadow-blue-900/30 transition-colors">
               Open Publisher Studio
             </a>
           </div>
@@ -236,8 +235,6 @@
     <p id="reader-error" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-400 hidden z-20 text-center px-4"></p>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js" defer></script>
-  <script type="module" src="js/main.js" defer></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
