@@ -263,7 +263,7 @@ function renderPublicationSeriesGrid(container, groups) {
     );
     const coverUrl = s.coverUrl || '';
     const img = coverUrl
-      ? `<img alt="" class="book-cover w-full h-full object-cover" src="${escapeHtml(coverUrl)}" width="300" height="400" loading="lazy" decoding="async"/>`
+      ? `<img alt="" class="shelf-cover-img book-cover w-full h-full object-cover" src="${escapeHtml(coverUrl)}" width="300" height="400" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 34vw, 25vw" loading="lazy" decoding="async"/>`
       : `<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-slate-500 font-display font-bold">PDF</div>`;
     const updatedIso = s.lastActivityIso || '';
     const freqBadge = seriesFrequencyBadgeAttrs(s.frequency, { compact: true });
@@ -309,6 +309,7 @@ function renderPublicationSeriesGrid(container, groups) {
     wireShelfSeriesCard(card, s);
     container.appendChild(card);
   });
+  wireShelfCoverReveal(container);
 }
 
 function renderFeaturedGrid(container, pubs) {
@@ -328,7 +329,7 @@ function renderFeaturedGrid(container, pubs) {
     const seriesLine = (pub.series_title || '').trim() || '—';
     const eagerFeatured = idx < 6;
     const coverInner = coverUrl
-      ? `<img alt="" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" src="${escapeHtml(coverUrl)}" width="300" height="400" loading="${eagerFeatured ? 'eager' : 'lazy'}" decoding="async"${eagerFeatured && idx === 0 ? ' fetchpriority="high"' : ''}/>`
+      ? `<img alt="" class="shelf-cover-img w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105" src="${escapeHtml(coverUrl)}" width="300" height="400" sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 20vw" loading="${eagerFeatured ? 'eager' : 'lazy'}" decoding="async"${eagerFeatured && idx === 0 ? ' fetchpriority="high"' : ''}/>`
       : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/30 to-blue-600/20 text-slate-400 font-bold text-sm">PDF</div>`;
     card.innerHTML = `
       <div class="aspect-[3/4] rounded-lg overflow-hidden bg-surface-dark relative shadow-lg shadow-black/20 group-hover:shadow-primary/20 group-hover:shadow-2xl transition-all duration-300 transform group-hover:-translate-y-1 book-cover border border-slate-800">
@@ -346,6 +347,7 @@ function renderFeaturedGrid(container, pubs) {
     wireOpenReader(card, pub);
     container.appendChild(card);
   });
+  wireShelfCoverReveal(container);
 }
 
 function renderEditionGrid(container, pubs, options = {}) {
@@ -366,7 +368,7 @@ function renderEditionGrid(container, pubs, options = {}) {
     const coverUrl = pub.cover_url || '';
     const vol = String(sorted.length - i);
     const img = coverUrl
-      ? `<img alt="" class="book-cover w-full h-full object-cover" src="${escapeHtml(coverUrl)}" width="300" height="400" loading="lazy" decoding="async"/>`
+      ? `<img alt="" class="shelf-cover-img book-cover w-full h-full object-cover" src="${escapeHtml(coverUrl)}" width="300" height="400" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 30vw" loading="lazy" decoding="async"/>`
       : `<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-slate-500 font-display font-bold">PDF</div>`;
     card.innerHTML = `
       <div class="relative aspect-[3/4] bg-gray-200 dark:bg-gray-800 overflow-hidden">
@@ -408,6 +410,7 @@ function renderEditionGrid(container, pubs, options = {}) {
     wireOpenReader(card, pub);
     container.appendChild(card);
   });
+  wireShelfCoverReveal(container);
 }
 
 function filterGrid(query) {
@@ -430,6 +433,61 @@ function updateDashboardStats(count) {
   if (el) el.textContent = String(count);
 }
 
+const SKELETON_SHELF_COUNT = 8;
+const SKELETON_FEATURED_COUNT = 5;
+
+function shelfSkeletonSeriesCard() {
+  return `<article class="shelf-skeleton-card pointer-events-none animate-pulse rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#182430] overflow-hidden" aria-hidden="true">
+    <div class="aspect-[3/4] bg-slate-200 dark:bg-slate-700/70"></div>
+    <div class="p-5 space-y-3">
+      <div class="h-3 w-1/2 rounded bg-slate-200 dark:bg-slate-700"></div>
+      <div class="h-3 w-2/3 rounded bg-slate-200 dark:bg-slate-700"></div>
+      <div class="h-5 w-4/5 rounded bg-slate-200 dark:bg-slate-700"></div>
+      <div class="h-10 w-full rounded-lg bg-slate-200 dark:bg-slate-700 mt-4"></div>
+    </div>
+  </article>`;
+}
+
+function shelfSkeletonFeaturedCard() {
+  return `<article class="shelf-skeleton-card pointer-events-none animate-pulse" aria-hidden="true">
+    <div class="aspect-[3/4] rounded-lg bg-slate-200 dark:bg-slate-700/70 border border-slate-800"></div>
+    <div class="mt-3 space-y-2">
+      <div class="h-4 w-full rounded bg-slate-200 dark:bg-slate-700"></div>
+      <div class="h-3 w-3/4 rounded bg-slate-200 dark:bg-slate-700"></div>
+    </div>
+  </article>`;
+}
+
+/** Placeholder cards while catalog fetch runs (homepage only — grids exist in DOM). */
+function injectLibraryLoadingSkeletons(featuredSection, featuredEl, shelfGrid) {
+  if (!shelfGrid) return;
+  shelfGrid.innerHTML = Array.from({ length: SKELETON_SHELF_COUNT }, () => shelfSkeletonSeriesCard()).join('');
+  shelfGrid.setAttribute('aria-busy', 'true');
+  if (featuredSection && featuredEl) {
+    featuredSection.classList.remove('hidden');
+    featuredEl.innerHTML = Array.from({ length: SKELETON_FEATURED_COUNT }, () => shelfSkeletonFeaturedCard()).join('');
+    featuredEl.setAttribute('aria-busy', 'true');
+  }
+  const badge = document.getElementById('edition-count-badge');
+  if (badge) badge.textContent = '…';
+}
+
+/** Fade covers in after decode to avoid a “wall of pop-in” and reduce perceived layout thrash. */
+function wireShelfCoverReveal(root) {
+  if (!root) return;
+  root.querySelectorAll('img.shelf-cover-img').forEach((img) => {
+    const reveal = () => {
+      img.classList.add('shelf-cover-img--loaded');
+    };
+    if (img.complete && img.naturalWidth > 0) {
+      requestAnimationFrame(reveal);
+      return;
+    }
+    img.addEventListener('load', reveal, { once: true });
+    img.addEventListener('error', reveal, { once: true });
+  });
+}
+
 export async function renderShelf() {
   const featuredSection = document.getElementById('featured-section');
   const featuredEl = document.getElementById('featured-grid');
@@ -444,6 +502,8 @@ export async function renderShelf() {
     shelfError.classList.add('hidden');
   }
 
+  injectLibraryLoadingSkeletons(featuredSection, featuredEl, shelfGrid);
+
   const [catRes, seriesRes] = await Promise.all([
     fetchPublishedCatalog(),
     fetchPublishedSeriesMap()
@@ -452,6 +512,10 @@ export async function renderShelf() {
   const seriesMap = seriesRes.data && !seriesRes.error ? seriesRes.data : {};
   if (error) {
     allPublications = [];
+    if (shelfGrid) shelfGrid.innerHTML = '';
+    shelfGrid?.removeAttribute('aria-busy');
+    if (featuredEl) featuredEl.innerHTML = '';
+    featuredEl?.removeAttribute('aria-busy');
     document.getElementById('featured-section')?.classList.add('hidden');
     if (shelfError) {
       shelfError.textContent = error.message || 'Failed to load publications';
@@ -468,8 +532,10 @@ export async function renderShelf() {
   if (!data || data.length === 0) {
     allPublications = [];
     if (featuredEl) featuredEl.innerHTML = '';
+    featuredEl?.removeAttribute('aria-busy');
     featuredSection?.classList.add('hidden');
     if (shelfGrid) shelfGrid.innerHTML = '';
+    shelfGrid?.removeAttribute('aria-busy');
     if (dashGrid) dashGrid.innerHTML = '';
     setLibraryEmpty(true);
     updateDashboardStats(0);
@@ -493,6 +559,8 @@ export async function renderShelf() {
   renderFeaturedGrid(featuredEl, featuredPubs);
   renderPublicationSeriesGrid(shelfGrid, seriesGroups);
   renderEditionGrid(dashGrid, data, { compact: true });
+  shelfGrid?.removeAttribute('aria-busy');
+  featuredEl?.removeAttribute('aria-busy');
 
   const searchInput = document.getElementById('shelf-search');
   if (searchInput) {
