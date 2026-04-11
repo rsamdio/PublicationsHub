@@ -25,10 +25,6 @@
   <link rel="icon" type="image/webp" href="images/favicon.webp"/>
   <link rel="icon" type="image/x-icon" href="images/favicon.ico"/>
   <link rel="apple-touch-icon" href="images/rsamdio.webp"/>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons&amp;display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/tailwind-bundle.css"/>
   <style>
     ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -38,6 +34,13 @@
     .book-cover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
     .edition-card:hover .book-cover { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
     .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+    /* Same progressive cover treatment as index.html (hero + edition cards from series-detail.js) */
+    .shelf-cover-img { opacity: 0; transition: opacity 0.35s ease; }
+    .shelf-cover-img.shelf-cover-img--loaded { opacity: 1; }
+    @media (prefers-reduced-motion: reduce) {
+      .shelf-cover-img { opacity: 1; transition: none; }
+    }
   </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display antialiased min-h-screen flex flex-col">
@@ -65,11 +68,11 @@
     <p id="series-error" class="hidden text-center py-4 text-sm text-red-400 max-w-7xl mx-auto px-4"></p>
 
     <div id="series-not-found" class="hidden flex flex-col flex-1 items-center justify-center px-4 py-20 text-center">
-      <span class="material-icons text-5xl text-slate-600 mb-4">search_off</span>
+      <span data-pub-icon="search_off" class="text-5xl text-slate-600 mb-4"></span>
       <h1 class="text-xl font-bold text-white mb-2">Series not found</h1>
       <p class="text-slate-400 mb-8 max-w-md">Check the link or browse all publication series.</p>
       <div class="flex flex-col sm:flex-row items-center gap-3">
-        <a href="index.html#all-publications" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-medium">All publications</a>
+        <a href="/#all-publications" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-medium">All publications</a>
         <a href="/" class="text-sm text-slate-400 hover:text-primary transition-colors">Library home</a>
       </div>
     </div>
@@ -89,28 +92,28 @@
               <div class="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-4">
                 <span id="series-badge-publisher" class="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-900 dark:bg-primary/25 dark:text-slate-100">Publisher</span>
                 <span id="series-badge-frequency" class="hidden inline-flex items-center px-3 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-900 dark:bg-primary/25 dark:text-slate-100">Monthly</span>
-                <span class="text-slate-600 dark:text-slate-400 text-sm flex items-center"><span class="material-icons text-sm mr-1">new_releases</span> <span id="series-badge-updated">—</span></span>
-                <span class="text-slate-600 dark:text-slate-400 text-sm flex items-center"><span class="material-icons text-sm mr-1">library_books</span> <span id="series-badge-count">0</span></span>
+                <span class="text-slate-600 dark:text-slate-400 text-sm flex items-center"><span data-pub-icon="new_releases" class="text-sm mr-1"></span> <span id="series-badge-updated">—</span></span>
+                <span class="text-slate-600 dark:text-slate-400 text-sm flex items-center"><span data-pub-icon="library_books" class="text-sm mr-1"></span> <span id="series-badge-count">0</span></span>
               </div>
               <h1 id="series-hero-title" class="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-4">Series</h1>
               <p id="series-hero-desc" class="text-lg text-slate-600 dark:text-text-secondary max-w-2xl mx-auto lg:mx-0 mb-8"></p>
               <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                 <button type="button" id="series-read-latest" class="w-full sm:w-auto flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary hover:bg-primary-dark md:py-3 md:text-lg md:px-10 transition-all shadow-lg shadow-primary/20">
-                  <span class="material-icons mr-2">auto_stories</span>
+                  <span data-pub-icon="auto_stories" class="mr-2"></span>
                   Read latest edition
                 </button>
                 <div class="relative w-full sm:w-auto">
                   <button type="button" id="series-hero-share" class="w-full sm:w-auto flex items-center justify-center px-8 py-3 border border-slate-300 dark:border-slate-600 text-base font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 md:py-3 md:text-lg md:px-10 transition-all" aria-expanded="false" aria-haspopup="true" aria-controls="series-share-menu">
-                    <span class="material-icons mr-2">share</span>
+                    <span data-pub-icon="share" class="mr-2"></span>
                     Share
                   </button>
                   <div id="series-share-menu" class="hidden absolute bottom-full left-0 right-0 sm:left-auto sm:right-0 mb-1 z-40 min-w-[13rem] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-surface-dark shadow-xl py-1.5 overflow-hidden" role="menu" aria-label="Share this series">
                     <button type="button" id="series-share-device" class="hidden w-full text-left px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2" role="menuitem">
-                      <span class="material-icons text-lg text-primary">send</span>
+                      <span data-pub-icon="send" class="text-lg text-primary"></span>
                       <span>Share via device…</span>
                     </button>
                     <button type="button" id="series-share-copy" class="w-full text-left px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2" role="menuitem">
-                      <span class="material-icons text-lg text-slate-500 dark:text-slate-400">link</span>
+                      <span data-pub-icon="link" class="text-lg text-slate-500 dark:text-slate-400"></span>
                       <span id="series-share-copy-label">Copy link</span>
                     </button>
                   </div>
@@ -136,14 +139,14 @@
   <footer class="bg-white dark:bg-background-dark border-t border-slate-200 dark:border-slate-800 pt-12 pb-8 mt-auto">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex flex-col md:flex-row justify-between items-center gap-4 pt-8 border-t border-slate-200 dark:border-slate-800">
-        <p class="text-xs text-slate-500">© Rotaract South Asia MDIO. All rights reserved.</p>
-        <nav class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-slate-500" aria-label="Footer">
+        <p class="text-xs text-slate-600 dark:text-slate-400">© Rotaract South Asia MDIO. All rights reserved.</p>
+        <nav class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-slate-600 dark:text-slate-400" aria-label="Footer">
           <span class="flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
             RSA Publications Hub
           </span>
-          <a href="terms" class="hover:text-primary transition-colors">Terms</a>
-          <a href="privacy" class="hover:text-primary transition-colors">Privacy</a>
+          <a href="/terms" class="hover:text-primary transition-colors">Terms</a>
+          <a href="/privacy" class="hover:text-primary transition-colors">Privacy</a>
           <a href="admin.html" class="hover:text-primary transition-colors">Platform admin</a>
         </nav>
       </div>
@@ -164,7 +167,7 @@
     <div class="absolute top-2 left-2 right-2 sm:top-4 sm:left-4 sm:right-4 z-20 flex flex-row items-start justify-between gap-2 pointer-events-none">
       <div class="pointer-events-auto flex flex-col gap-2 min-w-0 max-w-[min(18rem,calc(100vw-5.5rem))]">
         <button type="button" id="reader-close" class="inline-flex items-center gap-2 text-gray-200 hover:text-white bg-black/60 hover:bg-black/80 backdrop-blur-sm px-3 py-2.5 sm:py-2 rounded-lg border border-white/10 shadow-lg transition-all group w-fit min-h-[44px]">
-          <span class="material-icons text-xl group-hover:-translate-x-0.5 transition-transform">chevron_left</span>
+          <span data-pub-icon="chevron_left" class="text-xl group-hover:-translate-x-0.5 transition-transform"></span>
           <span class="text-sm font-semibold tracking-wide">Back</span>
         </button>
         <div id="reader-name-card" class="bg-black/60 backdrop-blur-sm rounded-lg border border-white/10 shadow-lg px-4 py-3 w-fit max-w-full">
@@ -173,18 +176,18 @@
         </div>
       </div>
       <a id="reader-download-link" href="#" class="pointer-events-auto inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/10 text-gray-200 hover:text-white shadow-lg transition-all shrink-0" title="Download PDF">
-        <span class="material-icons text-[22px]">download</span>
+        <span data-pub-icon="download" class="text-[22px]"></span>
       </a>
     </div>
     <footer class="fixed sm:absolute inset-x-0 bottom-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:bottom-4 z-30 flex justify-center px-2 sm:px-4 pointer-events-none pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-0">
       <div class="pointer-events-auto w-full max-w-[min(100vw-0.5rem,28rem)] sm:max-w-none sm:w-auto bg-black/80 backdrop-blur-md rounded-t-2xl sm:rounded-2xl shadow-2xl border border-white/10 border-b-0 sm:border-b">
         <div class="flex flex-col sm:flex-row sm:flex-nowrap sm:items-stretch divide-y sm:divide-y-0 sm:divide-x divide-white/10">
           <div class="flex items-center justify-center gap-0.5 px-2 py-1.5 sm:px-3 sm:py-2.5 shrink-0">
-            <button type="button" id="reader-first" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="First page (Home)"><span class="material-icons text-lg sm:text-xl">first_page</span></button>
-            <button type="button" id="reader-prev" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Previous (←)"><span class="material-icons text-lg sm:text-xl">chevron_left</span></button>
+            <button type="button" id="reader-first" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="First page (Home)"><span data-pub-icon="first_page" class="text-lg sm:text-xl"></span></button>
+            <button type="button" id="reader-prev" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Previous (←)"><span data-pub-icon="chevron_left" class="text-lg sm:text-xl"></span></button>
             <span id="reader-page-info" class="text-xs font-bold text-white min-w-[3rem] text-center tabular-nums px-0.5">1 / 1</span>
-            <button type="button" id="reader-next" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Next (→)"><span class="material-icons text-lg sm:text-xl">chevron_right</span></button>
-            <button type="button" id="reader-last" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Last page (End)"><span class="material-icons text-lg sm:text-xl">last_page</span></button>
+            <button type="button" id="reader-next" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Next (→)"><span data-pub-icon="chevron_right" class="text-lg sm:text-xl"></span></button>
+            <button type="button" id="reader-last" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Last page (End)"><span data-pub-icon="last_page" class="text-lg sm:text-xl"></span></button>
           </div>
           <div class="flex items-center justify-center gap-1.5 px-2 py-1.5 sm:px-3 sm:py-2.5">
             <label for="reader-page-jump" class="sr-only">Go to page</label>
@@ -193,15 +196,15 @@
             <button type="button" id="reader-page-jump-go" class="text-gray-300 hover:text-white text-xs font-medium min-h-8 px-2 py-1 rounded-md hover:bg-white/10 inline-flex items-center justify-center shrink-0" title="Go to page">Go</button>
           </div>
           <div class="flex items-center justify-center gap-0.5 sm:gap-1 px-2 py-1.5 sm:px-3 sm:py-2.5">
-            <button type="button" id="reader-zoom-out" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Zoom out"><span class="material-icons text-lg">remove</span></button>
+            <button type="button" id="reader-zoom-out" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Zoom out"><span data-pub-icon="remove" class="text-lg"></span></button>
             <div class="flex items-center gap-0.5">
               <label for="reader-zoom-input" class="sr-only">Zoom percent (50–250, Enter to apply)</label>
               <input type="number" id="reader-zoom-input" min="50" max="250" step="1" value="100" inputmode="numeric" autocomplete="off" class="w-[3rem] sm:w-[3.25rem] min-h-8 rounded-md bg-white/10 border border-white/15 text-white text-xs py-1 px-0.5 text-center tabular-nums focus:ring-1 focus:ring-primary focus:border-primary" title="Zoom % (Enter or blur to apply)"/>
               <span class="text-[10px] text-gray-400 font-medium tabular-nums select-none" aria-hidden="true">%</span>
             </div>
-            <button type="button" id="reader-zoom-in" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Zoom in"><span class="material-icons text-lg">add</span></button>
-            <button type="button" id="reader-fit-reset" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 sm:border-l border-white/10 sm:pl-2 sm:ml-1 p-0.5 transition-colors" title="Reset zoom to 100%"><span class="material-icons text-lg">fit_screen</span></button>
-            <button type="button" id="reader-fullscreen" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Fullscreen"><span class="material-icons text-lg">fullscreen</span></button>
+            <button type="button" id="reader-zoom-in" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Zoom in"><span data-pub-icon="add" class="text-lg"></span></button>
+            <button type="button" id="reader-fit-reset" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 sm:border-l border-white/10 sm:pl-2 sm:ml-1 p-0.5 transition-colors" title="Reset zoom to 100%"><span data-pub-icon="fit_screen" class="text-lg"></span></button>
+            <button type="button" id="reader-fullscreen" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Fullscreen"><span data-pub-icon="fullscreen" class="text-lg"></span></button>
           </div>
         </div>
       </div>

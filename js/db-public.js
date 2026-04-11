@@ -16,6 +16,7 @@ export function mapEditionToCard(id, v) {
     description: v.description ?? null,
     pdf_url: v.pdf_url,
     cover_url: v.cover_url ?? null,
+    cover_thumb_url: v.cover_thumb_url ?? null,
     created_at,
     issue_date,
     publisher_id: v.publisher_id ?? null,

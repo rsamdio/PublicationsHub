@@ -224,7 +224,7 @@ export async function updateSeries(seriesId, patch) {
     const auth = fbAuth();
     const uid = auth.currentUser?.uid;
     if (!uid) return { error: { message: 'Not signed in' } };
-    const allowed = ['title', 'description', 'slug', 'cover_url', 'cover_repo_path', 'frequency'];
+    const allowed = ['title', 'description', 'slug', 'cover_url', 'cover_thumb_url', 'cover_repo_path', 'frequency'];
     const data = {};
     for (const k of allowed) {
       if (Object.prototype.hasOwnProperty.call(patch, k)) {
@@ -281,6 +281,7 @@ export async function insertPublishedEdition(row) {
       description: row.description ?? null,
       pdf_url: row.pdf_url,
       cover_url: row.cover_url ?? null,
+      cover_thumb_url: row.cover_thumb_url ?? null,
       pdf_repo_path: row.pdf_repo_path ?? null,
       status: 'published',
       publisher_name: row.publisher_name ?? null,
@@ -313,6 +314,7 @@ export async function updateEdition(editionId, patch) {
       'title',
       'description',
       'cover_url',
+      'cover_thumb_url',
       'series_id',
       'series_title',
       'pdf_repo_path',

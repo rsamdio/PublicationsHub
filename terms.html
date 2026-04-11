@@ -10,21 +10,24 @@
   <meta name="theme-color" content="#101922"/>
   <link rel="icon" type="image/webp" href="images/favicon.webp"/>
   <link rel="icon" type="image/x-icon" href="images/favicon.ico"/>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons&amp;display=swap" rel="stylesheet"/>
+  <link rel="apple-touch-icon" href="images/rsamdio.webp"/>
   <link rel="stylesheet" href="css/tailwind-bundle.css"/>
+  <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #101922; }
+    ::-webkit-scrollbar-thumb { background: #2e3b4b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3e4f63; }
+  </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display antialiased min-h-screen flex flex-col">
   <nav class="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-background-dark/90 backdrop-blur-md">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
       <a href="/" class="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white hover:text-primary transition-colors">
-        <span class="material-icons text-lg text-primary">arrow_back</span>
+        <span data-pub-icon="arrow_back" class="text-lg text-primary"></span>
         Publications Hub
       </a>
       <div class="flex items-center gap-3 text-sm">
-        <a href="privacy" class="text-slate-600 dark:text-text-secondary hover:text-primary transition-colors">Privacy</a>
+        <a href="/privacy" class="text-slate-600 dark:text-text-secondary hover:text-primary transition-colors">Privacy</a>
         <a href="studio.html" class="text-slate-600 dark:text-text-secondary hover:text-primary transition-colors hidden sm:inline">Studio</a>
       </div>
     </div>
@@ -86,7 +89,7 @@
       <section>
         <h2 class="text-lg font-semibold text-slate-900 dark:text-white">9. Contact</h2>
         <p class="mt-2">
-          For questions about these terms, contact Rotaract South Asia MDIO through the channels published on <a href="https://rsamdio.org/" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">rsamdio.org</a>. For privacy practices, see our <a href="privacy" class="text-primary hover:underline">Privacy policy</a>.
+          For questions about these terms, contact Rotaract South Asia MDIO through the channels published on <a href="https://rsamdio.org/" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">rsamdio.org</a>. For privacy practices, see our <a href="/privacy" class="text-primary hover:underline">Privacy policy</a>.
         </p>
       </section>
       <p class="text-xs text-slate-500 dark:text-text-secondary border-t border-slate-200 dark:border-slate-800 pt-6">
@@ -100,10 +103,11 @@
       <p>© Rotaract South Asia MDIO</p>
       <nav class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1" aria-label="Footer">
         <a href="/" class="hover:text-primary transition-colors">Home</a>
-        <a href="privacy" class="hover:text-primary transition-colors">Privacy</a>
+        <a href="/privacy" class="hover:text-primary transition-colors">Privacy</a>
         <a href="studio.html" class="hover:text-primary transition-colors">Studio</a>
       </nav>
     </div>
   </footer>
+  <script type="module" src="js/hydrate-pub-icons.js"></script>
 </body>
 </html>

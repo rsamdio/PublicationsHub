@@ -5,7 +5,7 @@ const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https')
 const logger = require('firebase-functions/logger');
 const admin = require('firebase-admin');
 const busboy = require('busboy');
-const { encodeCoverToLosslessWebp } = require('./cover-encode');
+const { encodeCoverToLosslessWebp, encodeCoverToThumbWebp } = require('./cover-encode');
 const {
   r2AccessKeyId,
   r2SecretAccessKey,
@@ -111,6 +111,8 @@ async function deleteEditionStorageFiles(d, ctx) {
   const jpgCover = coverRepoPathFromPdfRepoPath(pdfPath, 'jpeg');
   if (webpCover) await deleteObjectKey(ctx, webpCover).catch(() => {});
   if (jpgCover) await deleteObjectKey(ctx, jpgCover).catch(() => {});
+  const thumbCover = webpCover ? webpCover.replace(/\.webp$/i, '-thumb.webp') : null;
+  if (thumbCover) await deleteObjectKey(ctx, thumbCover).catch(() => {});
 }
 
 exports.uploadSeriesCover = onRequest(
@@ -225,7 +227,18 @@ exports.uploadSeriesCover = onRequest(
           const ctx = getR2Context();
           const objectKey = `${publicationsPathPrefix(publisherId, seriesId)}series-cover.webp`;
           const out = await putObjectBuffer(ctx, objectKey, webpBuffer, 'image/webp');
-          res.status(200).json(out);
+          let thumb_download_url = null;
+          let thumb_path = null;
+          try {
+            const thumbKey = `${publicationsPathPrefix(publisherId, seriesId)}series-cover-thumb.webp`;
+            const thumbBuf = await encodeCoverToThumbWebp(webpBuffer);
+            const thumbOut = await putObjectBuffer(ctx, thumbKey, thumbBuf, 'image/webp');
+            thumb_download_url = thumbOut.download_url;
+            thumb_path = thumbOut.path;
+          } catch (thumbErr) {
+            logger.warn('uploadSeriesCover thumb skipped', thumbErr?.message || thumbErr);
+          }
+          res.status(200).json({ ...out, thumb_download_url, thumb_path });
           resolve();
         } catch (e) {
           logger.error('uploadSeriesCover', e);
@@ -291,7 +304,9 @@ async function deleteSeriesCore(seriesSnap, ctx) {
   const seriesId = seriesSnap.id;
   const pubId = seriesSnap.data().publisher_id;
   const seriesCoverPath = `${publicationsPathPrefix(pubId, seriesId)}series-cover.webp`;
+  const seriesThumbPath = `${publicationsPathPrefix(pubId, seriesId)}series-cover-thumb.webp`;
   await deleteObjectKey(ctx, seriesCoverPath).catch(() => {});
+  await deleteObjectKey(ctx, seriesThumbPath).catch(() => {});
 
   const edSnap = await db.collection('editions').where('series_id', '==', seriesId).get();
   for (const doc of edSnap.docs) {

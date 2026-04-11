@@ -6,7 +6,7 @@ import { editionPrimaryDateKey, sortEditionsNewestFirstInPlace } from './edition
 
 /**
  * @param {Array<object>} editions
- * @param {Record<string, { cover_url?: string | null, title?: string, description?: string, frequency?: string }> | null} seriesMap from `public/catalog/series`
+ * @param {Record<string, { cover_url?: string | null, cover_thumb_url?: string | null, title?: string, description?: string, frequency?: string }> | null} seriesMap from `public/catalog/series`
  */
 export function groupEditionsIntoSeries(editions, seriesMap = null) {
   if (!Array.isArray(editions) || editions.length === 0) return [];
@@ -42,12 +42,12 @@ export function groupEditionsIntoSeries(editions, seriesMap = null) {
     g.editionCount = g.editions.length;
     g.latestEdition = g.editions[0];
     const catalogSeries = g.seriesId && seriesMap && seriesMap[g.seriesId] ? seriesMap[g.seriesId] : null;
-    const seriesCover = catalogSeries?.cover_url ? String(catalogSeries.cover_url) : '';
-    g.coverUrl =
-      seriesCover ||
-      g.editions.find((e) => e.cover_url)?.cover_url ||
-      g.latestEdition?.cover_url ||
-      '';
+    const seriesFull = catalogSeries?.cover_url ? String(catalogSeries.cover_url) : '';
+    const seriesThumb = catalogSeries?.cover_thumb_url ? String(catalogSeries.cover_thumb_url) : '';
+    const edFull = g.editions.find((e) => e.cover_url)?.cover_url || g.latestEdition?.cover_url || '';
+    const edThumb = g.editions.find((e) => e.cover_thumb_url)?.cover_thumb_url || g.latestEdition?.cover_thumb_url || '';
+    g.coverUrl = seriesFull || edFull || '';
+    g.coverThumbUrl = seriesThumb || edThumb || g.coverUrl || '';
     g.description =
       (catalogSeries?.description && String(catalogSeries.description).trim()) ||
       pickBestDescription(g.editions);

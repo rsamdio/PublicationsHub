@@ -158,6 +158,12 @@ const btnAdminTeamInviteSubmit = document.getElementById('btn-admin-team-invite-
 
 const bfMsg = document.getElementById('bf-msg');
 const btnBackfill = document.getElementById('btn-backfill');
+const thumbBfMsg = document.getElementById('thumb-bf-msg');
+const btnBackfillCoverThumbs = document.getElementById('btn-backfill-cover-thumbs');
+/** @type {string} */
+let coverThumbEditionCursor = '';
+/** @type {string} */
+let coverThumbSeriesCursor = '';
 
 const staffTbody = document.getElementById('staff-tbody');
 const platformPendingInvitesTbody = document.getElementById('platform-pending-invites-tbody');
@@ -222,6 +228,7 @@ async function confirmAndDeletePublisher(publisherId, displayName, busyBtn) {
 
 const createPublisherFn = httpsCallable(fbFunctions(), 'createPublisher');
 const backfillMirrorFn = httpsCallable(fbFunctions(), 'backfillMirror');
+const backfillCoverThumbsFn = httpsCallable(fbFunctions(), 'backfillCoverThumbs');
 const setEditionFeaturedFn = httpsCallable(fbFunctions(), 'setEditionFeatured');
 const platformCreateInviteFn = httpsCallable(fbFunctions(), 'platformCreateInvite');
 const platformRevokeInviteFn = httpsCallable(fbFunctions(), 'platformRevokeInvite');
@@ -442,6 +449,8 @@ function applyManagerRestrictions() {
   });
   if (!adminFull && btnBackfill) btnBackfill.disabled = true;
   if (adminFull && btnBackfill) btnBackfill.disabled = false;
+  if (!adminFull && btnBackfillCoverThumbs) btnBackfillCoverThumbs.disabled = true;
+  if (adminFull && btnBackfillCoverThumbs) btnBackfillCoverThumbs.disabled = false;
 }
 
 async function tryShowDeniedWithPlatformInvite() {
@@ -1557,6 +1566,38 @@ btnBackfill?.addEventListener('click', async () => {
   } finally {
     hideAdminBlockingStatus();
     setAdminSubmitBusy(btnBackfill, false);
+  }
+});
+
+btnBackfillCoverThumbs?.addEventListener('click', async () => {
+  if (!adminFull) return;
+  setMsg(thumbBfMsg, '', false);
+  showAdminBlockingStatus('Backfilling cover thumbnails…');
+  setAdminSubmitBusy(btnBackfillCoverThumbs, true, 'Running…');
+  try {
+    const res = await backfillCoverThumbsFn({
+      editionCursor: coverThumbEditionCursor || undefined,
+      seriesCursor: coverThumbSeriesCursor || undefined,
+      maxUpdates: 30
+    });
+    const data = res.data || {};
+    coverThumbEditionCursor = data.editionsDone ? '' : data.nextEditionCursor || '';
+    coverThumbSeriesCursor = data.seriesDone ? '' : data.nextSeriesCursor || '';
+    const errNote =
+      Array.isArray(data.errors) && data.errors.length
+        ? ` (${data.errors.length} row error(s); see Functions logs.)`
+        : '';
+    const msg = `Editions +${data.editionsUpdated ?? 0} (scanned ${data.editionsScanned ?? 0}), series +${data.seriesUpdated ?? 0} (scanned ${data.seriesScanned ?? 0}).${
+      data.editionsDone && data.seriesDone
+        ? ' Catalog pass complete.'
+        : ' Click again to continue pagination.'
+    }${errNote}`;
+    setMsg(thumbBfMsg, msg, false);
+  } catch (e) {
+    setMsg(thumbBfMsg, e?.message || e?.details || 'backfillCoverThumbs failed', true);
+  } finally {
+    hideAdminBlockingStatus();
+    setAdminSubmitBusy(btnBackfillCoverThumbs, false);
   }
 });
 

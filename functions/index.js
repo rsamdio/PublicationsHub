@@ -3,7 +3,7 @@ const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https')
 const logger = require('firebase-functions/logger');
 const admin = require('firebase-admin');
 const busboy = require('busboy');
-const { encodeCoverToLosslessWebp } = require('./cover-encode');
+const { encodeCoverToLosslessWebp, encodeCoverToThumbWebp } = require('./cover-encode');
 
 const callableOptions = { region: 'us-central1' };
 
@@ -302,6 +302,13 @@ function coverRepoPathFromPdfRepoPath(pdfRepoPath, kind) {
   if (!p.toLowerCase().endsWith('.pdf')) return null;
   const base = p.replace(/\.pdf$/i, '');
   return `${base}-cover.${kind === 'jpeg' ? 'jpg' : 'webp'}`;
+}
+
+/** `…-cover.webp` → `…-cover-thumb.webp` */
+function coverThumbRepoPathFromCoverWebpRepoPath(coverRepoPath) {
+  const p = typeof coverRepoPath === 'string' ? coverRepoPath.trim() : '';
+  if (!p.toLowerCase().endsWith('.webp')) return null;
+  return p.replace(/\.webp$/i, '-thumb.webp');
 }
 
 async function assertPlatformStaff(uid) {
@@ -827,7 +834,20 @@ exports.uploadPublicationCover = onRequest(
           }
 
           const coverOut = await putObjectBuffer(ctx, coverRepoPath, losslessWebpBuffer, 'image/webp');
-          res.status(200).json(coverOut);
+          const thumbPath = coverThumbRepoPathFromCoverWebpRepoPath(coverRepoPath);
+          let thumb_download_url = null;
+          let thumb_path = null;
+          if (thumbPath) {
+            try {
+              const thumbBuf = await encodeCoverToThumbWebp(losslessWebpBuffer);
+              const thumbOut = await putObjectBuffer(ctx, thumbPath, thumbBuf, 'image/webp');
+              thumb_download_url = thumbOut.download_url;
+              thumb_path = thumbOut.path;
+            } catch (thumbErr) {
+              logger.warn('uploadPublicationCover thumb skipped', thumbErr?.message || thumbErr);
+            }
+          }
+          res.status(200).json({ ...coverOut, thumb_download_url, thumb_path });
           resolve();
         } catch (e) {
           logger.error('uploadPublicationCover failed', e);
@@ -862,6 +882,159 @@ exports.uploadPublicationCover = onRequest(
     });
   }
 );
+
+/** `…/file.pdf` → R2 key `…/file-cover-thumb.webp` (matches edition cover upload layout). */
+function editionCoverThumbKeyFromPdfRepoPath(pdfRepoPath) {
+  const p = typeof pdfRepoPath === 'string' ? pdfRepoPath.trim() : '';
+  if (!p.toLowerCase().endsWith('.pdf')) return null;
+  return `${p.replace(/\.pdf$/i, '')}-cover-thumb.webp`;
+}
+
+/** `…/series-cover.webp` → `…/series-cover-thumb.webp` */
+function seriesCoverThumbKeyFromCoverRepoPath(coverRepoPath) {
+  const p = typeof coverRepoPath === 'string' ? coverRepoPath.trim() : '';
+  if (!p.toLowerCase().endsWith('.webp')) return null;
+  return p.replace(/\.webp$/i, '-thumb.webp');
+}
+
+const backfillCoverThumbsOptions = {
+  region: 'us-central1',
+  timeoutSeconds: 300,
+  memory: '512MiB',
+  maxInstances: 2
+};
+
+/**
+ * Platform admin: fetch existing full covers, write bounded WebP thumbs to R2, set `cover_thumb_url`.
+ * Paginate with `editionCursor` / `seriesCursor` (last **processed** document id from prior response).
+ */
+exports.backfillCoverThumbs = onCall(backfillCoverThumbsOptions, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Sign in required');
+  }
+  await assertPlatformAdmin(request.auth.uid);
+
+  const data = request.data || {};
+  const maxUpdates = Math.min(Math.max(Number(data.maxUpdates) || 25, 1), 60);
+  const pageSize = Math.min(Math.max(Number(data.pageSize) || 80, 20), 200);
+  const editionCursor = typeof data.editionCursor === 'string' ? data.editionCursor.trim() : '';
+  const seriesCursor = typeof data.seriesCursor === 'string' ? data.seriesCursor.trim() : '';
+  const doEditions = data.editions !== false;
+  const doSeries = data.series !== false;
+
+  let ctx;
+  try {
+    ctx = getR2Context();
+  } catch (cfgErr) {
+    throw new HttpsError('failed-precondition', cfgErr?.message || 'R2 not configured');
+  }
+
+  const out = {
+    editionsUpdated: 0,
+    seriesUpdated: 0,
+    editionsScanned: 0,
+    seriesScanned: 0,
+    nextEditionCursor: null,
+    nextSeriesCursor: null,
+    editionsDone: true,
+    seriesDone: true,
+    errors: []
+  };
+
+  let editionUpdates = 0;
+  let seriesUpdates = 0;
+
+  if (doEditions) {
+    let q = db.collection('editions').orderBy(admin.firestore.FieldPath.documentId()).limit(pageSize);
+    if (editionCursor) {
+      const cur = await db.collection('editions').doc(editionCursor).get();
+      if (cur.exists) q = q.startAfter(cur);
+    }
+    const snap = await q.get();
+    out.editionsDone = snap.size < pageSize;
+    for (const doc of snap.docs) {
+      out.editionsScanned++;
+      out.nextEditionCursor = doc.id;
+      if (editionUpdates >= maxUpdates) {
+        out.editionsDone = false;
+        break;
+      }
+      const d = doc.data() || {};
+      if (String(d.status || '') !== 'published') continue;
+      const coverUrl = String(d.cover_url || '').trim();
+      if (!coverUrl) continue;
+      if (String(d.cover_thumb_url || '').trim()) continue;
+      const thumbKey = editionCoverThumbKeyFromPdfRepoPath(d.pdf_repo_path);
+      if (!thumbKey) continue;
+      try {
+        const res = await fetch(coverUrl, { redirect: 'follow' });
+        if (!res.ok) {
+          out.errors.push({ id: doc.id, kind: 'edition', step: 'fetch', detail: String(res.status) });
+          continue;
+        }
+        const buf = Buffer.from(await res.arrayBuffer());
+        const thumbBuf = await encodeCoverToThumbWebp(buf);
+        const put = await putObjectBuffer(ctx, thumbKey, thumbBuf, 'image/webp');
+        await doc.ref.update({ cover_thumb_url: put.download_url });
+        editionUpdates++;
+        out.editionsUpdated++;
+      } catch (e) {
+        out.errors.push({
+          id: doc.id,
+          kind: 'edition',
+          step: 'process',
+          detail: String(e?.message || e).slice(0, 300)
+        });
+      }
+    }
+  }
+
+  if (doSeries) {
+    let q = db.collection('series').orderBy(admin.firestore.FieldPath.documentId()).limit(pageSize);
+    if (seriesCursor) {
+      const cur = await db.collection('series').doc(seriesCursor).get();
+      if (cur.exists) q = q.startAfter(cur);
+    }
+    const snap = await q.get();
+    out.seriesDone = snap.size < pageSize;
+    for (const doc of snap.docs) {
+      out.seriesScanned++;
+      out.nextSeriesCursor = doc.id;
+      if (seriesUpdates >= maxUpdates) {
+        out.seriesDone = false;
+        break;
+      }
+      const d = doc.data() || {};
+      const coverUrl = String(d.cover_url || '').trim();
+      if (!coverUrl) continue;
+      if (String(d.cover_thumb_url || '').trim()) continue;
+      const thumbKey = seriesCoverThumbKeyFromCoverRepoPath(d.cover_repo_path);
+      if (!thumbKey) continue;
+      try {
+        const res = await fetch(coverUrl, { redirect: 'follow' });
+        if (!res.ok) {
+          out.errors.push({ id: doc.id, kind: 'series', step: 'fetch', detail: String(res.status) });
+          continue;
+        }
+        const buf = Buffer.from(await res.arrayBuffer());
+        const thumbBuf = await encodeCoverToThumbWebp(buf);
+        const put = await putObjectBuffer(ctx, thumbKey, thumbBuf, 'image/webp');
+        await doc.ref.update({ cover_thumb_url: put.download_url });
+        seriesUpdates++;
+        out.seriesUpdated++;
+      } catch (e) {
+        out.errors.push({
+          id: doc.id,
+          kind: 'series',
+          step: 'process',
+          detail: String(e?.message || e).slice(0, 300)
+        });
+      }
+    }
+  }
+
+  return out;
+});
 
 Object.assign(exports, require('./extra-exports'));
 Object.assign(exports, require('./mirror'));

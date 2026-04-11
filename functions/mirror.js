@@ -53,6 +53,7 @@ function editionOrgPayload(d) {
     description: d.description ?? null,
     pdf_url: d.pdf_url,
     cover_url: d.cover_url ?? null,
+    cover_thumb_url: d.cover_thumb_url ?? null,
     /** Object key of the PDF in R2 (studio cover upload + regenerate). */
     pdf_repo_path: d.pdf_repo_path ?? null,
     status: d.status,
@@ -70,6 +71,7 @@ function editionPublicPayload(d) {
     description: d.description ?? null,
     pdf_url: d.pdf_url,
     cover_url: d.cover_url ?? null,
+    cover_thumb_url: d.cover_thumb_url ?? null,
     publisher_name: d.publisher_name ?? null,
     series_title: d.series_title ?? null,
     publisher_id: d.publisher_id,
@@ -154,6 +156,7 @@ async function applySeriesMirror(seriesId, change) {
     description: after.description ?? '',
     frequency: after.frequency ?? '',
     cover_url: after.cover_url ?? null,
+    cover_thumb_url: after.cover_thumb_url ?? null,
     cover_repo_path: after.cover_repo_path ?? null,
     created_at: tsMs(after.created_at),
     created_by_uid: after.created_by_uid ?? ''
@@ -168,6 +171,7 @@ async function applySeriesMirror(seriesId, change) {
     description: after.description ?? '',
     frequency: after.frequency ?? '',
     cover_url: after.cover_url ?? null,
+    cover_thumb_url: after.cover_thumb_url ?? null,
     cover_repo_path: after.cover_repo_path ?? null,
     created_at: tsMs(after.created_at)
   });
@@ -463,6 +467,7 @@ async function runBackfill() {
       description: d.description ?? null,
       pdf_url: d.pdf_url,
       cover_url: d.cover_url ?? null,
+      cover_thumb_url: d.cover_thumb_url ?? null,
       publisher_name: null,
       series_title: null,
       publisher_id: null,

@@ -32,7 +32,7 @@ service cloud.firestore {
 
     function seriesUpdateKeysAllowed() {
       return request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['title', 'description', 'slug', 'cover_url', 'cover_repo_path', 'frequency']);
+        .hasOnly(['title', 'description', 'slug', 'cover_url', 'cover_thumb_url', 'cover_repo_path', 'frequency']);
     }
 
     /** Matches publisher app `createSeries` payload only. */
@@ -57,6 +57,7 @@ service cloud.firestore {
         'description',
         'pdf_url',
         'cover_url',
+        'cover_thumb_url',
         'pdf_repo_path',
         'status',
         'publisher_name',
@@ -73,6 +74,7 @@ service cloud.firestore {
         'title',
         'description',
         'cover_url',
+        'cover_thumb_url',
         'series_id',
         'series_title',
         'pdf_repo_path',

@@ -196,7 +196,10 @@ export async function uploadEditionCoverWebp(webpBlob, { publisherId, seriesId, 
   if (!data.download_url) {
     return { download_url: '', error: 'Cover upload succeeded but no download URL returned' };
   }
-  return { download_url: data.download_url };
+  return {
+    download_url: data.download_url,
+    cover_thumb_url: data.thumb_download_url || data.cover_thumb_url || null
+  };
 }
 
 /**
@@ -245,5 +248,9 @@ export async function uploadSeriesCoverFile(file, { publisherId, seriesId }) {
   if (!data.download_url) {
     return { download_url: '', error: 'Upload succeeded but no download URL returned' };
   }
-  return { download_url: data.download_url, path: data.path };
+  return {
+    download_url: data.download_url,
+    path: data.path,
+    cover_thumb_url: data.thumb_download_url || data.cover_thumb_url || null
+  };
 }

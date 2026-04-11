@@ -4,8 +4,14 @@ https://publicationshub.netlify.app/* https://publications.rsamdio.org/:splat 30
 # Pretty URL for series shell (serves publication.html; query + hash unchanged)
 /publication /publication.html 200
 
+# Pretty URLs for policy pages (same pattern as /publication)
+/privacy /privacy.html 200
+/terms /terms.html 200
+
 # Legacy .html path → canonical pretty URL (query string preserved)
 /publication.html /publication 301
+/privacy.html /privacy 301
+/terms.html /terms 301
 
 # Old series detail URL → pretty publication path (query string preserved)
 /series.html /publication 301

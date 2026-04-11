@@ -43,6 +43,11 @@ export function parseReadRefFromHash(hash) {
   return null;
 }
 
+/** Current page hash → edition id or slug for `#/r/…` / `#/read/…`. */
+export function readEditionRefFromHash() {
+  return parseReadRefFromHash(typeof location !== 'undefined' ? location.hash || '' : '');
+}
+
 export function getSeriesCanonicalIdFromSearchParams(params) {
   const v =
     params.get(SERIES_QUERY_PARAM) ??

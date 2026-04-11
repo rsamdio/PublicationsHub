@@ -7,7 +7,7 @@ Use this file as the **source of truth** for which paths matter. The app lives a
 | File | Audience | Scripts / data |
 |------|----------|----------------|
 | [`index.html`](index.html) | **Public readers** — featured + **all publications** (series grid) + flipbook. No auth. | [`js/main.js`](js/main.js) → [`js/shelf.js`](js/shelf.js) + [`js/catalog-series.js`](js/catalog-series.js) → [`js/db-public.js`](js/db-public.js) (**Realtime DB** mirror). |
-| [`publication.html`](publication.html) | **Publication (series) detail** — hero + editions grid + reader (same as index). | [`js/series-detail.js`](js/series-detail.js) → [`js/viewer.js`](js/viewer.js) + catalog grouping. |
+| [`publication.html`](publication.html) | **Publication (series) detail** — hero + editions grid + reader (same as index). | [`js/series-detail.js`](js/series-detail.js) → dynamic `import('./viewer.js')` + catalog grouping. |
 | [`studio.html`](studio.html) | **Publishers / editors** — Google sign-in, series, editions, PDF/cover upload (R2 via Functions). | [`js/dashboard/main.js`](js/dashboard/main.js) → [`js/db-publisher.js`](js/db-publisher.js): **RTDB reads**, **Firestore writes**; [`js/storage.js`](js/storage.js), [`js/viewer.js`](js/viewer.js). |
 | [`admin.html`](admin.html) | **Platform super admins** — org list from RTDB; callables + **backfillMirror**. | [`js/admin/main.js`](js/admin/main.js) → [`js/db-admin.js`](js/db-admin.js) (**RTDB**), `httpsCallable`. |
 
@@ -21,6 +21,7 @@ Implementations live in [`js/url-routes.js`](js/url-routes.js); [`js/viewer.js`]
 |------|--------|--------|
 | **Reader** | `#/r/<editionRef>` | Short hash. **Legacy:** `#/read/<editionRef>` (still parsed). `editionRef` = URL-encoded edition **id** or optional mirrored **slug**. Alternate: `#read/…` (no slash after `#`). |
 | **Publication page** | `publication?s=<canonicalId>` (pretty path; file [`publication.html`](publication.html)) | Short query key **`s`**. **Legacy:** `?series=` and `?id=`, and `/publication.html` → 301 to `/publication` ([`_redirects`](_redirects)). **Old path:** `series.html` → 301 to `/publication`. |
+| **Privacy / Terms** | `/privacy`, `/terms` | Netlify rewrites to [`privacy.html`](privacy.html) / [`terms.html`](terms.html); `.html` URLs 301 to pretty paths ([`_redirects`](_redirects)). |
 | **Library home** | `index.html` (`#all-publications` for the series grid) | Featured + all publications + reader overlay. Edition opens **redirect** to `publication?s=…#/r/…` via [`js/shelf.js`](js/shelf.js) (`buildEditionDeepLink` + `getSeriesCanonicalIdForPublication`). |
 | **Canonical read URL** | `publication?s=<canonicalId>#/r/<editionRef>` | Same for home grid, shares, and bookmarks (standalone editions use `s=<editionId>`). Publisher **dashboard** still opens the reader on `studio.html` with hash only. |
 

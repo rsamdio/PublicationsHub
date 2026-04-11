@@ -31,10 +31,6 @@
   <script type="application/ld+json">
   {"@context":"https://schema.org","@type":"WebSite","name":"Publications Hub","url":"https://publications.rsamdio.org/","description":"One place for all the digital publications across Rotaract South Asia. An initiative by Rotaract South Asia MDIO.","inLanguage":"en","publisher":{"@type":"Organization","name":"Rotaract South Asia MDIO"}}
   </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons&amp;display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/tailwind-bundle.css"/>
   <style>
     ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -101,12 +97,12 @@
 
     <div id="library-empty-state" class="hidden max-w-7xl mx-auto px-4 py-16 text-center">
       <div class="inline-flex p-6 rounded-2xl bg-surface-dark border border-slate-800 mb-6">
-        <span class="material-icons text-5xl text-primary/80">menu_book</span>
+        <span data-pub-icon="menu_book" class="text-5xl text-primary/80"></span>
       </div>
       <h2 class="text-2xl font-bold text-white mb-2">No publications yet</h2>
       <p class="text-slate-400 max-w-md mx-auto mb-8">When a publisher uploads a PDF, it will appear here for everyone to read.</p>
       <a href="studio.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-medium transition-colors">
-        <span class="material-icons text-sm">login</span>
+        <span data-pub-icon="login" class="text-sm"></span>
         Publisher Studio
       </a>
     </div>
@@ -131,7 +127,7 @@
             </h2>
             <div class="relative w-full md:max-w-md">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
-                <span class="material-icons text-lg">filter_list</span>
+                <span data-pub-icon="filter_list" class="text-lg"></span>
               </div>
               <input id="shelf-search" type="search" class="block w-full pl-10 pr-3 py-2 border border-slate-700 rounded-lg bg-surface-dark text-white placeholder-slate-500 focus:ring-1 focus:ring-primary focus:border-primary text-sm" placeholder="Filter by title or publisher…"/>
             </div>
@@ -166,8 +162,8 @@
               <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
               RSA Publications Hub
             </span>
-            <a href="terms" class="hover:text-primary transition-colors">Terms</a>
-            <a href="privacy" class="hover:text-primary transition-colors">Privacy</a>
+            <a href="/terms" class="hover:text-primary transition-colors">Terms</a>
+            <a href="/privacy" class="hover:text-primary transition-colors">Privacy</a>
             <a href="admin.html" class="hover:text-primary transition-colors">Platform admin</a>
           </nav>
         </div>
@@ -189,7 +185,7 @@
     <div class="absolute top-2 left-2 right-2 sm:top-4 sm:left-4 sm:right-4 z-20 flex flex-row items-start justify-between gap-2 pointer-events-none">
       <div class="pointer-events-auto flex flex-col gap-2 min-w-0 max-w-[min(18rem,calc(100vw-5.5rem))]">
         <button type="button" id="reader-close" class="inline-flex items-center gap-2 text-gray-200 hover:text-white bg-black/60 hover:bg-black/80 backdrop-blur-sm px-3 py-2.5 sm:py-2 rounded-lg border border-white/10 shadow-lg transition-all group w-fit min-h-[44px]">
-          <span class="material-icons text-xl group-hover:-translate-x-0.5 transition-transform">chevron_left</span>
+          <span data-pub-icon="chevron_left" class="text-xl group-hover:-translate-x-0.5 transition-transform"></span>
           <span class="text-sm font-semibold tracking-wide">Back</span>
         </button>
         <div id="reader-name-card" class="bg-black/60 backdrop-blur-sm rounded-lg border border-white/10 shadow-lg px-4 py-3 w-fit max-w-full">
@@ -198,18 +194,18 @@
         </div>
       </div>
       <a id="reader-download-link" href="#" class="pointer-events-auto inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/10 text-gray-200 hover:text-white shadow-lg transition-all shrink-0" title="Download PDF">
-        <span class="material-icons text-[22px]">download</span>
+        <span data-pub-icon="download" class="text-[22px]"></span>
       </a>
     </div>
     <footer class="fixed sm:absolute inset-x-0 bottom-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:bottom-4 z-30 flex justify-center px-2 sm:px-4 pointer-events-none pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-0">
       <div class="pointer-events-auto w-full max-w-[min(100vw-0.5rem,28rem)] sm:max-w-none sm:w-auto bg-black/80 backdrop-blur-md rounded-t-2xl sm:rounded-2xl shadow-2xl border border-white/10 border-b-0 sm:border-b">
         <div class="flex flex-col sm:flex-row sm:flex-nowrap sm:items-stretch divide-y sm:divide-y-0 sm:divide-x divide-white/10">
           <div class="flex items-center justify-center gap-0.5 px-2 py-1.5 sm:px-3 sm:py-2.5 shrink-0">
-            <button type="button" id="reader-first" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="First page (Home)"><span class="material-icons text-lg sm:text-xl">first_page</span></button>
-            <button type="button" id="reader-prev" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Previous (←)"><span class="material-icons text-lg sm:text-xl">chevron_left</span></button>
+            <button type="button" id="reader-first" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="First page (Home)"><span data-pub-icon="first_page" class="text-lg sm:text-xl"></span></button>
+            <button type="button" id="reader-prev" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Previous (←)"><span data-pub-icon="chevron_left" class="text-lg sm:text-xl"></span></button>
             <span id="reader-page-info" class="text-xs font-bold text-white min-w-[3rem] text-center tabular-nums px-0.5">1 / 1</span>
-            <button type="button" id="reader-next" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Next (→)"><span class="material-icons text-lg sm:text-xl">chevron_right</span></button>
-            <button type="button" id="reader-last" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Last page (End)"><span class="material-icons text-lg sm:text-xl">last_page</span></button>
+            <button type="button" id="reader-next" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Next (→)"><span data-pub-icon="chevron_right" class="text-lg sm:text-xl"></span></button>
+            <button type="button" id="reader-last" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Last page (End)"><span data-pub-icon="last_page" class="text-lg sm:text-xl"></span></button>
           </div>
           <div class="flex items-center justify-center gap-1.5 px-2 py-1.5 sm:px-3 sm:py-2.5">
             <label for="reader-page-jump" class="sr-only">Go to page</label>
@@ -218,15 +214,15 @@
             <button type="button" id="reader-page-jump-go" class="text-gray-300 hover:text-white text-xs font-medium min-h-8 px-2 py-1 rounded-md hover:bg-white/10 inline-flex items-center justify-center shrink-0" title="Go to page">Go</button>
           </div>
           <div class="flex items-center justify-center gap-0.5 sm:gap-1 px-2 py-1.5 sm:px-3 sm:py-2.5">
-            <button type="button" id="reader-zoom-out" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Zoom out"><span class="material-icons text-lg">remove</span></button>
+            <button type="button" id="reader-zoom-out" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Zoom out"><span data-pub-icon="remove" class="text-lg"></span></button>
             <div class="flex items-center gap-0.5">
               <label for="reader-zoom-input" class="sr-only">Zoom percent (50–250, Enter to apply)</label>
               <input type="number" id="reader-zoom-input" min="50" max="250" step="1" value="100" inputmode="numeric" autocomplete="off" class="w-[3rem] sm:w-[3.25rem] min-h-8 rounded-md bg-white/10 border border-white/15 text-white text-xs py-1 px-0.5 text-center tabular-nums focus:ring-1 focus:ring-primary focus:border-primary" title="Zoom % (Enter or blur to apply)"/>
               <span class="text-[10px] text-gray-400 font-medium tabular-nums select-none" aria-hidden="true">%</span>
             </div>
-            <button type="button" id="reader-zoom-in" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Zoom in"><span class="material-icons text-lg">add</span></button>
-            <button type="button" id="reader-fit-reset" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 sm:border-l border-white/10 sm:pl-2 sm:ml-1 p-0.5 transition-colors" title="Reset zoom to 100%"><span class="material-icons text-lg">fit_screen</span></button>
-            <button type="button" id="reader-fullscreen" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Fullscreen"><span class="material-icons text-lg">fullscreen</span></button>
+            <button type="button" id="reader-zoom-in" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Zoom in"><span data-pub-icon="add" class="text-lg"></span></button>
+            <button type="button" id="reader-fit-reset" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 sm:border-l border-white/10 sm:pl-2 sm:ml-1 p-0.5 transition-colors" title="Reset zoom to 100%"><span data-pub-icon="fit_screen" class="text-lg"></span></button>
+            <button type="button" id="reader-fullscreen" class="text-gray-400 hover:text-white min-h-9 min-w-9 sm:min-h-8 sm:min-w-8 inline-flex items-center justify-center rounded-md hover:bg-white/10 p-0.5 transition-colors" title="Fullscreen"><span data-pub-icon="fullscreen" class="text-lg"></span></button>
           </div>
         </div>
       </div>

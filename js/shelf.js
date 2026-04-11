@@ -8,7 +8,9 @@ import {
   buildSeriesPagePath,
   getSeriesCanonicalIdForPublication
 } from './url-routes.js';
-import { tryOpenReaderFromHash, readEditionRefFromHash } from './viewer.js';
+import { readEditionRefFromHash } from './url-routes.js';
+import { buildCoverImgHtml, wireCoverImgReveal } from './cover-markup.js';
+import { pubIcon } from './icons-public.js';
 import { seriesFrequencyBadgeAttrs, seriesFrequencyLabel } from './frequency-label.js';
 import { sortEditionsNewestFirstInPlace } from './edition-sort.js';
 
@@ -261,10 +263,13 @@ function renderPublicationSeriesGrid(container, groups) {
       'data-shelf-filter',
       `${s.seriesTitle} ${s.publisherName} ${s.description || ''} ${freqSearch}`.toLowerCase()
     );
-    const coverUrl = s.coverUrl || '';
-    const img = coverUrl
-      ? `<img alt="" class="shelf-cover-img book-cover w-full h-full object-cover" src="${escapeHtml(coverUrl)}" width="300" height="400" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 34vw, 25vw" loading="lazy" decoding="async"/>`
-      : `<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-slate-500 font-display font-bold">PDF</div>`;
+    const coverFull = s.coverUrl || '';
+    const coverThumb = s.coverThumbUrl || '';
+    const sizesGrid = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 34vw, 25vw';
+    const img =
+      coverFull || coverThumb
+        ? buildCoverImgHtml(coverFull, coverThumb, sizesGrid, 'book-cover w-full h-full object-cover', 'lazy', null)
+        : `<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-slate-500 font-display font-bold">PDF</div>`;
     const updatedIso = s.lastActivityIso || '';
     const freqBadge = seriesFrequencyBadgeAttrs(s.frequency, { compact: true });
     card.innerHTML = `
@@ -276,7 +281,7 @@ function renderPublicationSeriesGrid(container, groups) {
       </div>
       <div class="p-5 flex-1 flex flex-col">
         <div class="flex items-center text-xs text-slate-500 dark:text-slate-400 mb-2">
-          <span class="material-icons text-xs mr-1" style="font-size:14px">new_releases</span>
+          ${pubIcon('new_releases', 'text-sm mr-1')}
           ${escapeHtml(updatedIso ? `Latest Issue · ${formatDate(updatedIso)}` : 'Latest Issue')}
         </div>
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-1 line-clamp-1">${escapeHtml(s.publisherName || 'Publisher')}</p>
@@ -285,20 +290,20 @@ function renderPublicationSeriesGrid(container, groups) {
         <div class="flex-1"></div>
         <div class="flex items-center gap-3 mt-auto">
           <button type="button" class="shelf-series-open-btn flex-1 border border-primary/50 bg-blue-50 text-blue-950 hover:bg-primary hover:text-white hover:border-primary dark:bg-primary/15 dark:text-sky-100 dark:border-primary/40 dark:hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
-            <span class="material-icons text-base">library_books</span>
+            ${pubIcon('library_books', 'text-base')}
             Open publication
           </button>
           <div class="relative shrink-0">
             <button type="button" class="shelf-series-share-trigger p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors" aria-expanded="false" aria-haspopup="true" title="Share this publication">
-              <span class="material-icons text-xl">share</span>
+              ${pubIcon('share', 'text-xl')}
             </button>
             <div class="shelf-series-share-menu hidden absolute bottom-full right-0 mb-1 z-40 min-w-[13rem] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#182430] shadow-xl py-1.5 overflow-hidden" role="menu" aria-label="Share publication">
               <button type="button" class="shelf-series-share-device hidden w-full text-left px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2" role="menuitem">
-                <span class="material-icons text-lg text-primary">send</span>
+                ${pubIcon('send', 'text-lg text-primary')}
                 <span>Share via device…</span>
               </button>
               <button type="button" class="shelf-series-share-copy w-full text-left px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2" role="menuitem">
-                <span class="material-icons text-lg text-slate-500 dark:text-slate-400">link</span>
+                ${pubIcon('link', 'text-lg text-slate-500 dark:text-slate-400')}
                 <span class="shelf-series-share-copy-label">Copy link</span>
               </button>
             </div>
@@ -309,7 +314,7 @@ function renderPublicationSeriesGrid(container, groups) {
     wireShelfSeriesCard(card, s);
     container.appendChild(card);
   });
-  wireShelfCoverReveal(container);
+  wireCoverImgReveal(container);
 }
 
 function renderFeaturedGrid(container, pubs) {
@@ -324,13 +329,23 @@ function renderFeaturedGrid(container, pubs) {
       'data-title',
       `${pub.title || ''} ${pub.publisher_name || ''} ${pub.series_title || ''}`.toLowerCase()
     );
-    const coverUrl = pub.cover_url || '';
+    const coverFull = pub.cover_url || '';
+    const coverThumb = pub.cover_thumb_url || '';
     const badgeLabel = (pub.publisher_name || '').trim() || 'Publisher';
     const seriesLine = (pub.series_title || '').trim() || '—';
     const eagerFeatured = idx < 6;
-    const coverInner = coverUrl
-      ? `<img alt="" class="shelf-cover-img w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105" src="${escapeHtml(coverUrl)}" width="300" height="400" sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 20vw" loading="${eagerFeatured ? 'eager' : 'lazy'}" decoding="async"${eagerFeatured && idx === 0 ? ' fetchpriority="high"' : ''}/>`
-      : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/30 to-blue-600/20 text-slate-400 font-bold text-sm">PDF</div>`;
+    const sizesFeat = '(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 20vw';
+    const coverInner =
+      coverFull || coverThumb
+        ? buildCoverImgHtml(
+            coverFull,
+            coverThumb,
+            sizesFeat,
+            'w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105',
+            eagerFeatured ? 'eager' : 'lazy',
+            eagerFeatured && idx === 0 ? 'high' : null
+          )
+        : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/30 to-blue-600/20 text-slate-400 font-bold text-sm">PDF</div>`;
     card.innerHTML = `
       <div class="aspect-[3/4] rounded-lg overflow-hidden bg-surface-dark relative shadow-lg shadow-black/20 group-hover:shadow-primary/20 group-hover:shadow-2xl transition-all duration-300 transform group-hover:-translate-y-1 book-cover border border-slate-800">
         ${coverInner}
@@ -347,7 +362,7 @@ function renderFeaturedGrid(container, pubs) {
     wireOpenReader(card, pub);
     container.appendChild(card);
   });
-  wireShelfCoverReveal(container);
+  wireCoverImgReveal(container);
 }
 
 function renderEditionGrid(container, pubs, options = {}) {
@@ -365,11 +380,14 @@ function renderEditionGrid(container, pubs, options = {}) {
       'data-title',
       `${pub.title || ''} ${pub.publisher_name || ''} ${pub.series_title || ''}`.toLowerCase()
     );
-    const coverUrl = pub.cover_url || '';
+    const coverFull = pub.cover_url || '';
+    const coverThumb = pub.cover_thumb_url || '';
     const vol = String(sorted.length - i);
-    const img = coverUrl
-      ? `<img alt="" class="shelf-cover-img book-cover w-full h-full object-cover" src="${escapeHtml(coverUrl)}" width="300" height="400" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 30vw" loading="lazy" decoding="async"/>`
-      : `<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-slate-500 font-display font-bold">PDF</div>`;
+    const sizesDash = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 30vw';
+    const img =
+      coverFull || coverThumb
+        ? buildCoverImgHtml(coverFull, coverThumb, sizesDash, 'book-cover w-full h-full object-cover', 'lazy', null)
+        : `<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-slate-500 font-display font-bold">PDF</div>`;
     card.innerHTML = `
       <div class="relative aspect-[3/4] bg-gray-200 dark:bg-gray-800 overflow-hidden">
         ${img}
@@ -379,27 +397,27 @@ function renderEditionGrid(container, pubs, options = {}) {
       </div>
       <div class="p-5 flex-1 flex flex-col">
         <div class="flex items-center text-xs text-slate-500 dark:text-slate-400 mb-2">
-          <span class="material-icons text-xs mr-1" style="font-size:14px">calendar_today</span>
+          ${pubIcon('calendar_today', 'text-sm mr-1')}
           ${escapeHtml(formatDate(pub.issue_date || pub.created_at) || 'Edition')}
         </div>
         <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors line-clamp-2">${escapeHtml(pub.title)}</h3>
         <p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">${escapeHtml(pub.publisher_name ? `${pub.publisher_name}${pub.series_title ? ` · ${pub.series_title}` : ''}` : pub.description || '')}</p>
         <div class="flex items-center gap-3 mt-auto">
           <button type="button" class="flex-1 border border-primary/50 bg-blue-50 text-blue-950 hover:bg-primary hover:text-white hover:border-primary dark:bg-primary/15 dark:text-sky-100 dark:border-primary/40 dark:hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
-            <span class="material-icons text-base">auto_stories</span>
+            ${pubIcon('auto_stories', 'text-base')}
             Read
           </button>
           <div class="relative shrink-0">
             <button type="button" class="shelf-edition-share-trigger p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors" aria-expanded="false" aria-haspopup="true" title="Share this edition">
-              <span class="material-icons text-xl">share</span>
+              ${pubIcon('share', 'text-xl')}
             </button>
             <div class="shelf-edition-share-menu hidden absolute bottom-full right-0 mb-1 z-40 min-w-[13rem] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#182430] shadow-xl py-1.5 overflow-hidden" role="menu" aria-label="Share edition">
               <button type="button" class="shelf-edition-share-device hidden w-full text-left px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2" role="menuitem">
-                <span class="material-icons text-lg text-primary">send</span>
+                ${pubIcon('send', 'text-lg text-primary')}
                 <span>Share via device…</span>
               </button>
               <button type="button" class="shelf-edition-share-copy w-full text-left px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2" role="menuitem">
-                <span class="material-icons text-lg text-slate-500 dark:text-slate-400">link</span>
+                ${pubIcon('link', 'text-lg text-slate-500 dark:text-slate-400')}
                 <span class="shelf-edition-share-copy-label">Copy link</span>
               </button>
             </div>
@@ -410,7 +428,7 @@ function renderEditionGrid(container, pubs, options = {}) {
     wireOpenReader(card, pub);
     container.appendChild(card);
   });
-  wireShelfCoverReveal(container);
+  wireCoverImgReveal(container);
 }
 
 function filterGrid(query) {
@@ -470,22 +488,6 @@ function injectLibraryLoadingSkeletons(featuredSection, featuredEl, shelfGrid) {
   }
   const badge = document.getElementById('edition-count-badge');
   if (badge) badge.textContent = '…';
-}
-
-/** Fade covers in after decode to avoid a “wall of pop-in” and reduce perceived layout thrash. */
-function wireShelfCoverReveal(root) {
-  if (!root) return;
-  root.querySelectorAll('img.shelf-cover-img').forEach((img) => {
-    const reveal = () => {
-      img.classList.add('shelf-cover-img--loaded');
-    };
-    if (img.complete && img.naturalWidth > 0) {
-      requestAnimationFrame(reveal);
-      return;
-    }
-    img.addEventListener('load', reveal, { once: true });
-    img.addEventListener('error', reveal, { once: true });
-  });
 }
 
 export async function renderShelf() {
@@ -568,7 +570,7 @@ export async function renderShelf() {
     searchInput.oninput = () => filterGrid(searchInput.value);
   }
 
-  syncReaderDeepLink();
+  await syncReaderDeepLink();
 }
 
 export function getPublicationCount() {
@@ -585,10 +587,15 @@ export function getPublicationByRef(ref) {
   );
 }
 
-export function syncReaderDeepLink() {
+export async function syncReaderDeepLink() {
   const ref = readEditionRefFromHash();
+  const readerView = typeof document !== 'undefined' ? document.getElementById('reader-view') : null;
+  const readerOpen = readerView && !readerView.classList.contains('hidden');
+  if (!ref && !readerOpen) return;
+
+  const viewer = await import('./viewer.js');
   if (!ref) {
-    tryOpenReaderFromHash(() => null);
+    viewer.tryOpenReaderFromHash(() => null);
     return;
   }
   const pub = getPublicationByRef(ref);
@@ -605,7 +612,7 @@ export function syncReaderDeepLink() {
       cur.hash === next.hash;
   } catch (_) {}
   if (same) {
-    tryOpenReaderFromHash((r) => getPublicationByRef(r));
+    viewer.tryOpenReaderFromHash((r) => getPublicationByRef(r));
     return;
   }
   window.location.replace(target);

@@ -16,4 +16,20 @@ async function encodeCoverToLosslessWebp(inputBuffer) {
     .toBuffer();
 }
 
-module.exports = { encodeCoverToLosslessWebp };
+/** Catalog / grid thumbnail: bounded lossy WebP (long edge max 512px). */
+const THUMB_LONG_EDGE = 512;
+
+async function encodeCoverToThumbWebp(inputBuffer) {
+  return sharp(inputBuffer)
+    .rotate()
+    .resize({
+      width: THUMB_LONG_EDGE,
+      height: THUMB_LONG_EDGE,
+      fit: 'inside',
+      withoutEnlargement: true
+    })
+    .webp({ quality: 85, effort: 4 })
+    .toBuffer();
+}
+
+module.exports = { encodeCoverToLosslessWebp, encodeCoverToThumbWebp };

@@ -91,6 +91,7 @@ Created manually in Console, via `acceptPlatformInvite`, or break-glass `setPlat
 | `description` | string | optional |
 | `frequency` | string | optional; publisher-defined cadence, e.g. `monthly`, `bimonthly`, `quarterly`, `half_yearly`, `one_time` |
 | `cover_url` | string | optional; public URL after **`uploadSeriesCover`** (WebP in R2) |
+| `cover_thumb_url` | string | optional; smaller WebP for grids (~512px long edge); same upload generates alongside `cover_url` |
 | `cover_repo_path` | string | optional; e.g. `…/series/{seriesId}/series-cover.webp` |
 | `created_at` | timestamp | |
 | `created_by_uid` | string | |
@@ -105,6 +106,7 @@ Created manually in Console, via `acceptPlatformInvite`, or break-glass `setPlat
 | `description` | string | optional |
 | `pdf_url` | string | |
 | `cover_url` | string | optional; auto from first PDF page (WebP/JPEG in R2) |
+| `cover_thumb_url` | string | optional; grid thumbnail URL (written with edition cover upload) |
 | `pdf_repo_path` | string | optional; object key of the PDF in R2 (same path shape as before; studio cover upload / regenerate) |
 | `issue_date` | timestamp | optional; calendar issue date for reader + catalog |
 | `status` | string | `draft` \| `published` |
@@ -135,8 +137,8 @@ Maintained by **Cloud Functions** (`onDocumentWritten` on Firestore). **Server-o
 
 | Path | Purpose |
 |------|---------|
-| `public/catalog/editions/{editionId}` | Published editions for anonymous catalog; `created_at` / `issue_date` epoch **ms** |
-| `public/catalog/series/{seriesId}` | Series card for Explore: `cover_url`, `title`, `description`, `slug`, `frequency`, `publisher_id`, `publisher_name`, … |
+| `public/catalog/editions/{editionId}` | Published editions for anonymous catalog; `created_at` / `issue_date` epoch **ms**; includes `cover_thumb_url` when set |
+| `public/catalog/series/{seriesId}` | Series card for Explore: `cover_url`, `cover_thumb_url`, `title`, `description`, `slug`, `frequency`, `publisher_id`, `publisher_name`, … |
 | `org/{publisherId}/editions/{editionId}` | Full edition row for members (includes `status`) |
 | `org/{publisherId}/series/{seriesId}` | Series row (includes `cover_url`, `cover_repo_path` when set) |
 | `org/{publisherId}/invites/{inviteId}` | Pending publisher invites (mirror; non-pending removed) |
@@ -148,6 +150,8 @@ Maintained by **Cloud Functions** (`onDocumentWritten` on Firestore). **Server-o
 | `platform/stats/editionCount` | Total edition documents (approx; maintained by triggers + backfill) |
 
 **Backfill:** callable `backfillMirror` (platform admin) rebuilds RTDB from Firestore + legacy `publications` into `public/catalog/editions` with ids `legacy_{docId}`.
+
+**Cover thumbnails (ops):** callable `backfillCoverThumbs` (full platform admin only) walks Firestore `editions` and `series` in document-id order, skips rows that already have `cover_thumb_url`, downloads each `cover_url`, writes a bounded WebP thumb next to the full cover in R2 (`…-cover-thumb.webp` for editions; `…-cover-thumb.webp` sibling of `series-cover.webp` for series), then sets `cover_thumb_url`. Use `editionCursor` / `seriesCursor` from the prior response (`nextEditionCursor` / `nextSeriesCursor`) to continue; when both `editionsDone` and `seriesDone` are true, start cursors over for another full pass if needed. Requires `pdf_repo_path` (editions) or `cover_repo_path` (series) to derive the thumb object key.
 
 ### Legacy `publications/{id}`
 

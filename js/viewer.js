@@ -7,7 +7,10 @@
  * - Remount #flipbook-container after PageFlip.destroy() (the library removes the host node from the DOM).
  * - Pan/zoom: #flipbook-pan uses translate+scale; pinch + one-finger pan (zoomed), Ctrl+wheel zoom, wheel pan when zoomed, mouse drag when zoomed.
  */
-import { formatReadLocationHash, parseReadRefFromHash, isReaderLocationHash } from './url-routes.js';
+import { formatReadLocationHash, parseReadRefFromHash, isReaderLocationHash, readEditionRefFromHash } from './url-routes.js';
+import { pubIconSvgOnly } from './icons-public.js';
+
+export { readEditionRefFromHash };
 
 const PDFJS_VERSION = '3.11.174';
 const PDFJS_CDN = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.min.js`;
@@ -331,10 +334,6 @@ function bindReaderPointerGesturesOnce() {
   };
   wrapper.addEventListener('pointerup', endMousePan);
   wrapper.addEventListener('pointercancel', endMousePan);
-}
-
-export function readEditionRefFromHash() {
-  return parseReadRefFromHash(typeof location !== 'undefined' ? location.hash || '' : '');
 }
 
 function setReaderLocationHash(publication) {
@@ -762,6 +761,11 @@ function isReaderOpen() {
 
 function syncFullscreenIcon() {
   const btn = document.getElementById('reader-fullscreen');
+  const pub = btn?.querySelector('.pub-icon');
+  if (pub) {
+    pub.innerHTML = pubIconSvgOnly(document.fullscreenElement ? 'fullscreen_exit' : 'fullscreen');
+    return;
+  }
   const icon = btn?.querySelector('.material-icons');
   if (!icon) return;
   icon.textContent = document.fullscreenElement ? 'fullscreen_exit' : 'fullscreen';

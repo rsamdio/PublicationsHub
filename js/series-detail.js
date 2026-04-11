@@ -1,29 +1,28 @@
 /**
  * publication (publication.html) — single series hero + editions grid (series detail + reader).
  */
+import './hydrate-pub-icons.js';
 import { fetchPublishedCatalog, fetchPublishedSeriesMap } from './db-public.js';
 import { groupEditionsIntoSeries, findSeriesGroup } from './catalog-series.js';
 import { seriesFrequencyLabel } from './frequency-label.js';
 import {
   getSeriesCanonicalIdFromSearchParams,
   buildEditionDeepLink,
-  getSeriesCanonicalIdForPublication
-} from './url-routes.js';
-import {
-  openReader,
-  closeReader,
-  flipPrev,
-  flipNext,
-  flipFirst,
-  flipLast,
-  zoomIn,
-  zoomOut,
-  resetReaderZoom,
-  readerToggleFullscreen,
-  readerSubmitPageJump,
-  tryOpenReaderFromHash,
+  getSeriesCanonicalIdForPublication,
   readEditionRefFromHash
-} from './viewer.js';
+} from './url-routes.js';
+import { buildCoverImgHtml, wireCoverImgReveal } from './cover-markup.js';
+import { pubIcon } from './icons-public.js';
+
+let viewerModPromise = null;
+function getViewerModule() {
+  if (!viewerModPromise) viewerModPromise = import('./viewer.js');
+  return viewerModPromise;
+}
+
+function openReader(pub) {
+  void getViewerModule().then((m) => m.openReader(pub));
+}
 
 function escapeHtml(s) {
   const div = document.createElement('div');
@@ -184,9 +183,11 @@ function renderEditions(group) {
     const card = document.createElement('article');
     card.className =
       'edition-card group flex flex-col bg-white dark:bg-[#182430] rounded-xl border border-slate-200 dark:border-slate-800 transition-colors hover:border-primary/50 cursor-pointer';
-    const img = ed.cover_url
-      ? `<img alt="" class="book-cover w-full h-full object-cover" src="${escapeHtml(ed.cover_url)}" width="300" height="400" loading="lazy" decoding="async"/>`
-      : `<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-xs font-bold text-primary">PDF</div>`;
+    const sizesEd = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw';
+    const img =
+      ed.cover_url || ed.cover_thumb_url
+        ? buildCoverImgHtml(ed.cover_url || '', ed.cover_thumb_url || '', sizesEd, 'book-cover w-full h-full object-cover', 'lazy', null)
+        : `<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-xs font-bold text-primary">PDF</div>`;
     card.innerHTML = `
       <div class="relative aspect-[3/4] bg-gray-200 dark:bg-gray-800 overflow-hidden">
         ${img}
@@ -196,27 +197,27 @@ function renderEditions(group) {
       </div>
       <div class="p-5 flex-1 flex flex-col">
         <div class="flex items-center text-xs text-slate-500 dark:text-slate-400 mb-2">
-          <span class="material-icons text-xs mr-1" style="font-size:14px">calendar_today</span>
+          ${pubIcon('calendar_today', 'text-sm mr-1')}
           ${escapeHtml(formatDate(ed.issue_date || ed.created_at) || 'Edition')}
         </div>
         <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1 group-hover:text-primary transition-colors line-clamp-2">${escapeHtml(ed.title || 'Edition')}</h3>
         <p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">${escapeHtml(ed.description || '')}</p>
         <div class="flex items-center gap-3 mt-auto">
           <button type="button" class="series-read-btn flex-1 border border-primary/50 bg-blue-50 text-blue-950 hover:bg-primary hover:text-white hover:border-primary dark:bg-primary/15 dark:text-sky-100 dark:border-primary/40 dark:hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
-            <span class="material-icons text-base">auto_stories</span>
+            ${pubIcon('auto_stories', 'text-base')}
             Read now
           </button>
           <div class="relative shrink-0">
             <button type="button" class="edition-share-trigger p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors" aria-expanded="false" aria-haspopup="true" title="Share this edition">
-              <span class="material-icons text-xl">share</span>
+              ${pubIcon('share', 'text-xl')}
             </button>
             <div class="edition-share-menu hidden absolute bottom-full right-0 mb-1 z-40 min-w-[13rem] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-surface-dark shadow-xl py-1.5 overflow-hidden" role="menu" aria-label="Share edition">
               <button type="button" class="edition-share-device hidden w-full text-left px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2" role="menuitem">
-                <span class="material-icons text-lg text-primary">send</span>
+                ${pubIcon('send', 'text-lg text-primary')}
                 <span>Share via device…</span>
               </button>
               <button type="button" class="edition-share-copy w-full text-left px-4 py-3 text-sm text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2" role="menuitem">
-                <span class="material-icons text-lg text-slate-500 dark:text-slate-400">link</span>
+                ${pubIcon('link', 'text-lg text-slate-500 dark:text-slate-400')}
                 <span class="edition-share-copy-label">Copy link</span>
               </button>
             </div>
@@ -236,6 +237,7 @@ function renderEditions(group) {
     });
     editionsGrid.appendChild(card);
   });
+  wireCoverImgReveal(editionsGrid);
 }
 
 function getSeriesPageShareUrl() {
@@ -340,8 +342,16 @@ function fillHero(group) {
       `Digital editions from ${group.publisherName || 'this publisher'}. Pick an issue below or read the latest.`;
   }
   if (heroCover) {
-    if (group.coverUrl) {
-      heroCover.innerHTML = `<img src="${escapeHtml(group.coverUrl)}" alt="" class="w-full h-full object-cover" width="300" height="400" fetchpriority="high" decoding="async"/>`;
+    if (group.coverUrl || group.coverThumbUrl) {
+      heroCover.innerHTML = buildCoverImgHtml(
+        group.coverUrl || '',
+        group.coverThumbUrl || '',
+        'min(100vw, 36rem)',
+        'w-full h-full object-cover',
+        'eager',
+        'high'
+      );
+      wireCoverImgReveal(heroCover);
       heroCover.classList.remove('bg-gradient-to-br', 'from-primary/20', 'to-blue-600/10');
     } else {
       heroCover.innerHTML = '';
@@ -372,20 +382,27 @@ function fillHero(group) {
 }
 
 function wireReaderChrome() {
-  document.getElementById('reader-prev')?.addEventListener('click', flipPrev);
-  document.getElementById('reader-next')?.addEventListener('click', flipNext);
-  document.getElementById('reader-first')?.addEventListener('click', flipFirst);
-  document.getElementById('reader-last')?.addEventListener('click', flipLast);
-  document.getElementById('reader-zoom-in')?.addEventListener('click', zoomIn);
-  document.getElementById('reader-zoom-out')?.addEventListener('click', zoomOut);
-  document.getElementById('reader-close')?.addEventListener('click', closeReader);
-  document.getElementById('reader-fit-reset')?.addEventListener('click', resetReaderZoom);
-  document.getElementById('reader-fullscreen')?.addEventListener('click', readerToggleFullscreen);
-  document.getElementById('reader-page-jump-go')?.addEventListener('click', readerSubmitPageJump);
+  const onClick = (id, method) => {
+    document.getElementById(id)?.addEventListener('click', () => {
+      void getViewerModule().then((m) => m[method]());
+    });
+  };
+  onClick('reader-prev', 'flipPrev');
+  onClick('reader-next', 'flipNext');
+  onClick('reader-first', 'flipFirst');
+  onClick('reader-last', 'flipLast');
+  onClick('reader-zoom-in', 'zoomIn');
+  onClick('reader-zoom-out', 'zoomOut');
+  onClick('reader-close', 'closeReader');
+  onClick('reader-fit-reset', 'resetReaderZoom');
+  onClick('reader-fullscreen', 'readerToggleFullscreen');
+  document.getElementById('reader-page-jump-go')?.addEventListener('click', () => {
+    void getViewerModule().then((m) => m.readerSubmitPageJump());
+  });
   document.getElementById('reader-page-jump')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      readerSubmitPageJump();
+      void getViewerModule().then((m) => m.readerSubmitPageJump());
     }
   });
 }
@@ -443,11 +460,15 @@ async function main() {
   });
 
   window.addEventListener('hashchange', () => {
-    tryOpenReaderFromHash((r) => resolveEditionFromHash(r));
+    void getViewerModule().then((m) =>
+      m.tryOpenReaderFromHash((r) => resolveEditionFromHash(r))
+    );
   });
 
   if (readEditionRefFromHash()) {
-    tryOpenReaderFromHash((r) => resolveEditionFromHash(r));
+    void getViewerModule().then((m) =>
+      m.tryOpenReaderFromHash((r) => resolveEditionFromHash(r))
+    );
   }
 }
 

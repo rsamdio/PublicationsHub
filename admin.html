@@ -25,7 +25,6 @@
   <link rel="apple-touch-icon" href="images/rsamdio.webp"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons&amp;display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/tailwind-bundle.css"/>
   <style>
@@ -413,6 +412,12 @@
                 <span class="material-icons text-lg">cloud_sync</span>
                 Rebuild mirror (backfillMirror)
               </button>
+              <p id="thumb-bf-msg" class="text-sm mt-4 hidden min-h-[1.25rem]"></p>
+              <button type="button" id="btn-backfill-cover-thumbs" class="mt-3 inline-flex items-center justify-center gap-2 py-2.5 px-5 rounded-xl border border-slate-600/50 bg-slate-900/40 text-slate-100 hover:bg-slate-800/50 text-sm font-semibold transition-colors">
+                <span class="material-icons text-lg">image</span>
+                Backfill cover thumbnails (batch)
+              </button>
+              <p class="text-xs text-text-secondary mt-2 max-w-3xl">Generates <code class="text-amber-200/90">cover_thumb_url</code> from existing full covers. Re-run until the message says the catalog pass is done; then run <strong>Rebuild mirror</strong> if needed.</p>
             </div>
           </div>
         </div>

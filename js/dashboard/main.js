@@ -1197,6 +1197,7 @@ newPublicationForm?.addEventListener('submit', async (e) => {
     }
     const { error: upSeriesErr } = await updateSeries(seriesId, {
       cover_url: up.download_url,
+      cover_thumb_url: up.cover_thumb_url || null,
       cover_repo_path: up.path || null
     });
     if (upSeriesErr) {
@@ -1374,7 +1375,10 @@ editRegenerateCover?.addEventListener('click', async () => {
       return;
     }
     setSubmitBusyLabel(editRegenerateCover, 'Saving…');
-    const { error: upErr } = await updateEdition(ed.id, { cover_url: cup.download_url });
+    const { error: upErr } = await updateEdition(ed.id, {
+      cover_url: cup.download_url,
+      cover_thumb_url: cup.cover_thumb_url || null
+    });
     if (upErr) {
       editError.textContent = upErr.message || 'Cover uploaded but Firestore update failed';
       editError.classList.remove('hidden');
@@ -1383,7 +1387,12 @@ editRegenerateCover?.addEventListener('click', async () => {
     editSuccess.textContent = 'Cover updated.';
     editSuccess.classList.remove('hidden');
     showToast('Cover updated.', { type: 'success' });
-    editingEdition = { ...ed, cover_url: cup.download_url, pdf_repo_path: pdfPath };
+    editingEdition = {
+      ...ed,
+      cover_url: cup.download_url,
+      cover_thumb_url: cup.cover_thumb_url || null,
+      pdf_repo_path: pdfPath
+    };
   } finally {
     setSubmitBusy(editRegenerateCover, false, '');
   }
@@ -1475,6 +1484,7 @@ uploadForm?.addEventListener('submit', async (e) => {
       return;
     }
     let coverUrl = null;
+    let coverThumbUrl = null;
     if (up.path) {
       setUploadProgressVisible(
         true,
@@ -1497,6 +1507,7 @@ uploadForm?.addEventListener('submit', async (e) => {
         });
         if (!cup.error) {
           coverUrl = cup.download_url;
+          coverThumbUrl = cup.cover_thumb_url || null;
         }
       }
     }
@@ -1516,6 +1527,7 @@ uploadForm?.addEventListener('submit', async (e) => {
       description: description || null,
       pdf_url: up.download_url,
       cover_url: coverUrl,
+      cover_thumb_url: coverThumbUrl,
       pdf_repo_path: up.path || null,
       publisher_name: pubName,
       series_title: seriesTitle,
@@ -1571,6 +1583,7 @@ seriesCoverInput?.addEventListener('change', async (e) => {
     showStudioBlockingStatus('Saving cover to publication…');
     const { error } = await updateSeries(sid, {
       cover_url: up.download_url,
+      cover_thumb_url: up.cover_thumb_url || null,
       cover_repo_path: up.path || null
     });
     if (error) {
@@ -1628,6 +1641,7 @@ seriesEditForm?.addEventListener('submit', async (e) => {
       description,
       frequency,
       cover_url: up.download_url,
+      cover_thumb_url: up.cover_thumb_url || null,
       cover_repo_path: up.path || null
     });
     setSubmitBusy(seriesEditSave, false, '');
