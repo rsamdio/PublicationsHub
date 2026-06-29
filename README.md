@@ -1,3 +1,5 @@
+[![Netlify Status](https://api.netlify.com/api/v1/badges/193b8ce9-785e-49c7-ae1c-75724394558a/deploy-status)](https://app.netlify.com/projects/publicationshub/deploys)
+
 # PubHub / PublicationsHub
 
 A no-build web app for a multi-tenant digital library.
