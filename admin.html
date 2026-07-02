@@ -223,11 +223,30 @@
                     <p class="text-sm text-text-secondary mt-0.5">Choose a publisher to manage its publications, team, and editions.</p>
                   </div>
                 </div>
-                <button type="button" id="btn-new-publisher-open" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold shadow-md shadow-primary/25 shrink-0 w-full sm:w-auto">
-                  <span class="material-icons text-lg">add</span>
-                  New publisher
-                </button>
+                <div class="flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto">
+                  <button type="button" id="btn-export-publishers-csv" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-600 bg-surface-dark text-white text-sm font-semibold hover:bg-surface-dark-hover shrink-0 w-full sm:w-auto">
+                    <span class="material-icons text-lg">download</span>
+                    Export CSV
+                  </button>
+                  <button type="button" id="btn-bulk-publisher-open" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-600 bg-surface-dark text-white text-sm font-semibold hover:bg-surface-dark-hover shrink-0 w-full sm:w-auto">
+                    <span class="material-icons text-lg">upload_file</span>
+                    Bulk create
+                  </button>
+                  <button type="button" id="btn-new-publisher-open" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold shadow-md shadow-primary/25 shrink-0 w-full sm:w-auto">
+                    <span class="material-icons text-lg">add</span>
+                    New publisher
+                  </button>
+                </div>
               </div>
+            </div>
+            <p id="publishers-msg" class="hidden text-sm px-5 sm:px-6 py-2 border-b border-slate-800"></p>
+            <div class="px-5 sm:px-6 py-3 border-b border-slate-800">
+              <input
+                type="search"
+                id="publishers-search-input"
+                placeholder="Search name, internal reference, document ID..."
+                class="w-full sm:max-w-md rounded-xl bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3"
+              />
             </div>
             <div class="overflow-x-auto">
               <table class="w-full text-sm text-left min-w-[720px]">
@@ -273,7 +292,7 @@
                     <th class="px-4 py-3">Title</th>
                     <th class="px-4 py-3">Series ID</th>
                     <th class="px-4 py-3 w-28 text-right">Editions</th>
-                    <th class="px-4 py-3 w-40 text-right">Actions</th>
+                    <th class="px-4 py-3 w-52 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="admin-org-series-tbody" class="divide-y divide-slate-800/80 bg-card-dark/30"></tbody>
@@ -346,8 +365,10 @@
                   <tr>
                     <th class="px-4 py-3">Edition title</th>
                     <th class="px-4 py-3">Edition ID</th>
+                    <th class="px-4 py-3 w-20">Cover</th>
                     <th class="px-4 py-3 w-20">Reader</th>
-                    <th class="px-4 py-3 w-24 text-right">Actions</th>
+                    <th class="px-4 py-3">Uploaded</th>
+                    <th class="px-4 py-3 w-36 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="admin-series-editions-tbody" class="divide-y divide-slate-800/80 bg-card-dark/30"></tbody>
@@ -358,7 +379,21 @@
       </div>
 
       <div id="admin-panel-publications" class="hidden space-y-8">
-        <p class="text-sm text-text-secondary max-w-3xl">Explore-wide catalog: feature editions on the public home and delete from the published mirror. Use <strong>Publishers</strong> to drill down by publisher.</p>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-sm text-text-secondary max-w-3xl">Explore-wide catalog: feature editions on the public home and delete from the published mirror. Use <strong>Publishers</strong> to drill down by publisher.</p>
+          <div class="flex flex-col sm:flex-row gap-2 sm:items-center w-full sm:w-auto">
+            <input
+              type="search"
+              id="catalog-search-input"
+              placeholder="Search edition, publication, publisher, ID..."
+              class="w-full sm:w-[23rem] rounded-xl bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3"
+            />
+            <button type="button" id="btn-export-catalog-csv" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold shadow-md shadow-primary/20 whitespace-nowrap">
+              <span class="material-icons text-lg">download</span>
+              Export CSV
+            </button>
+          </div>
+        </div>
         <p id="pub-msg" class="hidden text-sm px-3 py-2 rounded-lg border border-slate-800"></p>
         <div class="rounded-xl border border-slate-800 bg-surface-dark/40 overflow-hidden shadow-lg shadow-black/10">
           <div class="px-4 py-3 border-b border-slate-800 flex items-center gap-2">
@@ -372,9 +407,12 @@
                   <th class="px-4 py-3.5 w-24">Featured</th>
                   <th class="px-4 py-3.5">Title</th>
                   <th class="px-4 py-3.5">Publisher</th>
+                  <th class="px-4 py-3.5">Publication</th>
                   <th class="px-4 py-3.5">Edition ID</th>
+                  <th class="px-4 py-3.5 w-20">Cover</th>
                   <th class="px-4 py-3.5 w-20">Reader</th>
-                  <th class="px-4 py-3.5 w-24 text-right">Delete</th>
+                  <th class="px-4 py-3.5">Uploaded</th>
+                  <th class="px-4 py-3.5 w-36 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody id="all-editions-tbody" class="divide-y divide-slate-800/80 bg-card-dark/30"></tbody>
@@ -394,9 +432,12 @@
                   <th class="px-4 py-3.5 w-24">Featured</th>
                   <th class="px-4 py-3.5">Title</th>
                   <th class="px-4 py-3.5">Publisher</th>
+                  <th class="px-4 py-3.5">Publication</th>
                   <th class="px-4 py-3.5">Edition ID</th>
+                  <th class="px-4 py-3.5 w-20">Cover</th>
                   <th class="px-4 py-3.5 w-20">Reader</th>
-                  <th class="px-4 py-3.5 w-24 text-right">Delete</th>
+                  <th class="px-4 py-3.5">Uploaded</th>
+                  <th class="px-4 py-3.5 w-36 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody id="featured-only-tbody" class="divide-y divide-slate-800/80 bg-card-dark/30"></tbody>
@@ -508,6 +549,64 @@
     <p class="text-xs text-slate-600">PubHub platform administration</p>
   </footer>
 
+  <div id="bulk-publisher-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="w-full max-w-2xl my-8 bg-card-dark rounded-2xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col max-h-[min(90vh,48rem)]">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-800 bg-surface-dark/50 shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+            <span class="material-icons text-primary text-xl">upload_file</span>
+          </span>
+          <div class="min-w-0">
+            <h2 class="text-lg font-bold text-white">Bulk create publishers</h2>
+            <p class="text-xs text-text-secondary mt-0.5">Upload a CSV with publisher and owner details</p>
+          </div>
+        </div>
+        <button type="button" id="bulk-publisher-close" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors shrink-0" aria-label="Close"><span class="material-icons">close</span></button>
+      </div>
+      <div class="p-6 space-y-5 overflow-y-auto">
+        <div class="rounded-xl border border-slate-700 bg-surface-dark/40 p-4 text-xs text-text-secondary space-y-2">
+          <p class="text-slate-300 font-semibold">Required CSV headers</p>
+          <p><code class="text-primary">publisher_name</code>, <code class="text-primary">owner_name</code>, <code class="text-primary">owner_email</code></p>
+          <p>Optional: <code class="text-slate-300">internal_reference</code> (use this to distinguish same-named publishers, e.g. year or team)</p>
+          <button type="button" id="btn-download-publisher-template" class="inline-flex items-center gap-1.5 text-primary font-semibold hover:underline mt-1">
+            <span class="material-icons text-base">description</span>
+            Download template CSV
+          </button>
+        </div>
+        <div>
+          <label for="bulk-publisher-file" class="block text-sm font-medium text-slate-300 mb-1.5">CSV file</label>
+          <input type="file" id="bulk-publisher-file" accept=".csv,text/csv" class="block w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-semibold hover:file:bg-primary-dark"/>
+        </div>
+        <div id="bulk-publisher-preview-wrap" class="hidden">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Preview</p>
+          <div class="overflow-x-auto rounded-lg border border-slate-700 max-h-48">
+            <table class="w-full text-xs text-left min-w-[36rem]">
+              <thead class="bg-surface-dark text-text-secondary">
+                <tr>
+                  <th class="px-3 py-2">#</th>
+                  <th class="px-3 py-2">Publisher</th>
+                  <th class="px-3 py-2">Owner</th>
+                  <th class="px-3 py-2">Email</th>
+                  <th class="px-3 py-2">Internal ref</th>
+                </tr>
+              </thead>
+              <tbody id="bulk-publisher-preview-tbody" class="divide-y divide-slate-800"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="bulk-publisher-results-wrap" class="hidden">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Results</p>
+          <ul id="bulk-publisher-results" class="space-y-1 text-xs max-h-40 overflow-y-auto rounded-lg border border-slate-700 p-3 bg-surface-dark/30"></ul>
+        </div>
+        <p id="bulk-publisher-msg" class="text-sm hidden min-h-[1.25rem]"></p>
+      </div>
+      <div class="px-6 py-4 border-t border-slate-800 bg-surface-dark/30 flex flex-col-reverse sm:flex-row justify-end gap-2 shrink-0">
+        <button type="button" id="bulk-publisher-cancel" class="px-4 py-2.5 text-sm font-medium text-slate-300 border border-slate-600 rounded-xl hover:bg-surface-dark transition-colors">Cancel</button>
+        <button type="button" id="btn-bulk-publisher-submit" class="px-5 py-2.5 text-sm font-semibold text-white bg-primary rounded-xl hover:bg-primary-dark shadow-md shadow-primary/20" disabled>Create publishers</button>
+      </div>
+    </div>
+  </div>
+
   <div id="new-publisher-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
     <div class="w-full max-w-lg my-8 bg-card-dark rounded-2xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col">
       <div class="flex justify-between items-center px-6 py-4 border-b border-slate-800 bg-surface-dark/50">
@@ -526,7 +625,7 @@
         <div>
           <label for="cp-name" class="block text-sm font-medium text-slate-300 mb-1.5">Publisher name</label>
           <input type="text" id="cp-name" required autocomplete="organization" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="e.g. District 3191"/>
-          <p class="text-xs text-slate-500 mt-1.5">A unique URL slug is derived from this name. If creation fails with “slug already in use,” change the name slightly.</p>
+          <p class="text-xs text-slate-500 mt-1.5">Duplicate display names are allowed. Use internal reference to tell publishers apart in this console.</p>
         </div>
         <div>
           <label for="cp-internal-ref" class="block text-sm font-medium text-slate-300 mb-1.5">Internal reference <span class="text-slate-500 font-normal normal-case">(optional)</span></label>
@@ -535,7 +634,7 @@
         </div>
         <div>
           <label for="cp-owner-name" class="block text-sm font-medium text-slate-300 mb-1.5">Owner name</label>
-          <input type="text" id="cp-owner-name" required autocomplete="name" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="Alex Kim"/>
+          <input type="text" id="cp-owner-name" required autocomplete="name" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3 focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="Arun Teja"/>
         </div>
         <div>
           <label for="cp-owner-email" class="block text-sm font-medium text-slate-300 mb-1.5">Owner email</label>
@@ -579,6 +678,80 @@
         <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
           <button type="button" id="edit-publisher-cancel" class="px-4 py-2.5 text-sm font-medium text-slate-300 border border-slate-600 rounded-xl hover:bg-surface-dark transition-colors">Cancel</button>
           <button type="submit" id="btn-edit-publisher-submit" class="px-5 py-2.5 text-sm font-semibold text-white bg-primary rounded-xl hover:bg-primary-dark shadow-md shadow-primary/20">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="edit-series-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="w-full max-w-lg my-8 bg-card-dark rounded-2xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-800 bg-surface-dark/50">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+            <span class="material-icons text-primary text-xl">edit_note</span>
+          </span>
+          <div class="min-w-0">
+            <h2 class="text-lg font-bold text-white">Edit publication</h2>
+            <p class="text-xs text-text-secondary mt-0.5">Update publication (series) details</p>
+          </div>
+        </div>
+        <button type="button" id="edit-series-close" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors shrink-0" aria-label="Close"><span class="material-icons">close</span></button>
+      </div>
+      <form id="edit-series-form" class="p-6 space-y-5">
+        <input type="hidden" id="es-id" value=""/>
+        <div>
+          <label for="es-title" class="block text-sm font-medium text-slate-300 mb-1.5">Title</label>
+          <input type="text" id="es-title" required class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3"/>
+        </div>
+        <div>
+          <label for="es-frequency" class="block text-sm font-medium text-slate-300 mb-1.5">Frequency</label>
+          <input type="text" id="es-frequency" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3" placeholder="e.g. monthly"/>
+        </div>
+        <div>
+          <label for="es-description" class="block text-sm font-medium text-slate-300 mb-1.5">Description</label>
+          <textarea id="es-description" rows="4" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3"></textarea>
+        </div>
+        <p id="es-msg" class="text-sm hidden min-h-[1.25rem]"></p>
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+          <button type="button" id="edit-series-cancel" class="px-4 py-2.5 text-sm font-medium text-slate-300 border border-slate-600 rounded-xl hover:bg-surface-dark transition-colors">Cancel</button>
+          <button type="submit" id="btn-edit-series-submit" class="px-5 py-2.5 text-sm font-semibold text-white bg-primary rounded-xl hover:bg-primary-dark shadow-md shadow-primary/20">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="edit-edition-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="w-full max-w-lg my-8 bg-card-dark rounded-2xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-800 bg-surface-dark/50">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+            <span class="material-icons text-primary text-xl">drive_file_rename_outline</span>
+          </span>
+          <div class="min-w-0">
+            <h2 class="text-lg font-bold text-white">Edit edition</h2>
+            <p class="text-xs text-text-secondary mt-0.5">Update edition metadata</p>
+          </div>
+        </div>
+        <button type="button" id="edit-edition-close" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors shrink-0" aria-label="Close"><span class="material-icons">close</span></button>
+      </div>
+      <form id="edit-edition-form" class="p-6 space-y-5">
+        <input type="hidden" id="ee-id" value=""/>
+        <div>
+          <label for="ee-title" class="block text-sm font-medium text-slate-300 mb-1.5">Edition title</label>
+          <input type="text" id="ee-title" required class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3"/>
+        </div>
+        <div>
+          <label for="ee-issue-date" class="block text-sm font-medium text-slate-300 mb-1.5">Issue date</label>
+          <input type="date" id="ee-issue-date" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3"/>
+        </div>
+        <div>
+          <label for="ee-description" class="block text-sm font-medium text-slate-300 mb-1.5">Description</label>
+          <textarea id="ee-description" rows="4" class="w-full rounded-lg bg-[#15202B] border border-slate-600 text-white text-sm py-2.5 px-3"></textarea>
+        </div>
+        <p id="ee-msg" class="text-sm hidden min-h-[1.25rem]"></p>
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+          <button type="button" id="edit-edition-cancel" class="px-4 py-2.5 text-sm font-medium text-slate-300 border border-slate-600 rounded-xl hover:bg-surface-dark transition-colors">Cancel</button>
+          <button type="submit" id="btn-edit-edition-submit" class="px-5 py-2.5 text-sm font-semibold text-white bg-primary rounded-xl hover:bg-primary-dark shadow-md shadow-primary/20">Save</button>
         </div>
       </form>
     </div>

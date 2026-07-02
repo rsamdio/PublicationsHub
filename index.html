@@ -39,6 +39,11 @@
     ::-webkit-scrollbar-thumb:hover { background: #3e4f63; }
     .book-cover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
     .edition-card:hover .book-cover { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
+    /* Defer layout/paint for off-screen shelf cards (pairs with incremental render). */
+    #shelf-grid > .edition-card {
+      content-visibility: auto;
+      contain-intrinsic-size: auto 28rem;
+    }
     .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
     /* Progressive cover paint: stable aspect box + fade-in when decode completes */
@@ -143,6 +148,9 @@
           </div>
         </div>
         <div id="shelf-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8"></div>
+        <p id="shelf-grid-empty" class="hidden text-center text-slate-500 text-sm py-12">No publications match your search.</p>
+        <p id="shelf-grid-status" class="text-sm text-slate-400 mt-6 text-center" aria-live="polite"></p>
+        <div id="shelf-scroll-sentinel" class="hidden h-8 w-full shrink-0" aria-hidden="true"></div>
       </section>
 
       <section id="section-publishers" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">

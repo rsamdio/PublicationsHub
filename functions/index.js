@@ -347,7 +347,6 @@ exports.createPublisher = onCall(callableOptions, async (request) => {
   await assertPlatformStaff(request.auth.uid);
   const data = request.data || {};
   const name = (data?.name || '').trim();
-  let slug = (data?.slug || '').trim().toLowerCase();
   const ownerName = (data?.owner_name || '').trim();
   const ownerEmail = normalizeEmailInvite(data?.owner_email);
   const internal_reference = trimInternalReference(data?.internal_reference);
@@ -357,22 +356,10 @@ exports.createPublisher = onCall(callableOptions, async (request) => {
   if (!ownerName || !ownerEmail) {
     throw new HttpsError('invalid-argument', 'owner_name and owner_email are required');
   }
-  if (!slug) {
-    slug =
-      name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '') || 'publisher';
-  }
-  const existing = await db.collection('publishers').where('slug', '==', slug).limit(1).get();
-  if (!existing.empty) {
-    throw new HttpsError('already-exists', 'Slug already in use');
-  }
   const ref = db.collection('publishers').doc();
   const batch = db.batch();
   batch.set(ref, {
     name,
-    slug,
     status: 'active',
     internal_reference,
     created_at: admin.firestore.FieldValue.serverTimestamp()

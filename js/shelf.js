@@ -15,6 +15,15 @@ import { seriesFrequencyBadgeAttrs, seriesFrequencyLabel } from './frequency-lab
 import { sortEditionsNewestFirstInPlace } from './edition-sort.js';
 
 let allPublications = [];
+/** @type {object[]} */
+let allSeriesGroups = [];
+let shelfVisibleCount = 0;
+let shelfSearchQuery = '';
+let shelfInfiniteScrollBound = false;
+/** @type {IntersectionObserver | null} */
+let shelfScrollObserver = null;
+
+const SHELF_PAGE_SIZE = 12;
 
 function escapeHtml(s) {
   const div = document.createElement('div');
@@ -251,28 +260,32 @@ function wireShelfSeriesCard(card, group) {
   });
 }
 
-function renderPublicationSeriesGrid(container, groups) {
-  if (!container) return;
-  container.innerHTML = '';
-  groups.forEach((s) => {
-    const card = document.createElement('article');
-    card.className =
-      'edition-card group flex flex-col bg-white dark:bg-[#182430] rounded-xl border border-slate-200 dark:border-slate-800 transition-colors hover:border-primary/50 cursor-pointer';
-    const freqSearch = seriesFrequencyLabel(s.frequency) || String(s.frequency || '').trim();
-    card.setAttribute(
-      'data-shelf-filter',
-      `${s.seriesTitle} ${s.publisherName} ${s.description || ''} ${freqSearch}`.toLowerCase()
-    );
-    const coverFull = s.coverUrl || '';
-    const coverThumb = s.coverThumbUrl || '';
-    const sizesGrid = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 34vw, 25vw';
-    const img =
-      coverFull || coverThumb
-        ? buildCoverImgHtml(coverFull, coverThumb, sizesGrid, 'book-cover w-full h-full object-cover', 'lazy', null)
-        : `<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-slate-500 font-display font-bold">PDF</div>`;
-    const updatedIso = s.lastActivityIso || '';
-    const freqBadge = seriesFrequencyBadgeAttrs(s.frequency, { compact: true });
-    card.innerHTML = `
+function seriesGroupSearchKey(s) {
+  const freqSearch = seriesFrequencyLabel(s.frequency) || String(s.frequency || '').trim();
+  return `${s.seriesTitle} ${s.publisherName} ${s.description || ''} ${freqSearch}`.toLowerCase();
+}
+
+function getFilteredSeriesGroups() {
+  const q = shelfSearchQuery.trim().toLowerCase();
+  if (!q) return allSeriesGroups;
+  return allSeriesGroups.filter((s) => seriesGroupSearchKey(s).includes(q));
+}
+
+function createSeriesCardElement(s) {
+  const card = document.createElement('article');
+  card.className =
+    'edition-card group flex flex-col bg-white dark:bg-[#182430] rounded-xl border border-slate-200 dark:border-slate-800 transition-colors hover:border-primary/50 cursor-pointer';
+  card.setAttribute('data-shelf-filter', seriesGroupSearchKey(s));
+  const coverFull = s.coverUrl || '';
+  const coverThumb = s.coverThumbUrl || '';
+  const sizesGrid = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 34vw, 25vw';
+  const img =
+    coverFull || coverThumb
+      ? buildCoverImgHtml(coverFull, coverThumb, sizesGrid, 'book-cover w-full h-full object-cover', 'lazy', null)
+      : `<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-slate-500 font-display font-bold">PDF</div>`;
+  const updatedIso = s.lastActivityIso || '';
+  const freqBadge = seriesFrequencyBadgeAttrs(s.frequency, { compact: true });
+  card.innerHTML = `
       <div class="relative aspect-[3/4] bg-gray-200 dark:bg-gray-800 overflow-hidden">
         ${img}
         <div class="absolute top-3 right-3">
@@ -310,11 +323,131 @@ function renderPublicationSeriesGrid(container, groups) {
           </div>
         </div>
       </div>`;
-    wireShelfSeriesShare(card, s);
-    wireShelfSeriesCard(card, s);
-    container.appendChild(card);
-  });
+  wireShelfSeriesShare(card, s);
+  wireShelfSeriesCard(card, s);
+  return card;
+}
+
+function appendSeriesCardsToGrid(container, groups) {
+  if (!container || !groups.length) return;
+  const frag = document.createDocumentFragment();
+  groups.forEach((s) => frag.appendChild(createSeriesCardElement(s)));
+  container.appendChild(frag);
   wireCoverImgReveal(container);
+}
+
+function updateShelfGridChrome() {
+  const filtered = getFilteredSeriesGroups();
+  const shown = Math.min(shelfVisibleCount, filtered.length);
+  const status = document.getElementById('shelf-grid-status');
+  const sentinel = document.getElementById('shelf-scroll-sentinel');
+  const empty = document.getElementById('shelf-grid-empty');
+  const grid = document.getElementById('shelf-grid');
+  const searching = !!shelfSearchQuery.trim();
+  const noMatches = searching && filtered.length === 0;
+
+  empty?.classList.toggle('hidden', !noMatches);
+  grid?.classList.toggle('hidden', noMatches);
+
+  if (status) {
+    if (noMatches || filtered.length === 0) {
+      status.textContent = '';
+    } else if (shown >= filtered.length) {
+      status.textContent = searching
+        ? `Showing all ${filtered.length} match${filtered.length === 1 ? '' : 'es'}`
+        : `Showing all ${filtered.length} publication${filtered.length === 1 ? '' : 's'}`;
+    } else {
+      status.textContent = `Showing ${shown} of ${filtered.length} publication${filtered.length === 1 ? '' : 's'}`;
+    }
+  }
+
+  if (sentinel) {
+    const hasMore = shown < filtered.length;
+    sentinel.classList.toggle('hidden', !hasMore);
+    sentinel.setAttribute('aria-hidden', hasMore ? 'false' : 'true');
+  }
+}
+
+function loadMoreShelfBatch() {
+  const filtered = getFilteredSeriesGroups();
+  if (shelfVisibleCount >= filtered.length) return;
+  shelfVisibleCount += SHELF_PAGE_SIZE;
+  renderShelfSeriesGrid(false);
+}
+
+/** @param {boolean} reset — clear grid and show first page (search / initial load). */
+function renderShelfSeriesGrid(reset) {
+  const grid = document.getElementById('shelf-grid');
+  if (!grid) return;
+  const filtered = getFilteredSeriesGroups();
+
+  if (reset) {
+    shelfVisibleCount = SHELF_PAGE_SIZE;
+    grid.innerHTML = '';
+  }
+
+  const targetCount = Math.min(shelfVisibleCount, filtered.length);
+  const existing = grid.children.length;
+
+  if (existing > targetCount) {
+    while (grid.children.length > targetCount) {
+      grid.lastChild?.remove();
+    }
+  }
+
+  if (existing < targetCount) {
+    appendSeriesCardsToGrid(grid, filtered.slice(existing, targetCount));
+  }
+
+  updateShelfGridChrome();
+  requestAnimationFrame(fillShelfUntilViewportSatisfied);
+}
+
+/** Keep loading batches when the sentinel stays in view (short viewports). */
+function fillShelfUntilViewportSatisfied() {
+  const sentinel = document.getElementById('shelf-scroll-sentinel');
+  if (!sentinel || sentinel.classList.contains('hidden')) return;
+  const filtered = getFilteredSeriesGroups();
+  if (shelfVisibleCount >= filtered.length) return;
+  const rect = sentinel.getBoundingClientRect();
+  if (rect.top <= window.innerHeight + 480) {
+    loadMoreShelfBatch();
+    requestAnimationFrame(fillShelfUntilViewportSatisfied);
+  }
+}
+
+function bindShelfInfiniteScrollOnce() {
+  if (shelfInfiniteScrollBound) return;
+  const sentinel = document.getElementById('shelf-scroll-sentinel');
+  if (!sentinel) return;
+  shelfInfiniteScrollBound = true;
+  shelfScrollObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((e) => e.isIntersecting)) loadMoreShelfBatch();
+    },
+    { root: null, rootMargin: '480px 0px', threshold: 0 }
+  );
+  shelfScrollObserver.observe(sentinel);
+}
+
+function applyShelfSearch(query) {
+  shelfSearchQuery = query || '';
+  renderShelfSeriesGrid(true);
+}
+
+function hideShelfPaginationChrome() {
+  document.getElementById('shelf-grid-status')?.replaceChildren();
+  document.getElementById('shelf-scroll-sentinel')?.classList.add('hidden');
+  document.getElementById('shelf-grid-empty')?.classList.add('hidden');
+  document.getElementById('shelf-grid')?.classList.remove('hidden');
+}
+
+function renderPublicationSeriesGrid(container, groups) {
+  if (!container) return;
+  allSeriesGroups = groups || [];
+  shelfSearchQuery = '';
+  shelfVisibleCount = SHELF_PAGE_SIZE;
+  renderShelfSeriesGrid(true);
 }
 
 function renderFeaturedGrid(container, pubs) {
@@ -431,16 +564,6 @@ function renderEditionGrid(container, pubs, options = {}) {
   wireCoverImgReveal(container);
 }
 
-function filterGrid(query) {
-  const q = (query || '').trim().toLowerCase();
-  const grid = document.getElementById('shelf-grid');
-  if (!grid) return;
-  grid.querySelectorAll('[data-shelf-filter]').forEach((el) => {
-    const key = el.getAttribute('data-shelf-filter') || '';
-    el.classList.toggle('hidden', !!(q && !key.includes(q)));
-  });
-}
-
 function setLibraryEmpty(visible) {
   document.getElementById('library-empty-state')?.classList.toggle('hidden', !visible);
   document.getElementById('library-content')?.classList.toggle('hidden', visible);
@@ -514,6 +637,8 @@ export async function renderShelf() {
   const seriesMap = seriesRes.data && !seriesRes.error ? seriesRes.data : {};
   if (error) {
     allPublications = [];
+    allSeriesGroups = [];
+    hideShelfPaginationChrome();
     if (shelfGrid) shelfGrid.innerHTML = '';
     shelfGrid?.removeAttribute('aria-busy');
     if (featuredEl) featuredEl.innerHTML = '';
@@ -533,6 +658,8 @@ export async function renderShelf() {
 
   if (!data || data.length === 0) {
     allPublications = [];
+    allSeriesGroups = [];
+    hideShelfPaginationChrome();
     if (featuredEl) featuredEl.innerHTML = '';
     featuredEl?.removeAttribute('aria-busy');
     featuredSection?.classList.add('hidden');
@@ -564,10 +691,12 @@ export async function renderShelf() {
   shelfGrid?.removeAttribute('aria-busy');
   featuredEl?.removeAttribute('aria-busy');
 
+  bindShelfInfiniteScrollOnce();
+
   const searchInput = document.getElementById('shelf-search');
   if (searchInput) {
     searchInput.value = '';
-    searchInput.oninput = () => filterGrid(searchInput.value);
+    searchInput.oninput = () => applyShelfSearch(searchInput.value);
   }
 
   await syncReaderDeepLink();

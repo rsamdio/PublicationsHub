@@ -6,6 +6,7 @@ import { onAuthStateChange, signInWithGoogle, signOut } from '../auth.js';
 import { fbAuth, fbFunctions } from '../firebase-init.js';
 import {
   getCurrentPlatformStaff,
+  fetchPublisherOrgSnapshot,
   subscribePublisherOrgForAdmin,
   subscribePlatformPublishers,
   subscribePlatformEditionCount,
@@ -21,6 +22,8 @@ import {
   deleteSeriesCallable,
   deletePublisherCallable,
   updatePublisherNameCallable,
+  updateSeries,
+  updateEdition,
   listMyPublisherMemberships,
   publisherCreateInvite,
   publisherRevokeInvite,
@@ -74,7 +77,7 @@ function formatCreatePublisherError(err) {
   const raw = String(e.message || '').trim();
   const code = String(e.code || '');
   if (code.includes('already-exists') || /slug already/i.test(raw)) {
-    return 'That name maps to a URL slug that is already in use. Try a slightly different publisher name.';
+    return 'A publisher with this identifier already exists.';
   }
   if (code.includes('permission-denied')) {
     return raw || 'You do not have permission to create publishers.';
@@ -96,6 +99,21 @@ const deniedPlatformInvites = document.getElementById('denied-platform-invites')
 
 const statsLine = document.getElementById('stats-line');
 const publishersTbody = document.getElementById('publishers-tbody');
+const publishersMsg = document.getElementById('publishers-msg');
+const publishersSearchInput = document.getElementById('publishers-search-input');
+const btnExportPublishersCsv = document.getElementById('btn-export-publishers-csv');
+const btnBulkPublisherOpen = document.getElementById('btn-bulk-publisher-open');
+const bulkPublisherModal = document.getElementById('bulk-publisher-modal');
+const bulkPublisherClose = document.getElementById('bulk-publisher-close');
+const bulkPublisherCancel = document.getElementById('bulk-publisher-cancel');
+const bulkPublisherFile = document.getElementById('bulk-publisher-file');
+const bulkPublisherPreviewWrap = document.getElementById('bulk-publisher-preview-wrap');
+const bulkPublisherPreviewTbody = document.getElementById('bulk-publisher-preview-tbody');
+const bulkPublisherResultsWrap = document.getElementById('bulk-publisher-results-wrap');
+const bulkPublisherResults = document.getElementById('bulk-publisher-results');
+const bulkPublisherMsg = document.getElementById('bulk-publisher-msg');
+const btnBulkPublisherSubmit = document.getElementById('btn-bulk-publisher-submit');
+const btnDownloadPublisherTemplate = document.getElementById('btn-download-publisher-template');
 
 const adminFlowPill1 = document.getElementById('admin-flow-pill-1');
 const adminFlowPill2 = document.getElementById('admin-flow-pill-2');
@@ -119,6 +137,8 @@ const adminSeriesEditionsTbody = document.getElementById('admin-series-editions-
 
 const allEditionsTbody = document.getElementById('all-editions-tbody');
 const featuredOnlyTbody = document.getElementById('featured-only-tbody');
+const btnExportCatalogCsv = document.getElementById('btn-export-catalog-csv');
+const catalogSearchInput = document.getElementById('catalog-search-input');
 const pubMsg = document.getElementById('pub-msg');
 
 const newPublisherModal = document.getElementById('new-publisher-modal');
@@ -142,6 +162,28 @@ const epName = document.getElementById('ep-name');
 const epInternalRef = document.getElementById('ep-internal-ref');
 const epMsg = document.getElementById('ep-msg');
 const btnEditPublisherSubmit = document.getElementById('btn-edit-publisher-submit');
+
+const editSeriesModal = document.getElementById('edit-series-modal');
+const editSeriesForm = document.getElementById('edit-series-form');
+const editSeriesClose = document.getElementById('edit-series-close');
+const editSeriesCancel = document.getElementById('edit-series-cancel');
+const esId = document.getElementById('es-id');
+const esTitle = document.getElementById('es-title');
+const esFrequency = document.getElementById('es-frequency');
+const esDescription = document.getElementById('es-description');
+const esMsg = document.getElementById('es-msg');
+const btnEditSeriesSubmit = document.getElementById('btn-edit-series-submit');
+
+const editEditionModal = document.getElementById('edit-edition-modal');
+const editEditionForm = document.getElementById('edit-edition-form');
+const editEditionClose = document.getElementById('edit-edition-close');
+const editEditionCancel = document.getElementById('edit-edition-cancel');
+const eeId = document.getElementById('ee-id');
+const eeTitle = document.getElementById('ee-title');
+const eeIssueDate = document.getElementById('ee-issue-date');
+const eeDescription = document.getElementById('ee-description');
+const eeMsg = document.getElementById('ee-msg');
+const btnEditEditionSubmit = document.getElementById('btn-edit-edition-submit');
 
 const adminTeamInviteModal = document.getElementById('admin-team-invite-modal');
 const adminTeamInviteForm = document.getElementById('admin-team-invite-form');
@@ -177,6 +219,9 @@ function adminModalSubmitBusy() {
   return (
     btnNewPublisherSubmit?.getAttribute('aria-busy') === 'true' ||
     btnEditPublisherSubmit?.getAttribute('aria-busy') === 'true' ||
+    btnEditSeriesSubmit?.getAttribute('aria-busy') === 'true' ||
+    btnEditEditionSubmit?.getAttribute('aria-busy') === 'true' ||
+    btnBulkPublisherSubmit?.getAttribute('aria-busy') === 'true' ||
     btnAdminTeamInviteSubmit?.getAttribute('aria-busy') === 'true'
   );
 }
@@ -281,6 +326,12 @@ let adminMyMemberships = [];
 let activeOrgSubTab = 'publications';
 /** @type {Array<object>} */
 let cachedCatalog = [];
+/** @type {Array<object>} */
+let cachedPublishers = [];
+/** @type {Array<{ publisher_name: string, internal_reference: string, owner_name: string, owner_email: string }>} */
+let bulkPublisherRows = [];
+let catalogSearchQuery = '';
+let publishersSearchQuery = '';
 
 const FLOW_ACTIVE =
   'inline-flex items-center gap-1.5 rounded-full bg-primary/15 text-primary px-3 py-1.5 border border-primary/25';
@@ -375,6 +426,417 @@ function readerHrefForEdition(pub) {
   if (!eid) return 'publication';
   const sid = getSeriesCanonicalIdForPublication(pub) || eid;
   return `${buildSeriesPagePath(sid)}${formatReadLocationHash(eid)}`;
+}
+
+function formatIsoForUi(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString();
+}
+
+function toDateInputValue(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
+function coverHrefForEdition(pub) {
+  if (pub?.cover_thumb_url) return String(pub.cover_thumb_url);
+  if (pub?.cover_url) return String(pub.cover_url);
+  return '';
+}
+
+function coverLinkCellHtml(pub) {
+  const href = coverHrefForEdition(pub);
+  if (!href) return '<span class="text-slate-600 text-xs">—</span>';
+  return `<a href="${escapeHtml(href)}" class="text-primary text-xs font-medium hover:underline" target="_blank" rel="noopener noreferrer">Open</a>`;
+}
+
+function toCsvCell(v) {
+  const s = String(v ?? '');
+  if (s.includes('"') || s.includes(',') || s.includes('\n')) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function downloadCsvFile(filename, csvText) {
+  const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function formatRosterRoleList(roster, role) {
+  const rows = Object.values(roster || {}).filter((r) => r?.role === role);
+  if (!rows.length) return '';
+  return rows
+    .map((r) => {
+      const name = String(r.display_name || r.email || r.uid || '').trim();
+      const email = String(r.email || '').trim();
+      return email ? `${name} (${email})` : name;
+    })
+    .join(', ');
+}
+
+function formatPendingInviteList(invites) {
+  const rows = Object.values(invites || {}).filter(
+    (i) => i?.status === 'pending' || i?.status == null || i?.status === ''
+  );
+  if (!rows.length) return '';
+  return rows
+    .map((i) => {
+      const name = String(i.invitee_name || '').trim();
+      const email = String(i.email_normalized || '').trim();
+      return email ? `${name} (${email})` : name;
+    })
+    .join(', ');
+}
+
+async function exportPublishersCsv() {
+  if (!cachedPublishers?.length) {
+    setMsg(publishersMsg, 'No publishers to export yet.', true);
+    return;
+  }
+  showAdminBlockingStatus('Preparing publisher export…');
+  if (btnExportPublishersCsv) btnExportPublishersCsv.disabled = true;
+  try {
+    const exportRows = [];
+    for (const p of cachedPublishers) {
+      const { data, error } = await fetchPublisherOrgSnapshot(p.id);
+      if (error || !data) {
+        exportRows.push([
+          p.id,
+          p.name || '',
+          p.slug || '',
+          p.status || '',
+          p.internal_reference || '',
+          p.created_at || '',
+          '',
+          '',
+          '',
+          '',
+          error?.message || 'Could not load org mirror'
+        ]);
+        continue;
+      }
+      const publicationCount = Object.keys(data.series || {}).length;
+      const editionCount = Object.keys(data.editions || {}).length;
+      exportRows.push([
+        p.id,
+        p.name || '',
+        p.slug || '',
+        p.status || '',
+        p.internal_reference || '',
+        p.created_at || '',
+        publicationCount,
+        editionCount,
+        formatRosterRoleList(data.roster, 'owner'),
+        formatRosterRoleList(data.roster, 'editor'),
+        formatPendingInviteList(data.invites)
+      ]);
+    }
+    const header = [
+      'publisher_id',
+      'publisher_name',
+      'slug',
+      'status',
+      'internal_reference',
+      'created_at',
+      'publication_count',
+      'edition_count',
+      'owners',
+      'editors',
+      'pending_invites'
+    ];
+    const csv = `${[header, ...exportRows].map((row) => row.map(toCsvCell).join(',')).join('\n')}\n`;
+    const dateTag = new Date().toISOString().slice(0, 10);
+    downloadCsvFile(`publishers-export-${dateTag}.csv`, csv);
+    setMsg(publishersMsg, `Exported ${cachedPublishers.length} publisher(s) to CSV.`, false);
+  } finally {
+    hideAdminBlockingStatus();
+    if (btnExportPublishersCsv) btnExportPublishersCsv.disabled = false;
+  }
+}
+
+function parseCsvText(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let inQuotes = false;
+  const src = String(text || '').replace(/^\uFEFF/, '');
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    const next = src[i + 1];
+    if (inQuotes) {
+      if (c === '"' && next === '"') {
+        cell += '"';
+        i++;
+      } else if (c === '"') {
+        inQuotes = false;
+      } else {
+        cell += c;
+      }
+      continue;
+    }
+    if (c === '"') {
+      inQuotes = true;
+      continue;
+    }
+    if (c === ',') {
+      row.push(cell);
+      cell = '';
+      continue;
+    }
+    if (c === '\n' || (c === '\r' && next === '\n')) {
+      row.push(cell);
+      cell = '';
+      if (row.some((x) => String(x).trim() !== '')) rows.push(row);
+      row = [];
+      if (c === '\r') i++;
+      continue;
+    }
+    if (c === '\r') {
+      row.push(cell);
+      cell = '';
+      if (row.some((x) => String(x).trim() !== '')) rows.push(row);
+      row = [];
+      continue;
+    }
+    cell += c;
+  }
+  row.push(cell);
+  if (row.some((x) => String(x).trim() !== '')) rows.push(row);
+  return rows;
+}
+
+const BULK_PUBLISHER_HEADER_ALIASES = {
+  publisher_name: 'publisher_name',
+  name: 'publisher_name',
+  publisher: 'publisher_name',
+  internal_reference: 'internal_reference',
+  internal_ref: 'internal_reference',
+  owner_name: 'owner_name',
+  owner_email: 'owner_email'
+};
+
+function normalizeBulkPublisherHeader(header) {
+  const key = String(header || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_');
+  return BULK_PUBLISHER_HEADER_ALIASES[key] || '';
+}
+
+function parseBulkPublisherCsv(text) {
+  const table = parseCsvText(text);
+  if (!table.length) return { rows: [], error: 'CSV file is empty.' };
+  const headers = table[0].map(normalizeBulkPublisherHeader);
+  if (!headers.includes('publisher_name') || !headers.includes('owner_name') || !headers.includes('owner_email')) {
+    return {
+      rows: [],
+      error: 'CSV must include publisher_name, owner_name, and owner_email columns.'
+    };
+  }
+  const rows = [];
+  for (let i = 1; i < table.length; i++) {
+    const raw = table[i];
+    const obj = {
+      publisher_name: '',
+      internal_reference: '',
+      owner_name: '',
+      owner_email: ''
+    };
+    headers.forEach((h, idx) => {
+      if (!h) return;
+      obj[h] = String(raw[idx] ?? '').trim();
+    });
+    if (!obj.publisher_name && !obj.owner_name && !obj.owner_email) continue;
+    rows.push(obj);
+  }
+  if (!rows.length) return { rows: [], error: 'No data rows found in CSV.' };
+  return { rows, error: null };
+}
+
+function renderBulkPublisherPreview() {
+  if (!bulkPublisherPreviewTbody || !bulkPublisherPreviewWrap) return;
+  bulkPublisherPreviewTbody.innerHTML = '';
+  if (!bulkPublisherRows.length) {
+    bulkPublisherPreviewWrap.classList.add('hidden');
+    if (btnBulkPublisherSubmit) btnBulkPublisherSubmit.disabled = true;
+    return;
+  }
+  bulkPublisherPreviewWrap.classList.remove('hidden');
+  bulkPublisherRows.slice(0, 8).forEach((row, idx) => {
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-surface-dark-hover/30';
+    tr.innerHTML = `
+      <td class="px-3 py-2 text-slate-500">${idx + 1}</td>
+      <td class="px-3 py-2 text-white">${escapeHtml(row.publisher_name)}</td>
+      <td class="px-3 py-2 text-slate-300">${escapeHtml(row.owner_name)}</td>
+      <td class="px-3 py-2 text-slate-400 font-mono">${escapeHtml(row.owner_email)}</td>
+      <td class="px-3 py-2 text-slate-400">${escapeHtml(row.internal_reference || '—')}</td>`;
+    bulkPublisherPreviewTbody.appendChild(tr);
+  });
+  if (bulkPublisherRows.length > 8) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="5" class="px-3 py-2 text-slate-500 italic">…and ${bulkPublisherRows.length - 8} more row(s)</td>`;
+    bulkPublisherPreviewTbody.appendChild(tr);
+  }
+  if (btnBulkPublisherSubmit) btnBulkPublisherSubmit.disabled = false;
+}
+
+function clearBulkPublisherResults() {
+  bulkPublisherResultsWrap?.classList.add('hidden');
+  if (bulkPublisherResults) bulkPublisherResults.innerHTML = '';
+}
+
+function openBulkPublisherModal() {
+  setMsg(bulkPublisherMsg, '', false);
+  clearBulkPublisherResults();
+  bulkPublisherRows = [];
+  if (bulkPublisherFile) bulkPublisherFile.value = '';
+  renderBulkPublisherPreview();
+  bulkPublisherModal?.classList.remove('hidden');
+  bulkPublisherModal?.classList.add('flex');
+}
+
+function closeBulkPublisherModal(force) {
+  if (!force && adminModalSubmitBusy()) return;
+  bulkPublisherModal?.classList.add('hidden');
+  bulkPublisherModal?.classList.remove('flex');
+  setMsg(bulkPublisherMsg, '', false);
+}
+
+function downloadPublisherBulkTemplate() {
+  const header = ['publisher_name', 'internal_reference', 'owner_name', 'owner_email'];
+  const sample = ['District 3191', '2025 team', 'Jamie Lee', 'jamie@example.com'];
+  const csv = `${[header, sample].map((row) => row.map(toCsvCell).join(',')).join('\n')}\n`;
+  downloadCsvFile('publisher-bulk-template.csv', csv);
+}
+
+async function runBulkPublisherCreate() {
+  if (!bulkPublisherRows.length) {
+    setMsg(bulkPublisherMsg, 'Choose a CSV file first.', true);
+    return;
+  }
+  setMsg(bulkPublisherMsg, '', false);
+  clearBulkPublisherResults();
+  bulkPublisherResultsWrap?.classList.remove('hidden');
+  setAdminSubmitBusy(btnBulkPublisherSubmit, true, 'Creating…');
+  let okCount = 0;
+  let failCount = 0;
+  for (let i = 0; i < bulkPublisherRows.length; i++) {
+    const row = bulkPublisherRows[i];
+    const label = row.publisher_name || `Row ${i + 1}`;
+    setAdminSubmitBusyLabel(btnBulkPublisherSubmit, `Creating ${i + 1}/${bulkPublisherRows.length}…`);
+    showAdminBlockingStatus(`Creating publisher ${i + 1} of ${bulkPublisherRows.length}…`);
+    if (!row.publisher_name || !row.owner_name || !row.owner_email) {
+      failCount++;
+      bulkPublisherResults?.insertAdjacentHTML(
+        'beforeend',
+        `<li class="text-red-400">Row ${i + 1} (${escapeHtml(label)}): missing required fields.</li>`
+      );
+      continue;
+    }
+    try {
+      const payload = {
+        name: row.publisher_name,
+        owner_name: row.owner_name,
+        owner_email: row.owner_email,
+        internal_reference: row.internal_reference || ''
+      };
+      const res = await createPublisherFn(payload);
+      const pid = res.data?.publisherId || '';
+      okCount++;
+      bulkPublisherResults?.insertAdjacentHTML(
+        'beforeend',
+        `<li class="text-emerald-400">Row ${i + 1}: “${escapeHtml(label)}” created${pid ? ` (ID: ${escapeHtml(pid)})` : ''}.</li>`
+      );
+    } catch (err) {
+      failCount++;
+      bulkPublisherResults?.insertAdjacentHTML(
+        'beforeend',
+        `<li class="text-red-400">Row ${i + 1} (${escapeHtml(label)}): ${escapeHtml(formatCreatePublisherError(err))}</li>`
+      );
+    }
+  }
+  hideAdminBlockingStatus();
+  setAdminSubmitBusy(btnBulkPublisherSubmit, false);
+  const summary = `${okCount} created, ${failCount} failed.`;
+  setMsg(bulkPublisherMsg, summary, failCount > 0 && okCount === 0);
+  if (okCount > 0) {
+    showToast(summary, { type: failCount ? 'info' : 'success', duration: 6000 });
+  }
+}
+
+function exportCatalogCsv() {
+  if (!cachedCatalog?.length) {
+    setMsg(pubMsg, 'No catalog rows to export yet.', true);
+    return;
+  }
+  const rows = [
+    [
+      'title',
+      'publisher_name',
+      'series_title',
+      'edition_id',
+      'series_id',
+      'publisher_id',
+      'reader_url',
+      'cover_thumb_url',
+      'cover_url',
+      'pdf_url',
+      'featured',
+      'issue_date',
+      'uploaded_at'
+    ],
+    ...cachedCatalog.map((pub) => [
+      pub.title || '',
+      pub.publisher_name || '',
+      pub.series_title || '',
+      pub.id || '',
+      pub.series_id || '',
+      pub.publisher_id || '',
+      readerHrefForEdition(pub),
+      pub.cover_thumb_url || '',
+      pub.cover_url || '',
+      pub.pdf_url || '',
+      pub.featured ? 'true' : 'false',
+      pub.issue_date || '',
+      pub.created_at || ''
+    ])
+  ];
+  const csv = `${rows.map((row) => row.map(toCsvCell).join(',')).join('\n')}\n`;
+  const dateTag = new Date().toISOString().slice(0, 10);
+  downloadCsvFile(`publications-catalog-${dateTag}.csv`, csv);
+  setMsg(pubMsg, `Exported ${cachedCatalog.length} rows to CSV.`, false);
+}
+
+function filteredCatalogRows(data) {
+  const q = String(catalogSearchQuery || '').trim().toLowerCase();
+  if (!q) return data;
+  return data.filter((pub) => {
+    const hay = [
+      pub.title,
+      pub.publisher_name,
+      pub.series_title,
+      pub.id,
+      pub.series_id,
+      pub.publisher_id
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return hay.includes(q);
+  });
 }
 
 function resetAdminBrowse() {
@@ -592,23 +1054,51 @@ function startPublishersListSubscription() {
   });
 }
 
+function filteredPublishersRows(data) {
+  const q = String(publishersSearchQuery || '').trim().toLowerCase();
+  if (!q) return data;
+  return data.filter((p) => {
+    const hay = [p.name, p.internal_reference, p.id, p.status, p.slug]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return hay.includes(q);
+  });
+}
+
 function renderPublishersTable(data, error) {
   if (!publishersTbody) return;
   publishersTbody.innerHTML = '';
+  if (!error && data) {
+    cachedPublishers = data;
+  }
   if (error) {
+    setMsg(publishersMsg, '', false);
+    cachedPublishers = [];
     const tr = document.createElement('tr');
     tr.innerHTML = `<td colspan="5" class="px-4 py-10 text-center text-slate-500 text-sm">${escapeHtml(error?.message || 'Could not load publishers.')}</td>`;
     publishersTbody.appendChild(tr);
     return;
   }
-  const rows = data || [];
-  if (!rows.length) {
+  const allRows = cachedPublishers;
+  if (!allRows.length) {
+    setMsg(publishersMsg, '', false);
     const tr = document.createElement('tr');
     tr.innerHTML =
       '<td colspan="5" class="px-4 py-10 text-center text-slate-500 text-sm">No publishers yet.</td>';
     publishersTbody.appendChild(tr);
     return;
   }
+  const rows = filteredPublishersRows(allRows);
+  if (!rows.length) {
+    setMsg(publishersMsg, '', false);
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td colspan="5" class="px-4 py-10 text-center text-slate-500 text-sm">No publishers match your search.</td>';
+    publishersTbody.appendChild(tr);
+    return;
+  }
+  setMsg(publishersMsg, '', false);
   rows.forEach((p) => {
     const tr = document.createElement('tr');
     tr.className =
@@ -717,6 +1207,7 @@ function renderAdminOrgSeriesTable() {
       <td class="px-4 py-3 text-slate-500 font-mono text-xs select-all">${escapeHtml(sid)}</td>
       <td class="px-4 py-3 text-right text-slate-400 tabular-nums">${count}</td>
       <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap">
+        <button type="button" class="admin-edit-series-in-org text-xs font-semibold text-primary hover:underline" data-series-id="${escapeHtml(sid)}">Edit</button>
         <button type="button" class="admin-open-series-editions text-xs font-semibold text-primary hover:underline" data-series-id="${escapeHtml(sid)}">View editions</button>
         <button type="button" class="admin-del-series-in-org text-xs text-red-400 hover:underline" data-series-id="${escapeHtml(sid)}">Delete</button>
       </td>`;
@@ -790,7 +1281,7 @@ function renderAdminSeriesEditionsTable() {
   adminSeriesEditionsTbody.innerHTML = '';
   if (!editions.length) {
     adminSeriesEditionsTbody.innerHTML =
-      '<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500 text-sm">No editions for this series in mirror.</td></tr>';
+      '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500 text-sm">No editions for this series in mirror.</td></tr>';
     return;
   }
   editions.forEach((ed) => {
@@ -800,8 +1291,10 @@ function renderAdminSeriesEditionsTable() {
     tr.innerHTML = `
       <td class="px-4 py-3 text-white font-medium">${escapeHtml(ed.title || ed.id)}</td>
       <td class="px-4 py-3 text-slate-500 font-mono text-xs select-all">${escapeHtml(ed.id)}</td>
+      <td class="px-4 py-3">${coverLinkCellHtml(ed)}</td>
       <td class="px-4 py-3"><a href="${escapeHtml(reader)}" class="text-primary text-xs font-medium hover:underline" target="_blank" rel="noopener noreferrer">Open</a></td>
-      <td class="px-4 py-3 text-right"><button type="button" class="admin-del-edition-row text-xs text-red-400 hover:underline" data-edition-id="${escapeHtml(ed.id)}">Delete</button></td>`;
+      <td class="px-4 py-3 text-slate-400 text-xs">${escapeHtml(formatIsoForUi(ed.created_at))}</td>
+      <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap"><button type="button" class="admin-edit-edition-row text-xs font-semibold text-primary hover:underline" data-edition-id="${escapeHtml(ed.id)}">Edit</button><button type="button" class="admin-del-edition-row text-xs text-red-400 hover:underline" data-edition-id="${escapeHtml(ed.id)}">Delete</button></td>`;
     adminSeriesEditionsTbody.appendChild(tr);
   });
 }
@@ -905,6 +1398,14 @@ document.getElementById('admin-panel-publishers')?.addEventListener('click', asy
     return;
   }
 
+  const editSeries = e.target.closest('.admin-edit-series-in-org');
+  if (editSeries) {
+    const sid = editSeries.getAttribute('data-series-id');
+    if (!sid || !cachedOrgSnapshot?.series?.[sid]) return;
+    openEditSeriesModal(sid, cachedOrgSnapshot.series[sid]);
+    return;
+  }
+
   const delSeries = e.target.closest('.admin-del-series-in-org');
   if (delSeries) {
     const seriesId = delSeries.getAttribute('data-series-id');
@@ -939,6 +1440,13 @@ document.getElementById('admin-panel-publishers')?.addEventListener('click', asy
   }
 
   const delEd = e.target.closest('.admin-del-edition-row');
+  const editEd = e.target.closest('.admin-edit-edition-row');
+  if (editEd) {
+    const editionId = editEd.getAttribute('data-edition-id');
+    if (!editionId || !cachedOrgSnapshot?.editions?.[editionId]) return;
+    openEditEditionModal(editionId, cachedOrgSnapshot.editions[editionId]);
+    return;
+  }
   if (delEd) {
     const editionId = delEd.getAttribute('data-edition-id');
     if (!editionId) return;
@@ -1072,7 +1580,7 @@ function renderCatalogTables(data, error) {
   if (allEditionsTbody) allEditionsTbody.innerHTML = '';
   if (featuredOnlyTbody) featuredOnlyTbody.innerHTML = '';
   if (error) {
-    const empty = `<tr><td colspan="6" class="px-4 py-10 text-center text-slate-500 text-sm">${escapeHtml(error?.message || 'Could not load catalog.')}</td></tr>`;
+    const empty = `<tr><td colspan="9" class="px-4 py-10 text-center text-slate-500 text-sm">${escapeHtml(error?.message || 'Could not load catalog.')}</td></tr>`;
     if (allEditionsTbody) allEditionsTbody.innerHTML = empty;
     if (featuredOnlyTbody) featuredOnlyTbody.innerHTML = empty;
     cachedCatalog = [];
@@ -1080,14 +1588,22 @@ function renderCatalogTables(data, error) {
   }
   if (!data?.length) {
     const empty =
-      '<tr><td colspan="6" class="px-4 py-10 text-center text-slate-500 text-sm">No catalog editions.</td></tr>';
+      '<tr><td colspan="9" class="px-4 py-10 text-center text-slate-500 text-sm">No catalog editions.</td></tr>';
     if (allEditionsTbody) allEditionsTbody.innerHTML = empty;
     if (featuredOnlyTbody) featuredOnlyTbody.innerHTML = empty;
     cachedCatalog = [];
     return;
   }
   cachedCatalog = data;
-  const sorted = sortEditionsNewestFirstInPlace([...data]);
+  const filtered = filteredCatalogRows(data);
+  const sorted = sortEditionsNewestFirstInPlace([...filtered]);
+  if (!sorted.length) {
+    const empty =
+      '<tr><td colspan="9" class="px-4 py-10 text-center text-slate-500 text-sm">No rows match your search.</td></tr>';
+    if (allEditionsTbody) allEditionsTbody.innerHTML = empty;
+    if (featuredOnlyTbody) featuredOnlyTbody.innerHTML = empty;
+    return;
+  }
   sorted.forEach((pub) => {
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-surface-dark-hover/40 transition-colors';
@@ -1100,9 +1616,12 @@ function renderCatalogTables(data, error) {
       </td>
       <td class="px-4 py-3 text-white font-medium">${escapeHtml(pub.title || 'Untitled')}</td>
       <td class="px-4 py-3 text-slate-400">${escapeHtml(pub.publisher_name || '—')}</td>
+      <td class="px-4 py-3 text-slate-300">${escapeHtml(pub.series_title || '—')}</td>
       <td class="px-4 py-3 text-slate-500 font-mono text-xs select-all">${idAttr}</td>
+      <td class="px-4 py-3">${coverLinkCellHtml(pub)}</td>
       <td class="px-4 py-3"><a href="${escapeHtml(reader)}" class="text-primary text-xs font-medium hover:underline" target="_blank" rel="noopener noreferrer">Open</a></td>
-      <td class="px-4 py-3 text-right"><button type="button" class="admin-del-edition-catalog text-xs text-red-400 hover:underline" data-edition-id="${idAttr}">Delete</button></td>`;
+      <td class="px-4 py-3 text-slate-400 text-xs">${escapeHtml(formatIsoForUi(pub.created_at))}</td>
+      <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap"><button type="button" class="admin-edit-edition-catalog text-xs font-semibold text-primary hover:underline" data-edition-id="${idAttr}">Edit</button><button type="button" class="admin-del-edition-catalog text-xs text-red-400 hover:underline" data-edition-id="${idAttr}">Delete</button></td>`;
     allEditionsTbody?.appendChild(tr);
   });
 
@@ -1110,7 +1629,7 @@ function renderCatalogTables(data, error) {
   if (!featured.length) {
     featuredOnlyTbody?.insertAdjacentHTML(
       'beforeend',
-      '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500 text-sm">No featured editions. Toggle rows in “All editions”.</td></tr>'
+      '<tr><td colspan="9" class="px-4 py-8 text-center text-slate-500 text-sm">No featured editions. Toggle rows in “All editions”.</td></tr>'
     );
   } else {
     featured.forEach((pub) => {
@@ -1124,16 +1643,31 @@ function renderCatalogTables(data, error) {
       </td>
       <td class="px-4 py-3 text-white font-medium">${escapeHtml(pub.title || 'Untitled')}</td>
       <td class="px-4 py-3 text-slate-400">${escapeHtml(pub.publisher_name || '—')}</td>
+      <td class="px-4 py-3 text-slate-300">${escapeHtml(pub.series_title || '—')}</td>
       <td class="px-4 py-3 text-slate-500 font-mono text-xs select-all">${idAttr}</td>
+      <td class="px-4 py-3">${coverLinkCellHtml(pub)}</td>
       <td class="px-4 py-3"><a href="${escapeHtml(readerHrefForEdition(pub))}" class="text-primary text-xs font-medium hover:underline" target="_blank" rel="noopener noreferrer">Open</a></td>
-      <td class="px-4 py-3 text-right"><button type="button" class="admin-del-edition-catalog text-xs text-red-400 hover:underline" data-edition-id="${idAttr}">Delete</button></td>`;
+      <td class="px-4 py-3 text-slate-400 text-xs">${escapeHtml(formatIsoForUi(pub.created_at))}</td>
+      <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap"><button type="button" class="admin-edit-edition-catalog text-xs font-semibold text-primary hover:underline" data-edition-id="${idAttr}">Edit</button><button type="button" class="admin-del-edition-catalog text-xs text-red-400 hover:underline" data-edition-id="${idAttr}">Delete</button></td>`;
       featuredOnlyTbody?.appendChild(tr);
     });
   }
 }
 
-function bindCatalogEditionDelete(tbody) {
+function bindCatalogEditionActions(tbody) {
   tbody?.addEventListener('click', async (e) => {
+    const edit = /** @type {HTMLButtonElement | null} */ (e.target.closest('.admin-edit-edition-catalog'));
+    if (edit) {
+      const editionId = edit.getAttribute('data-edition-id');
+      if (!editionId) return;
+      const row = cachedCatalog.find((pub) => String(pub.id) === String(editionId));
+      if (!row) {
+        setMsg(pubMsg, 'Edition data not available for edit.', true);
+        return;
+      }
+      openEditEditionModal(editionId, row);
+      return;
+    }
     const b = /** @type {HTMLButtonElement | null} */ (e.target.closest('.admin-del-edition-catalog'));
     if (!b) return;
     const editionId = b.getAttribute('data-edition-id');
@@ -1164,8 +1698,8 @@ function bindCatalogEditionDelete(tbody) {
   });
 }
 
-bindCatalogEditionDelete(allEditionsTbody);
-bindCatalogEditionDelete(featuredOnlyTbody);
+bindCatalogEditionActions(allEditionsTbody);
+bindCatalogEditionActions(featuredOnlyTbody);
 
 function renderPlatformStaffInvitesTable(result) {
   if (!platformPendingInvitesTbody || !adminFull) return;
@@ -1378,7 +1912,87 @@ function closeEditPublisherModal(force) {
   setMsg(epMsg, '', false);
 }
 
+function openEditSeriesModal(seriesId, seriesRow) {
+  setMsg(esMsg, '', false);
+  if (esId) esId.value = seriesId;
+  if (esTitle) esTitle.value = seriesRow?.title || '';
+  if (esFrequency) esFrequency.value = seriesRow?.frequency || '';
+  if (esDescription) esDescription.value = seriesRow?.description || '';
+  editSeriesModal?.classList.remove('hidden');
+  editSeriesModal?.classList.add('flex');
+  queueMicrotask(() => esTitle?.focus());
+}
+
+/** @param {boolean} [force] */
+function closeEditSeriesModal(force) {
+  if (!force && adminModalSubmitBusy()) return;
+  editSeriesModal?.classList.add('hidden');
+  editSeriesModal?.classList.remove('flex');
+  setMsg(esMsg, '', false);
+}
+
+function openEditEditionModal(editionId, editionRow) {
+  setMsg(eeMsg, '', false);
+  if (eeId) eeId.value = editionId;
+  if (eeTitle) eeTitle.value = editionRow?.title || '';
+  if (eeIssueDate) eeIssueDate.value = toDateInputValue(editionRow?.issue_date || '');
+  if (eeDescription) eeDescription.value = editionRow?.description || '';
+  editEditionModal?.classList.remove('hidden');
+  editEditionModal?.classList.add('flex');
+  queueMicrotask(() => eeTitle?.focus());
+}
+
+/** @param {boolean} [force] */
+function closeEditEditionModal(force) {
+  if (!force && adminModalSubmitBusy()) return;
+  editEditionModal?.classList.add('hidden');
+  editEditionModal?.classList.remove('flex');
+  setMsg(eeMsg, '', false);
+}
+
 btnNewPublisherOpen?.addEventListener('click', () => openNewPublisherModal());
+btnExportPublishersCsv?.addEventListener('click', () => {
+  void exportPublishersCsv();
+});
+publishersSearchInput?.addEventListener('input', () => {
+  publishersSearchQuery = publishersSearchInput.value || '';
+  renderPublishersTable(null, null);
+});
+btnBulkPublisherOpen?.addEventListener('click', () => openBulkPublisherModal());
+bulkPublisherClose?.addEventListener('click', closeBulkPublisherModal);
+bulkPublisherCancel?.addEventListener('click', closeBulkPublisherModal);
+bulkPublisherModal?.addEventListener('click', (e) => {
+  if (e.target === bulkPublisherModal) closeBulkPublisherModal();
+});
+btnDownloadPublisherTemplate?.addEventListener('click', downloadPublisherBulkTemplate);
+bulkPublisherFile?.addEventListener('change', async () => {
+  setMsg(bulkPublisherMsg, '', false);
+  clearBulkPublisherResults();
+  bulkPublisherRows = [];
+  const file = bulkPublisherFile?.files?.[0];
+  if (!file) {
+    renderBulkPublisherPreview();
+    return;
+  }
+  try {
+    const text = await file.text();
+    const { rows, error } = parseBulkPublisherCsv(text);
+    if (error) {
+      setMsg(bulkPublisherMsg, error, true);
+      renderBulkPublisherPreview();
+      return;
+    }
+    bulkPublisherRows = rows;
+    renderBulkPublisherPreview();
+    setMsg(bulkPublisherMsg, `${rows.length} row(s) ready to import.`, false);
+  } catch (err) {
+    setMsg(bulkPublisherMsg, err?.message || 'Could not read CSV file.', true);
+    renderBulkPublisherPreview();
+  }
+});
+btnBulkPublisherSubmit?.addEventListener('click', () => {
+  void runBulkPublisherCreate();
+});
 newPublisherClose?.addEventListener('click', closeNewPublisherModal);
 newPublisherCancel?.addEventListener('click', closeNewPublisherModal);
 newPublisherModal?.addEventListener('click', (e) => {
@@ -1389,6 +2003,18 @@ editPublisherClose?.addEventListener('click', closeEditPublisherModal);
 editPublisherCancel?.addEventListener('click', closeEditPublisherModal);
 editPublisherModal?.addEventListener('click', (e) => {
   if (e.target === editPublisherModal) closeEditPublisherModal();
+});
+
+editSeriesClose?.addEventListener('click', closeEditSeriesModal);
+editSeriesCancel?.addEventListener('click', closeEditSeriesModal);
+editSeriesModal?.addEventListener('click', (e) => {
+  if (e.target === editSeriesModal) closeEditSeriesModal();
+});
+
+editEditionClose?.addEventListener('click', closeEditEditionModal);
+editEditionCancel?.addEventListener('click', closeEditEditionModal);
+editEditionModal?.addEventListener('click', (e) => {
+  if (e.target === editEditionModal) closeEditEditionModal();
 });
 
 function syncAdminTeamInviteRoleUi() {
@@ -1499,6 +2125,70 @@ editPublisherForm?.addEventListener('submit', async (e) => {
   }
 });
 
+editSeriesForm?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  setMsg(esMsg, '', false);
+  const seriesId = (esId?.value || '').trim();
+  const title = (esTitle?.value || '').trim();
+  const description = (esDescription?.value || '').trim();
+  const frequency = (esFrequency?.value || '').trim();
+  if (!seriesId) {
+    setMsg(esMsg, 'Missing publication.', true);
+    return;
+  }
+  if (!title) {
+    setMsg(esMsg, 'Title is required.', true);
+    return;
+  }
+  setAdminSubmitBusy(btnEditSeriesSubmit, true, 'Saving…');
+  try {
+    const { error } = await updateSeries(seriesId, { title, description, frequency });
+    if (error) {
+      setMsg(esMsg, error.message || 'Update failed', true);
+      return;
+    }
+    showToast('Publication updated.', { type: 'success' });
+    closeEditSeriesModal(true);
+    await refreshOpenOrgFromMirror();
+  } finally {
+    setAdminSubmitBusy(btnEditSeriesSubmit, false);
+  }
+});
+
+editEditionForm?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  setMsg(eeMsg, '', false);
+  const editionId = (eeId?.value || '').trim();
+  const title = (eeTitle?.value || '').trim();
+  const description = (eeDescription?.value || '').trim();
+  const issueDate = (eeIssueDate?.value || '').trim();
+  if (!editionId) {
+    setMsg(eeMsg, 'Missing edition.', true);
+    return;
+  }
+  if (!title) {
+    setMsg(eeMsg, 'Edition title is required.', true);
+    return;
+  }
+  setAdminSubmitBusy(btnEditEditionSubmit, true, 'Saving…');
+  try {
+    const { error } = await updateEdition(editionId, {
+      title,
+      description,
+      issue_date: issueDate || null
+    });
+    if (error) {
+      setMsg(eeMsg, error.message || 'Update failed', true);
+      return;
+    }
+    showToast('Edition updated.', { type: 'success' });
+    closeEditEditionModal(true);
+    await refreshOpenOrgFromMirror();
+  } finally {
+    setAdminSubmitBusy(btnEditEditionSubmit, false);
+  }
+});
+
 newPublisherForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
   setMsg(cpMsg, '', false);
@@ -1529,8 +2219,8 @@ newPublisherForm?.addEventListener('submit', async (e) => {
     closeNewPublisherModal(true);
     showToast(
       pid
-        ? `“${name}” is ready. Owner invite sent to ${owner_email}.\nOrganization ID: ${pid}`
-        : `Owner invite sent to ${owner_email}.`,
+        ? `“${name}” is ready.\nOrganization ID: ${pid}`
+        : `Publisher created successfully.`,
       { type: 'success', duration: 8000 }
     );
     if (pid) {
@@ -1543,6 +2233,15 @@ newPublisherForm?.addEventListener('submit', async (e) => {
     hideAdminBlockingStatus();
     setAdminSubmitBusy(btnNewPublisherSubmit, false);
   }
+});
+
+btnExportCatalogCsv?.addEventListener('click', () => {
+  exportCatalogCsv();
+});
+
+catalogSearchInput?.addEventListener('input', () => {
+  catalogSearchQuery = catalogSearchInput.value || '';
+  renderCatalogTables(cachedCatalog, null);
 });
 
 btnBackfill?.addEventListener('click', async () => {

@@ -4,9 +4,9 @@
 
 A no-build web app for a multi-tenant digital library.
 
-- **Readers** open [`index.html`](index.html): browse **published** editions from the **Realtime Database** mirror—**featured** plus **all publications** (series grouped by `series_id`)—and read flipbooks **without signing in**. **`publication?s=…`** (pretty URL; source file [`publication.html`](publication.html)) is the **publication (series) detail** page with editions and the same reader (legacy `?series=` / `?id=` and `/publication.html` still work). Old `publications.html` bookmarks redirect to the home page ([`_redirects`](_redirects)).
+- **Readers** open [`index.html`](index.html): browse **published** editions from the **Realtime Database** mirror—**featured** (all featured editions) plus **all publications** (series grouped by `series_id`). The main grid loads **12 series cards at a time** with **infinite scroll**; search filters the full in-memory catalog. Off-screen cards use `content-visibility` for faster paint. Read flipbooks **without signing in**. **`publication?s=…`** (pretty URL; source file [`publication.html`](publication.html)) is the **publication (series) detail** page with editions and the same reader (legacy `?series=` / `?id=` and `/publication.html` still work). Old `publications.html` bookmarks redirect to the home page ([`_redirects`](_redirects)).
 - **Editors / owners** open [`studio.html`](studio.html): Google sign-in, **Library** tab (publications → editions; **covers**, **issue dates**, uploads, deletes) and **Team** tab (owners invite by name+email; **one publisher per user**).
-- **Platform staff** open [`admin.html`](admin.html): **Publishers** (new publisher, edit name, stepped browse: org → publications/team → editions), **Catalog** (*all* vs *featured*), **Platform team** (invite staff, pending invites + revoke, current staff + remove, RTDB mirror rebuild for full admins). **Managers** have a narrower callable surface than full **admins** (see `tier` on `platform_admins`).
+- **Platform staff** open [`admin.html`](admin.html): **Publishers** (search, CSV export, bulk CSV create, new publisher with optional `internal_reference`, edit name/reference, stepped browse: org → publications/team → editions), **Catalog** (search, CSV export with upload timestamp, cover/reader links, edit publication/edition metadata, feature toggle, delete; *all* vs *featured* tables), **Platform team** (invite staff, pending invites + revoke, current staff + remove, RTDB mirror rebuild and cover-thumb backfill for full admins). **Managers** have a narrower callable surface than full **admins** (see `tier` on `platform_admins`). Publisher **slugs are not used for routing**; duplicate display names are allowed—use `internal_reference` in admin to tell orgs apart.
 
 Reader stack: PDF.js + StPageFlip. UI: Inter, blue primary, dark surfaces.
 
@@ -19,6 +19,7 @@ Serve the **project root** over HTTP (required for ES modules). Examples:
 - **VS Code / Cursor**: Live Server on **`index.html`**, **`studio.html`**, or **`admin.html`**.
 - **Node**: `npx serve .` then open the printed URL.
 - **Python**: `python3 -m http.server 8080` then open `http://localhost:8080`.
+- **Netlify rewrites locally**: `netlify dev` if you need pretty paths like `/publication` (see [`_redirects`](_redirects)). Otherwise use `publication.html?s=…` on plain static servers.
 
 Do not open HTML as `file://` — ES modules and Firebase will not work.
 
@@ -29,18 +30,20 @@ Edit **`js/config.js`** with your Firebase web app config only. **R2 keys never 
 ### Firebase (Auth + Firestore + Functions)
 
 1. Create a project in the [Firebase console](https://console.firebase.google.com/).
-2. **Project settings → Your apps → Web** — copy config into `config.firebase`, including **`databaseURL`** from **Build → Realtime Database** (create default DB if needed). The URL is usually `https://<PROJECT_ID>-default-rtdb.firebaseio.com` or a regional `*.firebasedatabase.app` host.
+2. **Project settings → Your apps → Web** — copy the values into `js/config.js` under `config.firebase`, including **`databaseURL`** from **Build → Realtime Database** (create default DB if needed). The URL is usually `https://<PROJECT_ID>-default-rtdb.firebaseio.com` or a regional `*.firebasedatabase.app` host.
 3. **Authentication → Sign-in method**: enable **Google**. **Settings → Authorized domains**: production host + `localhost`.
 4. **Firestore**: create a database. Deploy rules and indexes from this repo:
 
    ```bash
    npm install -g firebase-tools   # if needed
    firebase login
-   firebase use --add               # select your project
+   firebase use rsapublicationhub   # must match `projectId` in js/config.js and `.firebaserc` default (first machine: `firebase use --add`, choose this project)
    firebase deploy --only firestore,database
    ```
 
-   Ensure **`firestore.indexes.json`** is deployed (included in `firestore`) so **collection-group** queries work for `listMyPendingInvites` and **`platform_invites`**.
+   Ensure **`firestore.indexes.json`** is deployed (included in `firestore`) so invite queries work:
+   - collection-group index on `invites` (`listMyPendingInvites`)
+   - collection index on `platform_invites` (`listMyPendingPlatformInvites`)
 
    Deploy **Storage** rules so PDFs **over ~28 MB** can stage in the default bucket before **`finalizeEditionPdfUpload`** streams them to **R2**: `firebase deploy --only storage`, then set bucket **CORS** as in [`docs/STORAGE.md`](docs/STORAGE.md). (Smaller PDFs still use multipart **`uploadPublicationPdf`** only.)
 
@@ -49,6 +52,7 @@ Edit **`js/config.js`** with your Firebase web app config only. **R2 keys never 
 6. **Cloud Functions** (region **`us-central1`** — must match `js/firebase-init.js`):
 
    ```bash
+   firebase use   # must print: rsapublicationhub (avoid deploying this repo to another Firebase/GCP project)
    cd functions && npm install && cp .env.example .env && cd ..
    # Edit functions/.env: R2_ACCOUNT_ID, R2_BUCKET_NAME, R2_PUBLIC_BASE_URL
    echo -n 'YOUR_R2_ACCESS_KEY_ID' | firebase functions:secrets:set R2_ACCESS_KEY_ID
@@ -56,7 +60,9 @@ Edit **`js/config.js`** with your Firebase web app config only. **R2 keys never 
    firebase deploy --only functions
    ```
 
-   This deploys callables, **`uploadPublicationPdf`**, **`uploadPublicationCover`**, HTTPS **`uploadSeriesCover`** (multipart image → **sharp** → WebP at `…/series/{seriesId}/series-cover.webp`), **delete**/**invite** callables (see `functions/extra-exports.js`), and **Firestore→RTDB mirror** triggers plus **`backfillMirror`**.
+   **Secrets (PubHub):** only **`R2_ACCESS_KEY_ID`** and **`R2_SECRET_ACCESS_KEY`** are used by this codebase (via `functions/r2.js`). If **Secret Manager** for the same GCP project also lists unrelated names (e.g. CI tokens), they do not need to be mounted on these functions unless you added them yourself for another service.
+
+   This deploys callables, **`uploadPublicationPdf`**, **`uploadPublicationCover`**, HTTPS **`uploadSeriesCover`** (multipart image -> **sharp** -> WebP at `.../series/{seriesId}/series-cover.webp`), delete/invite/staff-management callables (see `functions/extra-exports.js`), and Firestore->RTDB mirror triggers plus **`backfillMirror`** and **`backfillCoverThumbs`**.
 
    The **`uploadPublicationPdf`** function writes PDFs to  
    `publications/publishers/{publisherId}/series/{seriesId}/{timestamp}-{filename}.pdf`  
@@ -106,7 +112,7 @@ Cloud Functions treat you as a platform admin only if a Firestore document exist
 - In **`admin.html` → Platform team**, use **Invite platform staff** (name + email). The invitee signs in with **Google on that email** and accepts from the **access denied** screen if they are not staff yet.
 - Pending invites can be **revoked** from the same tab. The **`setPlatformAdmin`** callable still exists for emergency Console/scripts if a user already exists in Auth but has no invite flow.
 
-**Publisher members:** use **owner/editor invites** from **studio** (**Team** tab) or **admin** (publisher **Team** → **New team member**), or **`createPublisher`** with **`owner_name` / `owner_email`**. The **`addPublisherMember`** callable remains available for tooling only (requires an existing Auth user by email).
+**Publisher members:** use **owner/editor invites** from **studio** (**Team** tab) or **admin** (publisher **Team** → **New team member**), or **`createPublisher`** with **`owner_name` / `owner_email`** (and optional **`internal_reference`**). Duplicate publisher display names are allowed; slugs are not generated or enforced on create. The **`addPublisherMember`** callable remains available for tooling only (requires an existing Auth user by email).
 
 ### Legacy `publications` → `editions`
 
@@ -142,7 +148,7 @@ Check Cloud Function logs. Typical issues: wrong **`R2_ACCOUNT_ID`**, bucket nam
 4. **`_redirects`** — Netlify: confirm primary-domain redirect rules match production (see file comments).
 5. **Cloud Functions + rules** — Deployed (`firebase deploy --only functions,firestore:rules,firestore:indexes,database` as needed). **Secrets**: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; **`functions/.env`** params for R2 — never commit `.env`.
 6. **RTDB mirror** — Run **Rebuild mirror** from **admin** once after first deploy so catalog/org paths exist.
-7. **Netlify** — [`netlify.toml`](netlify.toml) sets `publish = "."` (repo root). No build step is required.
+7. **Netlify/static host root** — publish the repository root. [`netlify.toml`](netlify.toml) currently defines headers/caching only (no explicit publish dir stanza), so ensure publish root is configured in your host settings.
 
 ## Static site (not Firebase Hosting)
 
@@ -152,7 +158,8 @@ This repo is plain static HTML/JS. **Firebase Hosting is not configured** in [`f
 
 ```
 index.html           # Public explore + reader
-studio.html       # Publisher studio
+publication.html     # Publication (series) page + reader
+studio.html          # Publisher studio
 admin.html           # Platform admin
 js/
   config.js
@@ -164,11 +171,12 @@ js/
   db-admin.js        # Admin reads (RTDB)
   db.js              # Re-exports db-public
   main.js            # index.html only
-  shelf.js, viewer.js
+  shelf.js           # featured row + incremental/infinite-scroll series grid + reader deep links
+  viewer.js
   dashboard/main.js
   admin/main.js
-_redirects          # Netlify redirects (see file)
-netlify.toml        # Netlify publish dir + security headers
+_redirects           # Netlify redirects/rewrites (see file)
+netlify.toml         # Cache + security headers
 robots.txt
 functions/
   index.js           # callables + upload + mirror triggers
@@ -185,9 +193,20 @@ AGENTS.md
 
 ## Tech stack
 
-- HTML, vanilla JS (ES modules), Tailwind CDN
+- HTML, vanilla JS (ES modules), prebuilt Tailwind CSS (`css/tailwind-bundle.css`)
 - Firebase Auth, Firestore, **2nd gen** Callable + HTTPS Functions (`firebase-functions` v7; v10 modular web SDK from `gstatic`)
 - Cloudflare R2 (S3 API) for PDFs and covers (server-side only, via Functions)
 - PDF.js 3.11.174, StPageFlip 2.0.7 (CDN)
 
 No bundler is required for the static app; Cloud Functions use Node.js 22 (`functions/package.json` `engines`).
+
+## New-project checklist (important)
+
+This repository is currently pinned to a live project/domain (`rsapublicationhub` and `publications.rsamdio.org` values). When reusing this codebase for a new environment, update all of these together:
+
+- `js/config.js` (`projectId`, `authDomain`, `databaseURL`, etc.)
+- `.firebaserc` default project
+- `_redirects` domain redirect rules
+- canonical/OG URLs in root HTML files
+
+If these are not aligned, auth, redirects, and SEO metadata can point to the wrong environment.

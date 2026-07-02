@@ -1,85 +1,137 @@
-# PublicationsHub — agent context
+# PublicationsHub — persistent agent context
 
-Use this file as the **source of truth** for which paths matter. The app lives at the **repository root**; older copies and design dumps may live under `Dump/` (reference only).
+Use this file as the source of truth for where live product behavior lives.
+The app is in the repository root. Treat `Dump/` and `newfolderOLD/` as archive/reference-only.
 
-## Entry HTML (reader surfaces)
+## Product surfaces
 
-| File | Audience | Scripts / data |
-|------|----------|----------------|
-| [`index.html`](index.html) | **Public readers** — featured + **all publications** (series grid) + flipbook. No auth. | [`js/main.js`](js/main.js) → [`js/shelf.js`](js/shelf.js) + [`js/catalog-series.js`](js/catalog-series.js) → [`js/db-public.js`](js/db-public.js) (**Realtime DB** mirror). |
-| [`publication.html`](publication.html) | **Publication (series) detail** — hero + editions grid + reader (same as index). | [`js/series-detail.js`](js/series-detail.js) → dynamic `import('./viewer.js')` + catalog grouping. |
-| [`studio.html`](studio.html) | **Publishers / editors** — Google sign-in, series, editions, PDF/cover upload (R2 via Functions). | [`js/dashboard/main.js`](js/dashboard/main.js) → [`js/db-publisher.js`](js/db-publisher.js): **RTDB reads**, **Firestore writes**; [`js/storage.js`](js/storage.js), [`js/viewer.js`](js/viewer.js). |
-| [`admin.html`](admin.html) | **Platform super admins** — org list from RTDB; callables + **backfillMirror**. | [`js/admin/main.js`](js/admin/main.js) → [`js/db-admin.js`](js/db-admin.js) (**RTDB**), `httpsCallable`. |
+| File | Audience | Runtime path |
+|------|----------|--------------|
+| [`index.html`](index.html) | Public readers | [`js/main.js`](js/main.js) -> [`js/shelf.js`](js/shelf.js) -> RTDB public catalog + shared reader overlay |
+| [`publication.html`](publication.html) | Public readers (one publication page) | [`js/series-detail.js`](js/series-detail.js) -> [`js/url-routes.js`](js/url-routes.js) + dynamic [`js/viewer.js`](js/viewer.js) |
+| [`studio.html`](studio.html) | Publisher owners/editors | [`js/dashboard/main.js`](js/dashboard/main.js) -> [`js/db-publisher.js`](js/db-publisher.js) + [`js/storage.js`](js/storage.js) |
+| [`admin.html`](admin.html) | Platform staff (`admin` and `manager` tiers) | [`js/admin/main.js`](js/admin/main.js) -> [`js/db-admin.js`](js/db-admin.js) + callables |
 
-**Hybrid data:** **Firestore** = system of record + all client **writes** (and server/callables). **Realtime Database** = read-optimized **mirror** maintained by [`functions/mirror.js`](functions/mirror.js). **Firestore client reads** on mirrored collections are **denied** ([`firestore.rules`](firestore.rules)); clients read RTDB ([`database.rules.json`](database.rules.json)).
+## Architecture in one paragraph
 
-## Public URL contract (standardized)
+- Firestore is the system of record and all client writes go to Firestore/callables.
+- Realtime Database is the read-optimized mirror for public, publisher, and admin UIs.
+- Firestore trigger mirrors in [`functions/mirror.js`](functions/mirror.js) keep RTDB in sync.
+- Firestore client reads for mirrored collections are denied by [`firestore.rules`](firestore.rules), so clients read RTDB (`js/db-public.js`, `js/db-publisher.js`, `js/db-admin.js`).
 
-Implementations live in [`js/url-routes.js`](js/url-routes.js); [`js/viewer.js`](js/viewer.js) writes the reader hash via `formatReadLocationHash`.
+## URL contract (canonical + legacy)
 
-| Kind | Shape | Notes |
-|------|--------|--------|
-| **Reader** | `#/r/<editionRef>` | Short hash. **Legacy:** `#/read/<editionRef>` (still parsed). `editionRef` = URL-encoded edition **id** or optional mirrored **slug**. Alternate: `#read/…` (no slash after `#`). |
-| **Publication page** | `publication?s=<canonicalId>` (pretty path; file [`publication.html`](publication.html)) | Short query key **`s`**. **Legacy:** `?series=` and `?id=`, and `/publication.html` → 301 to `/publication` ([`_redirects`](_redirects)). **Old path:** `series.html` → 301 to `/publication`. |
-| **Privacy / Terms** | `/privacy`, `/terms` | Netlify rewrites to [`privacy.html`](privacy.html) / [`terms.html`](terms.html); `.html` URLs 301 to pretty paths ([`_redirects`](_redirects)). |
-| **Library home** | `index.html` (`#all-publications` for the series grid) | Featured + all publications + reader overlay. Edition opens **redirect** to `publication?s=…#/r/…` via [`js/shelf.js`](js/shelf.js) (`buildEditionDeepLink` + `getSeriesCanonicalIdForPublication`). |
-| **Canonical read URL** | `publication?s=<canonicalId>#/r/<editionRef>` | Same for home grid, shares, and bookmarks (standalone editions use `s=<editionId>`). Publisher **dashboard** still opens the reader on `studio.html` with hash only. |
+Implemented in [`js/url-routes.js`](js/url-routes.js); hash writing comes from `formatReadLocationHash` in [`js/viewer.js`](js/viewer.js).
 
-**Local static servers:** `publication?…` may 404 unless the host maps it to `publication.html` (Netlify does via [`_redirects`](_redirects)). For local testing without that rewrite, open **`publication.html?…`** directly or use **Netlify Dev**.
+| Kind | Canonical shape | Legacy still parsed |
+|------|------------------|---------------------|
+| Publication page | `publication?s=<canonicalId>` | `?series=`, `?id=`, `/series.html` |
+| Reader hash | `#/r/<editionRef>` | `#/read/<editionRef>`, `#read/<editionRef>` |
+| Full deep link | `publication?s=<canonicalId>#/r/<editionRef>` | older query/hash combos still resolve |
 
-## Authoritative paths (product work)
+Host routing is defined in [`_redirects`](_redirects): pretty routes for `/publication`, `/privacy`, `/terms`, and redirects from legacy pages including `/dashboard.html`.
 
-| Path | Role |
-|------|------|
-| `index.html` | Public library shell — featured + all publications (series grid) + reader overlay. |
-| `publication.html` | One series + editions + reader overlay. |
-| `js/catalog-series.js` | Group flat editions by `series_id` (or single edition key). |
-| `js/url-routes.js` | **Canonical URL builders + `series` / `id` query parsing.** |
-| `js/series-detail.js` | `publication?s=` hero + grid + reader wiring. |
-| `studio.html` | Publisher studio shell + upload modal + reader overlay. |
-| `admin.html` | Platform admin UI. |
-| `js/main.js` | Explore-only: nav, shelf bootstrap, reader controls. |
-| `js/dashboard/main.js` | Studio: auth, membership-based publisher context, publications → editions flow, series CRUD, upload, reader. |
-| `js/admin/main.js` | Admin gate, publisher table, callables. |
-| `js/shelf.js` | Featured + publication series grid + reader; `fetchPublishedCatalog` + `groupEditionsIntoSeries` + reader. |
-| `js/viewer.js` | PDF.js + StPageFlip. |
-| `js/auth.js` | Google sign-in, sign-out, `onAuthStateChange`. |
-| `js/db-public.js` | Public catalog from RTDB `public/catalog/editions`. |
-| `js/db-publisher.js` | RTDB reads (`userMemberships`, `org/...`); Firestore `addDoc` for series/editions. |
-| `js/db-admin.js` | RTDB: `platformAdmins`, `platform/publishers`, `platform/stats`. |
-| `js/db.js` | Re-exports `db-public` for backward compatibility. |
-| `js/firebase-init.js` | `initializeApp`, Auth, Firestore, **Realtime Database** (`databaseURL`), **Functions (`us-central1`)**. |
-| `js/storage.js` | `uploadEditionPdf` → HTTPS `uploadPublicationPdf` (≤~28 MB) or Storage signed URL + `finalizeEditionPdfUpload` (up to 65 MB); R2 credentials server-side only. |
-| `js/config.js` | Firebase web config only; optional `uploadPublicationPdfUrl` for emulator. |
-| `database.rules.json` | RTDB security; deploy with `firebase deploy --only database`. |
-| `firestore.rules` / `firestore.indexes.json` | Writes allowed where needed; **reads denied** on mirrored docs. |
-| `functions/index.js` | **2nd gen** callables + `uploadPublicationPdf`; re-exports [`functions/mirror.js`](functions/mirror.js). |
-| `functions/mirror.js` | Firestore `onDocumentWritten` → RTDB; `backfillMirror` callable. |
-| `docs/FIRESTORE_SCHEMA.md` | Collection map and fields. |
-| `docs/MIGRATION.md` | Legacy `publications` → `editions`. |
-| `docs/STORAGE.md` | PDF path: Cloudflare R2 via Functions; large uploads stage in Firebase Storage first. |
-| `README.md` | Human setup, bootstrap first admin, deploy. |
+## Data model and flows
 
-## Dependency flow (high level)
+### Firestore authoritative collections
 
-```
-index.html → main.js → shelf.js → db-public.js → fbRtdb ← firebase-init.js ← config.js
-                              → viewer.js
+- `publishers`, `series`, `editions`
+- `users/{uid}/publisherMemberships/{publisherId}`
+- `publishers/{publisherId}/invites`, `publishers/{publisherId}/roster`
+- `platform_admins`, `platform_invites`
+- `pdf_upload_sessions` (large-upload staging bookkeeping)
+- legacy `publications` (migration/backfill compatibility)
 
-studio.html → dashboard/main.js → db-publisher.js (RTDB read + Firestore write), storage.js → `uploadPublicationPdf` (≤~28 MB) or `prepareEditionPdfUpload` / `finalizeEditionPdfUpload` (to R2, up to 65 MB), viewer.js
+### RTDB mirror paths used by clients
 
-admin.html → admin/main.js → db-admin.js (RTDB), httpsCallable (incl. backfillMirror)
-```
+- Public: `public/catalog/editions`, `public/catalog/series`
+- Publisher studio: `org/{publisherId}/profile|series|editions|invites|roster`, `userMemberships/{uid}`
+- Platform: `platform/publishers`, `platform/staff`, `platform/staffInvites`, `platform/stats`, `platformAdmins/{uid}`
 
-## Archive / non-authoritative
+### Reader flow
 
-- **`Dump/`**, **`newfolderOLD/`** — snapshots; do not treat as the live app.
+- Home click in [`js/shelf.js`](js/shelf.js) builds canonical deep link with `buildEditionDeepLink`.
+- `publication` page parses `s` + hash and opens reader through [`js/viewer.js`](js/viewer.js).
+- Dashboard reader stays on `studio.html` and uses hash-based open behavior.
 
-## Conventions
+### Public home catalog (All Publications)
 
-- **No build step** for the static app: serve the repo root over HTTP.
-- **Functions region** must stay **`us-central1`** to match `getFunctions` in `firebase-init.js`.
+Implemented in [`js/shelf.js`](js/shelf.js) + `#shelf-grid` in [`index.html`](index.html).
 
-## Indexing hint for tools
+- One-shot RTDB fetch (`fetchPublishedCatalog` + `fetchPublishedSeriesMap`); full catalog stays in memory for search.
+- **Featured** row renders all featured editions; **All Publications** groups editions into series (`groupEditionsIntoSeries`) and renders incrementally.
+- Initial batch: **12** series cards (`SHELF_PAGE_SIZE`); more load via **infinite scroll** (`IntersectionObserver` on `#shelf-scroll-sentinel`, ~480px root margin).
+- Short viewports auto-fill batches until the sentinel leaves view or the list is exhausted.
+- Search (`#shelf-search`) filters the in-memory series list and resets to the first batch; status line `#shelf-grid-status` shows “Showing X of Y”.
+- Off-screen cards use `content-visibility: auto` + `contain-intrinsic-size` on `#shelf-grid > .edition-card` in `index.html` for cheaper layout/paint.
 
-Prefer editing root `*.html` and `js/*`. Exclude `Dump/` unless migrating assets.
+### Platform admin (`admin.html`)
+
+Implemented in [`js/admin/main.js`](js/admin/main.js).
+
+- **Publishers**: list search, CSV export (counts, owners/editors, pending invites), bulk CSV create (`publisher_name`, `owner_name`, `owner_email`, optional `internal_reference`), stepped drill-down (org → publications/team → editions), edit publisher name/reference.
+- **Catalog**: all vs featured tables with search; CSV export (includes `uploaded_at`, cover/reader URLs); cover/reader link columns; edit series/edition metadata; feature toggle; delete edition.
+- **Platform team**: invite/revoke staff, mirror rebuild (`backfillMirror`), cover-thumb backfill (`backfillCoverThumbs`) — full admins only for some ops (see `tier`).
+
+### Publisher identity (slug)
+
+- Public URLs use **series/edition IDs** (`publication?s=…`, `#/r/<editionRef>`), not publisher slugs.
+- `createPublisher` requires `name`, `owner_name`, `owner_email`; optional `internal_reference` disambiguates same display names in admin. **No slug generation or uniqueness check** on create.
+- Legacy `slug` may still exist on older publisher docs and in CSV export/mirror; it is not used for routing.
+
+## Upload/storage flow
+
+- Small PDFs (<= about 28 MB): HTTP `uploadPublicationPdf`.
+- Large PDFs (up to 65 MB): callable `prepareEditionPdfUpload` -> signed Storage PUT -> callable `finalizeEditionPdfUpload` -> object moved to R2.
+- Covers: `uploadPublicationCover` and `uploadSeriesCover` (WebP + optional thumb).
+- Browser never uses Firebase Storage SDK directly for app uploads; Storage is a staging layer for large PDF flow only.
+- R2 credentials are server-side only (functions params + secrets).
+
+## Functions map (authoritative backend behavior)
+
+- Main callable/http exports in [`functions/index.js`](functions/index.js) and [`functions/extra-exports.js`](functions/extra-exports.js).
+- Key callables include:
+  - publisher/platform invite lifecycle
+  - publisher/platform staff management
+  - `createPublisher`, `setEditionFeatured`
+  - destructive ops: `deleteEditionAssets`, `deleteSeries`, `deletePublisher`
+  - maintenance: `backfillMirror`, `backfillCoverThumbs`
+- Firestore->RTDB mirror triggers live in [`functions/mirror.js`](functions/mirror.js).
+
+## Security model
+
+- RTDB: clients read allowed paths; all client writes denied in [`database.rules.json`](database.rules.json).
+- Firestore: mirrored collections deny client reads; controlled writes for series/editions and membership-scoped docs.
+- Storage: client reads/writes denied in [`storage.rules`](storage.rules); uploads happen via functions endpoints/signed URLs.
+
+## Deployment and environment facts
+
+- Functions region must stay `us-central1` (see [`js/firebase-init.js`](js/firebase-init.js)).
+- This repo is currently project/domain pinned (`rsapublicationhub` + production redirect/canonical values). When cloning to a new environment, update:
+  - [`js/config.js`](js/config.js)
+  - [`.firebaserc`](.firebaserc)
+  - [`_redirects`](_redirects)
+  - HTML canonical/OG URLs
+- Static host routing is driven by [`_redirects`](_redirects). [`netlify.toml`](netlify.toml) currently defines headers only (no explicit publish dir stanza).
+- Non-fingerprinted assets under `js/*` and `css/*` are currently long cached in [`netlify.toml`](netlify.toml); keep this in mind during debugging stale frontend behavior (see Operational gotchas).
+
+## Operational gotchas
+
+- After mirror/rules/function changes, run `backfillMirror` once from admin or callable to repopulate RTDB.
+- If first admin was bootstrapped directly in Firestore before mirror triggers were live, backfill ensures `platformAdmins/{uid}` appears in RTDB.
+- Large upload signed URLs can fail if required Storage IAM/CORS is missing; use scripts/docs in `scripts/` and [`docs/STORAGE.md`](docs/STORAGE.md).
+- **Local static servers** (Live Server, `npx serve`, Python `http.server`) do not apply [`_redirects`](_redirects); pretty paths like `/publication` 404 locally. Use `publication.html?…` or `netlify dev` for rewrite parity.
+- **Stale frontend during debugging**: `js/*` and `css/*` are long-cached in [`netlify.toml`](netlify.toml); hard-refresh or cache-bust when verifying shelf/admin changes.
+
+## Authoritative paths for product work
+
+- Entry pages: `index.html`, `publication.html`, `studio.html`, `admin.html`
+- Core frontend: `js/shelf.js`, `js/series-detail.js`, `js/viewer.js`, `js/url-routes.js`
+- Data clients: `js/db-public.js`, `js/db-publisher.js`, `js/db-admin.js`
+- Backend: `functions/index.js`, `functions/extra-exports.js`, `functions/mirror.js`
+- Policy/config: `firestore.rules`, `database.rules.json`, `storage.rules`, `firebase.json`, `_redirects`
+- Docs: `README.md`, `docs/FIRESTORE_SCHEMA.md`, `docs/MIGRATION.md`, `docs/STORAGE.md`
+
+## Tooling/indexing hint
+
+Prefer root `*.html`, `js/*`, `functions/*`, and rules/docs above. Ignore archive folders unless explicitly migrating old assets.

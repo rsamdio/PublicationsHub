@@ -198,7 +198,7 @@ async function applyPublisherMirror(publisherId, change) {
 
   const profile = {
     name: after.name,
-    slug: after.slug,
+    slug: after.slug ?? '',
     status: after.status,
     created_at: tsMs(after.created_at)
   };
