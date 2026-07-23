@@ -274,7 +274,7 @@ function getFilteredSeriesGroups() {
 function createSeriesCardElement(s) {
   const card = document.createElement('article');
   card.className =
-    'edition-card group flex flex-col bg-white dark:bg-[#182430] rounded-xl border border-slate-200 dark:border-slate-800 transition-colors hover:border-primary/50 cursor-pointer';
+    'edition-card group flex flex-col bg-white dark:bg-[#182430] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors hover:border-primary/50 cursor-pointer';
   card.setAttribute('data-shelf-filter', seriesGroupSearchKey(s));
   const coverFull = s.coverUrl || '';
   const coverThumb = s.coverThumbUrl || '';
@@ -302,12 +302,12 @@ function createSeriesCardElement(s) {
         <span class="${freqBadge.className}">${escapeHtml(freqBadge.text)}</span>
         <div class="flex-1"></div>
         <div class="flex items-center gap-3 mt-auto">
-          <button type="button" class="shelf-series-open-btn flex-1 border border-primary/50 bg-blue-50 text-blue-950 hover:bg-primary hover:text-white hover:border-primary dark:bg-primary/15 dark:text-sky-100 dark:border-primary/40 dark:hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
+          <button type="button" class="shelf-series-open-btn flex-1 border border-primary/50 bg-primary/10 text-primary hover:bg-primary hover:text-white hover:border-primary dark:bg-primary/15 dark:text-rose-100 dark:border-primary/40 dark:hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
             ${pubIcon('library_books', 'text-base')}
             Open publication
           </button>
           <div class="relative shrink-0">
-            <button type="button" class="shelf-series-share-trigger p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors" aria-expanded="false" aria-haspopup="true" title="Share this publication">
+            <button type="button" class="shelf-series-share-trigger p-2 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors" aria-expanded="false" aria-haspopup="true" title="Share this publication">
               ${pubIcon('share', 'text-xl')}
             </button>
             <div class="shelf-series-share-menu hidden absolute bottom-full right-0 mb-1 z-40 min-w-[13rem] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#182430] shadow-xl py-1.5 overflow-hidden" role="menu" aria-label="Share publication">
@@ -478,9 +478,9 @@ function renderFeaturedGrid(container, pubs) {
             eagerFeatured ? 'eager' : 'lazy',
             eagerFeatured && idx === 0 ? 'high' : null
           )
-        : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/30 to-blue-600/20 text-slate-400 font-bold text-sm">PDF</div>`;
+        : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/30 to-rose-400/20 text-slate-400 font-bold text-sm">PDF</div>`;
     card.innerHTML = `
-      <div class="aspect-[3/4] rounded-lg overflow-hidden bg-surface-dark relative shadow-lg shadow-black/20 group-hover:shadow-primary/20 group-hover:shadow-2xl transition-all duration-300 transform group-hover:-translate-y-1 book-cover border border-slate-800">
+      <div class="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 relative shadow-lg shadow-slate-300/40 group-hover:shadow-primary/20 group-hover:shadow-2xl transition-all duration-300 transform group-hover:-translate-y-1 book-cover border border-slate-200">
         ${coverInner}
         <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 pointer-events-none"></div>
         <div class="absolute bottom-3 left-3 right-3 pointer-events-none">
@@ -506,8 +506,8 @@ function renderEditionGrid(container, pubs, options = {}) {
   sorted.forEach((pub, i) => {
     const card = document.createElement('article');
     card.className = compact
-      ? 'edition-card group flex flex-col bg-white dark:bg-[#182430] rounded-xl border border-slate-200 dark:border-slate-800 transition-colors hover:border-primary/50 cursor-pointer'
-      : 'edition-card group flex flex-col bg-white dark:bg-[#182430] rounded-xl border border-slate-200 dark:border-slate-800 transition-colors hover:border-primary/50 cursor-pointer';
+      ? 'edition-card group flex flex-col bg-white dark:bg-[#182430] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors hover:border-primary/50 cursor-pointer'
+      : 'edition-card group flex flex-col bg-white dark:bg-[#182430] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors hover:border-primary/50 cursor-pointer';
     card.setAttribute('data-publication-id', pub.id);
     card.setAttribute(
       'data-title',
@@ -536,12 +536,12 @@ function renderEditionGrid(container, pubs, options = {}) {
         <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors line-clamp-2">${escapeHtml(pub.title)}</h3>
         <p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">${escapeHtml(pub.publisher_name ? `${pub.publisher_name}${pub.series_title ? ` · ${pub.series_title}` : ''}` : pub.description || '')}</p>
         <div class="flex items-center gap-3 mt-auto">
-          <button type="button" class="flex-1 border border-primary/50 bg-blue-50 text-blue-950 hover:bg-primary hover:text-white hover:border-primary dark:bg-primary/15 dark:text-sky-100 dark:border-primary/40 dark:hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
+          <button type="button" class="flex-1 border border-primary/50 bg-primary/10 text-primary hover:bg-primary hover:text-white hover:border-primary dark:bg-primary/15 dark:text-rose-100 dark:border-primary/40 dark:hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
             ${pubIcon('auto_stories', 'text-base')}
             Read
           </button>
           <div class="relative shrink-0">
-            <button type="button" class="shelf-edition-share-trigger p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors" aria-expanded="false" aria-haspopup="true" title="Share this edition">
+            <button type="button" class="shelf-edition-share-trigger p-2 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors" aria-expanded="false" aria-haspopup="true" title="Share this edition">
               ${pubIcon('share', 'text-xl')}
             </button>
             <div class="shelf-edition-share-menu hidden absolute bottom-full right-0 mb-1 z-40 min-w-[13rem] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#182430] shadow-xl py-1.5 overflow-hidden" role="menu" aria-label="Share edition">
@@ -591,7 +591,7 @@ function shelfSkeletonSeriesCard() {
 
 function shelfSkeletonFeaturedCard() {
   return `<article class="shelf-skeleton-card pointer-events-none animate-pulse" aria-hidden="true">
-    <div class="aspect-[3/4] rounded-lg bg-slate-200 dark:bg-slate-700/70 border border-slate-800"></div>
+    <div class="aspect-[3/4] rounded-lg bg-slate-200 dark:bg-slate-700/70 border border-slate-200"></div>
     <div class="mt-3 space-y-2">
       <div class="h-4 w-full rounded bg-slate-200 dark:bg-slate-700"></div>
       <div class="h-3 w-3/4 rounded bg-slate-200 dark:bg-slate-700"></div>

@@ -35,10 +35,10 @@ export function showToast(message, options = {}) {
     'pointer-events-auto rounded-xl border px-4 py-3 text-sm shadow-lg backdrop-blur-sm transition-opacity duration-200',
     'whitespace-pre-line',
     type === 'success'
-      ? 'bg-emerald-950/90 border-emerald-600/40 text-emerald-100'
+      ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
       : type === 'error'
-        ? 'bg-red-950/90 border-red-600/40 text-red-100'
-        : 'bg-slate-900/95 border-slate-600/50 text-slate-100 dark:bg-black/90 dark:border-slate-700'
+        ? 'bg-red-50 border-red-200 text-red-800'
+        : 'bg-white border-slate-200 text-slate-800 shadow-slate-200/80'
   ].join(' ');
   el.textContent = message;
   root.appendChild(el);

@@ -12,6 +12,12 @@ The app is in the repository root. Treat `Dump/` and `newfolderOLD/` as archive/
 | [`studio.html`](studio.html) | Publisher owners/editors | [`js/dashboard/main.js`](js/dashboard/main.js) -> [`js/db-publisher.js`](js/db-publisher.js) + [`js/storage.js`](js/storage.js) |
 | [`admin.html`](admin.html) | Platform staff (`admin` and `manager` tiers) | [`js/admin/main.js`](js/admin/main.js) -> [`js/db-admin.js`](js/db-admin.js) + callables |
 
+## UI theme
+
+- Product chrome is **light only** (no dark-mode toggle). Page background uses a soft cream token `background-light` (`#f6f3ed`); nav/footer use a warm near-white (`#fffcf8`). Accent/`primary` is Rotaract cranberry pink (`#d81a6a`, from `images/rsamdio.webp`); navbar uses that pink logo (not the mono wordmark).
+- Unused `dark:` Tailwind utilities may remain in markup but are inactive (no `<html class="dark">`).
+- The **PDF reader overlay** (`#reader-view` / `bg-reader-bg`) stays dark for readability on all surfaces that embed it.
+
 ## Architecture in one paragraph
 
 - Firestore is the system of record and all client writes go to Firestore/callables.

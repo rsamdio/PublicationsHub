@@ -730,7 +730,7 @@ function renderStudioFromLiveData(publisherId, series, editions, invites, roster
         card.setAttribute('role', 'listitem');
         card.setAttribute('data-series-id', s.id);
         card.className =
-          'edition-card group flex flex-col bg-white dark:bg-[#182430] rounded-xl border border-slate-200 dark:border-slate-800 transition-colors hover:border-primary/50 cursor-pointer';
+          'edition-card group flex flex-col bg-white dark:bg-[#182430] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors hover:border-primary/50 cursor-pointer';
         const ec = studioSeriesEditionCount(s.id, editions);
         const updatedIso = studioSeriesLastActivityIso(s.id, editions, s);
         const coverUrl = s.cover_url || '';
@@ -824,7 +824,7 @@ function renderStudioFromLiveData(publisherId, series, editions, invites, roster
       const volBadge = `<div class="absolute bottom-2 left-2 z-[5] pointer-events-none"><span class="px-2 py-0.5 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold rounded">VOL ${vol}</span></div>`;
       const coverInner = coverUrl
         ? `<div class="relative w-full aspect-[3/4] rounded-lg overflow-hidden book-cover ring-1 ring-inset ring-slate-200 dark:ring-slate-700"><div class="absolute inset-0 bg-cover bg-center" style="background-image:url('${escapeHtml(coverUrl)}')"></div>${volBadge}</div>`
-        : `<div class="relative w-full aspect-[3/4] rounded-lg flex items-center justify-center bg-gradient-to-br from-primary/15 to-blue-600/10 dark:from-primary/25 dark:to-blue-600/10 text-slate-400 dark:text-slate-500 text-xs font-bold book-cover ring-1 ring-inset ring-slate-200 dark:ring-slate-700"><span>PDF</span>${volBadge}</div>`;
+        : `<div class="relative w-full aspect-[3/4] rounded-lg flex items-center justify-center bg-gradient-to-br from-primary/15 to-rose-400/10 dark:from-primary/25 dark:to-rose-400/10 text-slate-400 dark:text-slate-500 text-xs font-bold book-cover ring-1 ring-inset ring-slate-200 dark:ring-slate-700"><span>PDF</span>${volBadge}</div>`;
       const dateLine = formatDate(ed.issue_date || ed.created_at);
       const subLine = dateLine || String(ed.series_title || ed.status || '').trim() || 'Edition';
       card.innerHTML = `

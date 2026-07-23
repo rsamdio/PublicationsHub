@@ -182,7 +182,7 @@ function renderEditions(group) {
     const vol = total - i;
     const card = document.createElement('article');
     card.className =
-      'edition-card group flex flex-col bg-white dark:bg-[#182430] rounded-xl border border-slate-200 dark:border-slate-800 transition-colors hover:border-primary/50 cursor-pointer';
+      'edition-card group flex flex-col bg-white dark:bg-[#182430] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors hover:border-primary/50 cursor-pointer';
     const sizesEd = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw';
     const img =
       ed.cover_url || ed.cover_thumb_url
@@ -203,12 +203,12 @@ function renderEditions(group) {
         <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1 group-hover:text-primary transition-colors line-clamp-2">${escapeHtml(ed.title || 'Edition')}</h3>
         <p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">${escapeHtml(ed.description || '')}</p>
         <div class="flex items-center gap-3 mt-auto">
-          <button type="button" class="series-read-btn flex-1 border border-primary/50 bg-blue-50 text-blue-950 hover:bg-primary hover:text-white hover:border-primary dark:bg-primary/15 dark:text-sky-100 dark:border-primary/40 dark:hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
+          <button type="button" class="series-read-btn flex-1 border border-primary/50 bg-primary/10 text-primary hover:bg-primary hover:text-white hover:border-primary dark:bg-primary/15 dark:text-rose-100 dark:border-primary/40 dark:hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
             ${pubIcon('auto_stories', 'text-base')}
             Read now
           </button>
           <div class="relative shrink-0">
-            <button type="button" class="edition-share-trigger p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors" aria-expanded="false" aria-haspopup="true" title="Share this edition">
+            <button type="button" class="edition-share-trigger p-2 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors" aria-expanded="false" aria-haspopup="true" title="Share this edition">
               ${pubIcon('share', 'text-xl')}
             </button>
             <div class="edition-share-menu hidden absolute bottom-full right-0 mb-1 z-40 min-w-[13rem] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-surface-dark shadow-xl py-1.5 overflow-hidden" role="menu" aria-label="Share edition">
@@ -352,10 +352,10 @@ function fillHero(group) {
         'high'
       );
       wireCoverImgReveal(heroCover);
-      heroCover.classList.remove('bg-gradient-to-br', 'from-primary/20', 'to-blue-600/10');
+      heroCover.classList.remove('bg-gradient-to-br', 'from-primary/20', 'to-rose-400/15');
     } else {
       heroCover.innerHTML = '';
-      heroCover.classList.add('bg-gradient-to-br', 'from-primary/20', 'to-blue-600/10');
+      heroCover.classList.add('bg-gradient-to-br', 'from-primary/20', 'to-rose-400/15');
     }
   }
   if (heroBadgePublisher) {

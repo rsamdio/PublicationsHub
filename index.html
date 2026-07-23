@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="dark" lang="en">
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -9,7 +9,7 @@
   <meta name="author" content="Rotaract South Asia MDIO"/>
   <meta name="robots" content="index, follow"/>
   <link rel="canonical" href="https://publications.rsamdio.org/"/>
-  <meta name="theme-color" content="#101922"/>
+  <meta name="theme-color" content="#f6f3ed"/>
   <meta property="og:type" content="website"/>
   <meta property="og:site_name" content="Publications Hub"/>
   <meta property="og:title" content="Publications Hub | Rotaract South Asia MDIO"/>
@@ -34,9 +34,9 @@
   <link rel="stylesheet" href="css/tailwind-bundle.css"/>
   <style>
     ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #101922; }
-    ::-webkit-scrollbar-thumb { background: #2e3b4b; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #3e4f63; }
+    ::-webkit-scrollbar-track { background: #efebe4; }
+    ::-webkit-scrollbar-thumb { background: #d4cdc2; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #bdb5a8; }
     .book-cover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
     .edition-card:hover .book-cover { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
     /* Defer layout/paint for off-screen shelf cards (pairs with incremental render). */
@@ -67,18 +67,18 @@
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display antialiased min-h-screen flex flex-col">
 
   <!-- Top navigation -->
-  <nav id="app-nav" class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md">
+  <nav id="app-nav" class="sticky top-0 z-50 w-full border-b border-stone-200/80 bg-[#fffcf8]/90 dark:border-slate-800 dark:bg-background-dark/80 backdrop-blur-md">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
         <a href="/" class="flex items-center text-left" aria-label="Publications Hub home">
-          <img src="images/rsamdio-wordmark.webp" alt="Rotaract South Asia MDIO" width="432" height="180" class="h-8 w-auto shrink-0 brightness-0 dark:brightness-100" decoding="async"/>
+          <img src="images/rsamdio.webp" alt="Rotaract South Asia MDIO" width="432" height="180" class="h-9 w-auto shrink-0" decoding="async"/>
         </a>
         <div class="hidden md:flex items-center space-x-8">
           <a href="/" class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors">Home</a>
           <a href="https://rsamdio.org/" target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors">RSAMDIO</a>
         </div>
         <div class="flex items-center gap-3 sm:gap-4">
-          <a href="studio.html" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg text-white bg-blue-700 hover:bg-blue-800 shadow-sm shadow-blue-900/25 transition-all">
+          <a href="studio.html" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg text-white bg-primary hover:bg-primary-dark shadow-sm shadow-primary/25 transition-all">
             Publisher Studio
           </a>
         </div>
@@ -92,16 +92,16 @@
       <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-primary/10 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
         <div class="text-center max-w-3xl mx-auto">
-          <div class="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-medium mb-6 border border-slate-300 dark:bg-slate-800/90 dark:text-slate-100 dark:border-slate-600">
+          <div class="inline-flex items-center px-3 py-1 rounded-full bg-transparent text-slate-800 text-xs font-medium mb-6 border border-primary/25">
             <span class="w-2 h-2 rounded-full bg-primary mr-2 shrink-0"></span>
             RSA Publications Hub
           </div>
           <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-6 leading-tight">
             Discover, read, and publish<br class="hidden md:block"/>
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">digital editions</span>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-rose-400">digital editions</span>
           </h1>
           <p class="text-lg md:text-xl text-slate-600 dark:text-slate-400 mb-6 max-w-2xl mx-auto leading-relaxed">
-            Browse and read publications. Publishers use <a href="studio.html" class="text-blue-800 dark:text-sky-200 hover:underline font-medium">Publisher Studio</a> to upload editions.
+            Browse and read publications. Publishers use <a href="studio.html" class="text-primary hover:underline font-medium">Publisher Studio</a> to upload editions.
           </p>
         </div>
       </div>
@@ -110,12 +110,12 @@
     <p id="shelf-error" class="hidden text-center py-4 text-sm text-red-400 max-w-7xl mx-auto px-4"></p>
 
     <div id="library-empty-state" class="hidden max-w-7xl mx-auto px-4 py-16 text-center">
-      <div class="inline-flex p-6 rounded-2xl bg-surface-dark border border-slate-800 mb-6">
+      <div class="inline-flex p-6 rounded-2xl bg-slate-100 border border-slate-200 mb-6">
         <span data-pub-icon="menu_book" class="text-5xl text-primary/80"></span>
       </div>
-      <h2 class="text-2xl font-bold text-white mb-2">No publications yet</h2>
-      <p class="text-slate-400 max-w-md mx-auto mb-8">When a publisher uploads a PDF, it will appear here for everyone to read.</p>
-      <a href="studio.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-medium transition-colors">
+      <h2 class="text-2xl font-bold text-slate-900 mb-2">No publications yet</h2>
+      <p class="text-slate-600 max-w-md mx-auto mb-8">When a publisher uploads a PDF, it will appear here for everyone to read.</p>
+      <a href="studio.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-medium transition-colors">
         <span data-pub-icon="login" class="text-sm"></span>
         Publisher Studio
       </a>
@@ -133,23 +133,23 @@
       </section>
 
       <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8" id="all-publications">
-        <div class="sticky top-16 z-40 -mx-4 px-4 py-4 bg-background-dark/90 backdrop-blur border-b border-slate-800 mb-8">
+        <div class="sticky top-16 z-40 -mx-4 px-4 py-4 bg-[#fffcf8]/90 backdrop-blur border-b border-stone-200/80 mb-8">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+            <h2 class="text-2xl font-bold text-slate-900 flex items-center gap-3">
               All Publications
-              <span id="edition-count-badge" class="text-sm font-normal text-slate-400 bg-surface-dark px-2 py-1 rounded-md">0</span>
+              <span id="edition-count-badge" class="text-sm font-normal text-slate-600 bg-slate-100 px-2 py-1 rounded-md">0</span>
             </h2>
             <div class="relative w-full md:max-w-md">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                 <span data-pub-icon="filter_list" class="text-lg"></span>
               </div>
-              <input id="shelf-search" type="search" class="block w-full pl-10 pr-3 py-2 border border-slate-700 rounded-lg bg-surface-dark text-white placeholder-slate-500 focus:ring-1 focus:ring-primary focus:border-primary text-sm" placeholder="Filter by title or publisher…"/>
+              <input id="shelf-search" type="search" class="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 placeholder-slate-500 focus:ring-1 focus:ring-primary focus:border-primary text-sm" placeholder="Filter by title or publisher…"/>
             </div>
           </div>
         </div>
         <div id="shelf-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8"></div>
         <p id="shelf-grid-empty" class="hidden text-center text-slate-500 text-sm py-12">No publications match your search.</p>
-        <p id="shelf-grid-status" class="text-sm text-slate-400 mt-6 text-center" aria-live="polite"></p>
+        <p id="shelf-grid-status" class="text-sm text-slate-600 mt-6 text-center" aria-live="polite"></p>
         <div id="shelf-scroll-sentinel" class="hidden h-8 w-full shrink-0" aria-hidden="true"></div>
       </section>
 
@@ -162,7 +162,7 @@
             </p>
           </div>
           <div class="flex flex-col sm:flex-row gap-3 mt-6 md:mt-0 shrink-0">
-            <a href="studio.html" class="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-medium shadow-lg shadow-blue-900/30 transition-colors">
+            <a href="studio.html" class="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-medium shadow-lg shadow-primary/30 transition-colors">
               Open Publisher Studio
             </a>
           </div>
@@ -170,7 +170,7 @@
       </section>
     </main>
 
-    <footer class="bg-white dark:bg-background-dark border-t border-slate-200 dark:border-slate-800 pt-12 pb-8 mt-auto">
+    <footer class="bg-[#fffcf8] dark:bg-background-dark border-t border-stone-200/80 dark:border-slate-800 pt-12 pb-8 mt-auto">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4 pt-8 border-t border-slate-200 dark:border-slate-800">
           <p class="text-xs text-slate-600 dark:text-slate-400">© Rotaract South Asia MDIO. All rights reserved.</p>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="dark" lang="en">
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -7,7 +7,7 @@
   <meta name="description" content="Sign in to manage your Rotaract South Asia publications, upload editions, and invite your team. Publications Hub by Rotaract South Asia MDIO."/>
   <meta name="robots" content="index, follow"/>
   <link rel="canonical" href="https://publications.rsamdio.org/studio.html"/>
-  <meta name="theme-color" content="#101922"/>
+  <meta name="theme-color" content="#f6f3ed"/>
   <meta property="og:type" content="website"/>
   <meta property="og:site_name" content="Publications Hub"/>
   <meta property="og:title" content="Publisher Studio | Publications Hub"/>
@@ -31,9 +31,9 @@
   <link rel="stylesheet" href="css/tailwind-bundle.css"/>
   <style>
     ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #101922; }
-    ::-webkit-scrollbar-thumb { background: #2e3b4b; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #3e4f63; }
+    ::-webkit-scrollbar-track { background: #efebe4; }
+    ::-webkit-scrollbar-thumb { background: #d4cdc2; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #bdb5a8; }
     .book-cover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
     .edition-card:hover .book-cover { transform: translateY(-3px) scale(1.02); box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.45); }
     .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -43,14 +43,14 @@
       display: inline-block;
       width: 1.25rem;
       height: 1.25rem;
-      border: 2px solid #137fec;
+      border: 2px solid #d81a6a;
       border-right-color: transparent;
       border-radius: 50%;
       animation: studio-spin 0.7s linear infinite;
       flex-shrink: 0;
       vertical-align: middle;
     }
-    .dark .studio-spinner { border-color: #3b9eff; border-right-color: transparent; }
+    .dark .studio-spinner { border-color: #e85a94; border-right-color: transparent; }
   </style>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-8CY8TX1F54"></script>
@@ -63,11 +63,11 @@
   </script>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display antialiased min-h-screen flex flex-col">
-  <header class="sticky top-0 z-30 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-background-dark/90 backdrop-blur-md">
+  <header class="sticky top-0 z-30 border-b border-stone-200/80 bg-[#fffcf8]/90 dark:border-slate-800 dark:bg-background-dark/90 backdrop-blur-md">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
       <div class="flex items-center gap-6 min-w-0">
         <a href="/" class="flex items-center gap-2.5 shrink-0 group" title="Public library">
-          <img src="images/rsamdio-wordmark.webp" alt="Rotaract South Asia MDIO" width="432" height="180" class="h-9 w-auto shrink-0 brightness-0 dark:brightness-100 group-hover:opacity-90 transition-opacity" decoding="async"/>
+          <img src="images/rsamdio.webp" alt="Rotaract South Asia MDIO" width="432" height="180" class="h-9 w-auto shrink-0 group-hover:opacity-90 transition-opacity" decoding="async"/>
           <div class="hidden sm:block min-w-0">
             <span class="block text-[11px] font-semibold uppercase tracking-wider text-primary">Studio</span>
           </div>
@@ -279,7 +279,7 @@
     </section>
   </main>
 
-  <footer class="bg-white dark:bg-background-dark border-t border-slate-200 dark:border-slate-800 py-8 mt-auto shrink-0">
+  <footer class="bg-[#fffcf8] dark:bg-background-dark border-t border-stone-200/80 dark:border-slate-800 py-8 mt-auto shrink-0">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
       <p class="text-xs text-slate-500">© Rotaract South Asia MDIO. All rights reserved.</p>
       <nav class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-slate-500" aria-label="Footer">
