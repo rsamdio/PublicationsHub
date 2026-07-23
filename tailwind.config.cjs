@@ -14,9 +14,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#137fec',
-        'primary-dark': '#106cc9',
-        'background-light': '#f6f7f8',
+        /* Rotaract cranberry pink (sampled from images/rsamdio.webp). */
+        primary: '#d81a6a',
+        'primary-dark': '#b81458',
+        'background-light': '#f6f3ed',
         'background-dark': '#101922',
         'surface-dark': '#192430',
         'surface-dark-hover': '#223040',
@@ -36,7 +37,7 @@ module.exports = {
       },
       boxShadow: {
         page: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4)',
-        'primary-glow': '0 0 40px -10px rgba(19, 127, 236, 0.35)'
+        'primary-glow': '0 0 40px -10px rgba(216, 26, 106, 0.35)'
       }
     }
   },

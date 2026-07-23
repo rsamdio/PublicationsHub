@@ -338,7 +338,7 @@ const FLOW_ACTIVE =
 const FLOW_DONE =
   'inline-flex items-center gap-1.5 rounded-full bg-primary/5 text-primary/90 px-3 py-1.5 border border-primary/30';
 const FLOW_UP =
-  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border border-slate-700 text-slate-500';
+  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border border-slate-300 text-slate-500';
 
 function stopPlatformTeamRealtime() {
   platformStaffUnsub?.();
@@ -417,8 +417,8 @@ function setMsg(el, text, isError) {
   if (!el) return;
   el.textContent = text || '';
   el.classList.toggle('hidden', !text);
-  el.classList.toggle('text-red-400', !!isError);
-  el.classList.toggle('text-emerald-400', !!text && !isError);
+  el.classList.toggle('text-red-600', !!isError);
+  el.classList.toggle('text-emerald-600', !!text && !isError);
 }
 
 function readerHrefForEdition(pub) {
@@ -676,10 +676,10 @@ function renderBulkPublisherPreview() {
   bulkPublisherPreviewWrap.classList.remove('hidden');
   bulkPublisherRows.slice(0, 8).forEach((row, idx) => {
     const tr = document.createElement('tr');
-    tr.className = 'hover:bg-surface-dark-hover/30';
+    tr.className = 'hover:bg-slate-50';
     tr.innerHTML = `
       <td class="px-3 py-2 text-slate-500">${idx + 1}</td>
-      <td class="px-3 py-2 text-white">${escapeHtml(row.publisher_name)}</td>
+      <td class="px-3 py-2 text-slate-900">${escapeHtml(row.publisher_name)}</td>
       <td class="px-3 py-2 text-slate-300">${escapeHtml(row.owner_name)}</td>
       <td class="px-3 py-2 text-slate-400 font-mono">${escapeHtml(row.owner_email)}</td>
       <td class="px-3 py-2 text-slate-400">${escapeHtml(row.internal_reference || '—')}</td>`;
@@ -742,7 +742,7 @@ async function runBulkPublisherCreate() {
       failCount++;
       bulkPublisherResults?.insertAdjacentHTML(
         'beforeend',
-        `<li class="text-red-400">Row ${i + 1} (${escapeHtml(label)}): missing required fields.</li>`
+        `<li class="text-red-600">Row ${i + 1} (${escapeHtml(label)}): missing required fields.</li>`
       );
       continue;
     }
@@ -758,13 +758,13 @@ async function runBulkPublisherCreate() {
       okCount++;
       bulkPublisherResults?.insertAdjacentHTML(
         'beforeend',
-        `<li class="text-emerald-400">Row ${i + 1}: “${escapeHtml(label)}” created${pid ? ` (ID: ${escapeHtml(pid)})` : ''}.</li>`
+        `<li class="text-emerald-600">Row ${i + 1}: “${escapeHtml(label)}” created${pid ? ` (ID: ${escapeHtml(pid)})` : ''}.</li>`
       );
     } catch (err) {
       failCount++;
       bulkPublisherResults?.insertAdjacentHTML(
         'beforeend',
-        `<li class="text-red-400">Row ${i + 1} (${escapeHtml(label)}): ${escapeHtml(formatCreatePublisherError(err))}</li>`
+        `<li class="text-red-600">Row ${i + 1} (${escapeHtml(label)}): ${escapeHtml(formatCreatePublisherError(err))}</li>`
       );
     }
   }
@@ -882,9 +882,9 @@ function setAdminOrgSubTab(tab) {
     b.setAttribute('aria-selected', on ? 'true' : 'false');
     b.classList.toggle('border-primary', on);
     b.classList.toggle('border-transparent', !on);
-    b.classList.toggle('text-white', on);
+    b.classList.toggle('text-slate-900', on);
     b.classList.toggle('text-slate-500', !on);
-    b.classList.toggle('bg-surface-dark/40', on);
+    b.classList.toggle('bg-slate-50/80', on);
   });
 }
 
@@ -896,9 +896,9 @@ function setAdminTab(tab) {
     b.setAttribute('aria-selected', on ? 'true' : 'false');
     b.classList.toggle('border-primary', on);
     b.classList.toggle('border-transparent', !on);
-    b.classList.toggle('text-white', on);
+    b.classList.toggle('text-slate-900', on);
     b.classList.toggle('text-slate-500', !on);
-    b.classList.toggle('bg-surface-dark/60', on);
+    b.classList.toggle('bg-slate-50/80', on);
   });
   document.getElementById('admin-panel-publishers')?.classList.toggle('hidden', tab !== 'publishers');
   document.getElementById('admin-panel-publications')?.classList.toggle('hidden', tab !== 'publications');
@@ -931,8 +931,8 @@ async function tryShowDeniedWithPlatformInvite() {
     <ul class="space-y-2">${data
       .map(
         (inv) => `
-      <li class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface-dark border border-slate-700 px-3 py-2">
-        <span class="text-sm text-white">${escapeHtml(inv.invitee_name || '')} — <span class="capitalize">${escapeHtml(inv.intended_tier || 'admin')}</span></span>
+      <li class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white border border-slate-300 px-3 py-2">
+        <span class="text-sm text-slate-900">${escapeHtml(inv.invitee_name || '')} — <span class="capitalize">${escapeHtml(inv.intended_tier || 'admin')}</span></span>
         <button type="button" class="accept-platform-invite px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold" data-invite-id="${escapeHtml(inv.inviteId)}">Accept</button>
       </li>`
       )
@@ -1102,12 +1102,12 @@ function renderPublishersTable(data, error) {
   rows.forEach((p) => {
     const tr = document.createElement('tr');
     tr.className =
-      'hover:bg-surface-dark-hover/40 transition-colors cursor-pointer admin-publisher-row';
+      'hover:bg-slate-50 transition-colors cursor-pointer admin-publisher-row';
     tr.dataset.publisherId = p.id;
     tr.dataset.publisherName = p.name || '';
     tr.dataset.internalReference = (p.internal_reference && String(p.internal_reference).trim()) || '';
     const delBtn = adminFull
-      ? `<button type="button" class="admin-del-publisher-row text-xs text-red-400 hover:underline" data-publisher-id="${escapeHtml(p.id)}" data-publisher-name="${escapeHtml(p.name)}">Delete org</button>`
+      ? `<button type="button" class="admin-del-publisher-row text-xs text-red-600 hover:underline" data-publisher-id="${escapeHtml(p.id)}" data-publisher-name="${escapeHtml(p.name)}">Delete org</button>`
       : '';
     const actionsCell = `<td class="px-4 py-3.5 text-right">
       <span class="inline-flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
@@ -1119,9 +1119,9 @@ function renderPublishersTable(data, error) {
       ? `<span class="text-slate-300">${escapeHtml(tr.dataset.internalReference)}</span>`
       : '—';
     tr.innerHTML = `
-      <td class="px-4 py-3.5 text-white font-medium">${escapeHtml(p.name)}</td>
+      <td class="px-4 py-3.5 text-slate-900 font-medium">${escapeHtml(p.name)}</td>
       <td class="px-4 py-3.5 text-sm max-w-[14rem]">${refCell}</td>
-      <td class="px-4 py-3.5"><span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${p.status === 'active' ? 'bg-emerald-950/50 text-emerald-300 ring-1 ring-emerald-800/50' : 'bg-slate-800 text-slate-400 ring-1 ring-slate-700'}">${escapeHtml(p.status)}</span></td>
+      <td class="px-4 py-3.5"><span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${p.status === 'active' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'}">${escapeHtml(p.status)}</span></td>
       <td class="px-4 py-3.5 text-slate-500 font-mono text-xs select-all">${escapeHtml(p.id)}</td>
       ${actionsCell}`;
     publishersTbody.appendChild(tr);
@@ -1200,16 +1200,16 @@ function renderAdminOrgSeriesTable() {
     const s = data.series[sid];
     const count = editions.filter((e) => e.series_id === sid).length;
     const tr = document.createElement('tr');
-    tr.className = 'hover:bg-surface-dark-hover/40';
+    tr.className = 'hover:bg-slate-50';
     const title = s?.title || sid;
     tr.innerHTML = `
-      <td class="px-4 py-3 text-white font-medium">${escapeHtml(title)}</td>
+      <td class="px-4 py-3 text-slate-900 font-medium">${escapeHtml(title)}</td>
       <td class="px-4 py-3 text-slate-500 font-mono text-xs select-all">${escapeHtml(sid)}</td>
       <td class="px-4 py-3 text-right text-slate-400 tabular-nums">${count}</td>
       <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap">
         <button type="button" class="admin-edit-series-in-org text-xs font-semibold text-primary hover:underline" data-series-id="${escapeHtml(sid)}">Edit</button>
         <button type="button" class="admin-open-series-editions text-xs font-semibold text-primary hover:underline" data-series-id="${escapeHtml(sid)}">View editions</button>
-        <button type="button" class="admin-del-series-in-org text-xs text-red-400 hover:underline" data-series-id="${escapeHtml(sid)}">Delete</button>
+        <button type="button" class="admin-del-series-in-org text-xs text-red-600 hover:underline" data-series-id="${escapeHtml(sid)}">Delete</button>
       </td>`;
     const openBtn = tr.querySelector('.admin-open-series-editions');
     if (openBtn) openBtn.dataset.seriesTitle = title;
@@ -1236,14 +1236,14 @@ function renderAdminOrgTeamTables() {
       );
       roster.forEach((r) => {
         const tr = document.createElement('tr');
-        tr.className = 'hover:bg-surface-dark-hover/40';
+        tr.className = 'hover:bg-slate-50';
         const isTargetOwner = r.role === 'owner';
         const canRemove = Boolean(r.uid) && (!isTargetOwner || ownerCount > 1);
         const removeCell = canRemove
-          ? `<button type="button" class="admin-remove-publisher-member text-xs text-red-400 hover:underline" data-target-uid="${escapeHtml(r.uid)}">Remove</button>`
+          ? `<button type="button" class="admin-remove-publisher-member text-xs text-red-600 hover:underline" data-target-uid="${escapeHtml(r.uid)}">Remove</button>`
           : '<span class="text-xs text-slate-600">—</span>';
         tr.innerHTML = `
-          <td class="px-4 py-3 text-white">${escapeHtml(r.display_name || r.uid || '—')}</td>
+          <td class="px-4 py-3 text-slate-900">${escapeHtml(r.display_name || r.uid || '—')}</td>
           <td class="px-4 py-3 text-slate-400 text-xs">${escapeHtml(r.email || '')}</td>
           <td class="px-4 py-3 text-slate-400 capitalize">${escapeHtml(r.role || '')}</td>
           <td class="px-4 py-3 text-right whitespace-nowrap">${removeCell}</td>`;
@@ -1260,12 +1260,12 @@ function renderAdminOrgTeamTables() {
     } else {
       invites.forEach((i) => {
         const tr = document.createElement('tr');
-        tr.className = 'hover:bg-surface-dark-hover/40';
+        tr.className = 'hover:bg-slate-50';
         tr.innerHTML = `
-          <td class="px-4 py-3 text-white">${escapeHtml(i.invitee_name || '—')}</td>
+          <td class="px-4 py-3 text-slate-900">${escapeHtml(i.invitee_name || '—')}</td>
           <td class="px-4 py-3 text-slate-400 text-xs font-mono">${escapeHtml(i.email_normalized || '')}</td>
           <td class="px-4 py-3 text-slate-400 capitalize">${escapeHtml(i.intended_role || 'editor')}</td>
-          <td class="px-4 py-3 text-right whitespace-nowrap"><button type="button" class="admin-revoke-publisher-invite text-xs text-red-400 hover:underline" data-invite-id="${escapeHtml(i.id)}">Revoke</button></td>`;
+          <td class="px-4 py-3 text-right whitespace-nowrap"><button type="button" class="admin-revoke-publisher-invite text-xs text-red-600 hover:underline" data-invite-id="${escapeHtml(i.id)}">Revoke</button></td>`;
         adminOrgInvitesTbody.appendChild(tr);
       });
     }
@@ -1287,14 +1287,14 @@ function renderAdminSeriesEditionsTable() {
   editions.forEach((ed) => {
     const reader = readerHrefForEdition(ed);
     const tr = document.createElement('tr');
-    tr.className = 'hover:bg-surface-dark-hover/40';
+    tr.className = 'hover:bg-slate-50';
     tr.innerHTML = `
-      <td class="px-4 py-3 text-white font-medium">${escapeHtml(ed.title || ed.id)}</td>
+      <td class="px-4 py-3 text-slate-900 font-medium">${escapeHtml(ed.title || ed.id)}</td>
       <td class="px-4 py-3 text-slate-500 font-mono text-xs select-all">${escapeHtml(ed.id)}</td>
       <td class="px-4 py-3">${coverLinkCellHtml(ed)}</td>
       <td class="px-4 py-3"><a href="${escapeHtml(reader)}" class="text-primary text-xs font-medium hover:underline" target="_blank" rel="noopener noreferrer">Open</a></td>
       <td class="px-4 py-3 text-slate-400 text-xs">${escapeHtml(formatIsoForUi(ed.created_at))}</td>
-      <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap"><button type="button" class="admin-edit-edition-row text-xs font-semibold text-primary hover:underline" data-edition-id="${escapeHtml(ed.id)}">Edit</button><button type="button" class="admin-del-edition-row text-xs text-red-400 hover:underline" data-edition-id="${escapeHtml(ed.id)}">Delete</button></td>`;
+      <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap"><button type="button" class="admin-edit-edition-row text-xs font-semibold text-primary hover:underline" data-edition-id="${escapeHtml(ed.id)}">Edit</button><button type="button" class="admin-del-edition-row text-xs text-red-600 hover:underline" data-edition-id="${escapeHtml(ed.id)}">Delete</button></td>`;
     adminSeriesEditionsTbody.appendChild(tr);
   });
 }
@@ -1606,7 +1606,7 @@ function renderCatalogTables(data, error) {
   }
   sorted.forEach((pub) => {
     const tr = document.createElement('tr');
-    tr.className = 'hover:bg-surface-dark-hover/40 transition-colors';
+    tr.className = 'hover:bg-slate-50 transition-colors';
     const id = pub.id;
     const idAttr = escapeHtml(id);
     const reader = readerHrefForEdition(pub);
@@ -1614,14 +1614,14 @@ function renderCatalogTables(data, error) {
       <td class="px-4 py-3">
         ${adminFeaturedToggleCellHtml(idAttr, !!pub.featured, 'Feature on Explore home')}
       </td>
-      <td class="px-4 py-3 text-white font-medium">${escapeHtml(pub.title || 'Untitled')}</td>
+      <td class="px-4 py-3 text-slate-900 font-medium">${escapeHtml(pub.title || 'Untitled')}</td>
       <td class="px-4 py-3 text-slate-400">${escapeHtml(pub.publisher_name || '—')}</td>
       <td class="px-4 py-3 text-slate-300">${escapeHtml(pub.series_title || '—')}</td>
       <td class="px-4 py-3 text-slate-500 font-mono text-xs select-all">${idAttr}</td>
       <td class="px-4 py-3">${coverLinkCellHtml(pub)}</td>
       <td class="px-4 py-3"><a href="${escapeHtml(reader)}" class="text-primary text-xs font-medium hover:underline" target="_blank" rel="noopener noreferrer">Open</a></td>
       <td class="px-4 py-3 text-slate-400 text-xs">${escapeHtml(formatIsoForUi(pub.created_at))}</td>
-      <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap"><button type="button" class="admin-edit-edition-catalog text-xs font-semibold text-primary hover:underline" data-edition-id="${idAttr}">Edit</button><button type="button" class="admin-del-edition-catalog text-xs text-red-400 hover:underline" data-edition-id="${idAttr}">Delete</button></td>`;
+      <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap"><button type="button" class="admin-edit-edition-catalog text-xs font-semibold text-primary hover:underline" data-edition-id="${idAttr}">Edit</button><button type="button" class="admin-del-edition-catalog text-xs text-red-600 hover:underline" data-edition-id="${idAttr}">Delete</button></td>`;
     allEditionsTbody?.appendChild(tr);
   });
 
@@ -1634,21 +1634,21 @@ function renderCatalogTables(data, error) {
   } else {
     featured.forEach((pub) => {
       const tr = document.createElement('tr');
-      tr.className = 'hover:bg-surface-dark-hover/40 transition-colors';
+      tr.className = 'hover:bg-slate-50 transition-colors';
       const id = pub.id;
       const idAttr = escapeHtml(id);
       tr.innerHTML = `
       <td class="px-4 py-3">
         ${adminFeaturedToggleCellHtml(idAttr, true, 'Featured on Explore')}
       </td>
-      <td class="px-4 py-3 text-white font-medium">${escapeHtml(pub.title || 'Untitled')}</td>
+      <td class="px-4 py-3 text-slate-900 font-medium">${escapeHtml(pub.title || 'Untitled')}</td>
       <td class="px-4 py-3 text-slate-400">${escapeHtml(pub.publisher_name || '—')}</td>
       <td class="px-4 py-3 text-slate-300">${escapeHtml(pub.series_title || '—')}</td>
       <td class="px-4 py-3 text-slate-500 font-mono text-xs select-all">${idAttr}</td>
       <td class="px-4 py-3">${coverLinkCellHtml(pub)}</td>
       <td class="px-4 py-3"><a href="${escapeHtml(readerHrefForEdition(pub))}" class="text-primary text-xs font-medium hover:underline" target="_blank" rel="noopener noreferrer">Open</a></td>
       <td class="px-4 py-3 text-slate-400 text-xs">${escapeHtml(formatIsoForUi(pub.created_at))}</td>
-      <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap"><button type="button" class="admin-edit-edition-catalog text-xs font-semibold text-primary hover:underline" data-edition-id="${idAttr}">Edit</button><button type="button" class="admin-del-edition-catalog text-xs text-red-400 hover:underline" data-edition-id="${idAttr}">Delete</button></td>`;
+      <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap"><button type="button" class="admin-edit-edition-catalog text-xs font-semibold text-primary hover:underline" data-edition-id="${idAttr}">Edit</button><button type="button" class="admin-del-edition-catalog text-xs text-red-600 hover:underline" data-edition-id="${idAttr}">Delete</button></td>`;
       featuredOnlyTbody?.appendChild(tr);
     });
   }
@@ -1706,7 +1706,7 @@ function renderPlatformStaffInvitesTable(result) {
   const { data, error } = result || {};
   platformPendingInvitesTbody.innerHTML = '';
   if (error) {
-    platformPendingInvitesTbody.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-red-400 text-sm">${escapeHtml(error.message || 'Failed to load invites')}</td></tr>`;
+    platformPendingInvitesTbody.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-red-600 text-sm">${escapeHtml(error.message || 'Failed to load invites')}</td></tr>`;
     return;
   }
   const rows = data || [];
@@ -1717,13 +1717,13 @@ function renderPlatformStaffInvitesTable(result) {
   }
   rows.forEach((inv) => {
     const tr = document.createElement('tr');
-    tr.className = 'hover:bg-surface-dark-hover/40';
+    tr.className = 'hover:bg-slate-50';
     const iid = escapeHtml(inv.inviteId);
     tr.innerHTML = `
-      <td class="px-4 py-3 text-white">${escapeHtml(inv.invitee_name || '—')}</td>
+      <td class="px-4 py-3 text-slate-900">${escapeHtml(inv.invitee_name || '—')}</td>
       <td class="px-4 py-3 text-slate-400 text-xs font-mono">${escapeHtml(inv.email_normalized || '')}</td>
       <td class="px-4 py-3 text-slate-400 capitalize">${escapeHtml(inv.intended_tier || 'admin')}</td>
-      <td class="px-4 py-3 text-right whitespace-nowrap"><button type="button" class="revoke-platform-pending-invite text-xs text-red-400 hover:underline" data-invite-id="${iid}">Revoke</button></td>`;
+      <td class="px-4 py-3 text-right whitespace-nowrap"><button type="button" class="revoke-platform-pending-invite text-xs text-red-600 hover:underline" data-invite-id="${iid}">Revoke</button></td>`;
     platformPendingInvitesTbody.appendChild(tr);
   });
 }
@@ -1733,7 +1733,7 @@ function renderPlatformStaffTable(result) {
   const { data, error } = result || {};
   staffTbody.innerHTML = '';
   if (error) {
-    staffTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-red-400 text-sm">${escapeHtml(error.message || 'Failed to load staff')}</td></tr>`;
+    staffTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-red-600 text-sm">${escapeHtml(error.message || 'Failed to load staff')}</td></tr>`;
     return;
   }
   const staff = data || [];
@@ -1744,14 +1744,14 @@ function renderPlatformStaffTable(result) {
   }
   staff.forEach((s) => {
     const tr = document.createElement('tr');
-    tr.className = 'hover:bg-surface-dark-hover/40';
+    tr.className = 'hover:bg-slate-50';
     const uid = escapeHtml(s.uid);
     tr.innerHTML = `
         <td class="px-4 py-3 text-slate-400 font-mono text-xs">${uid}</td>
-        <td class="px-4 py-3 text-white">${escapeHtml(s.email || '—')}</td>
+        <td class="px-4 py-3 text-slate-900">${escapeHtml(s.email || '—')}</td>
         <td class="px-4 py-3 text-slate-300">${escapeHtml(s.displayName || '—')}</td>
         <td class="px-4 py-3 text-slate-400 capitalize">${escapeHtml(s.tier || 'admin')}</td>
-        <td class="px-4 py-3 text-right">${adminFull ? `<button type="button" class="remove-staff-btn text-xs text-red-400 hover:underline" data-uid="${uid}">Remove</button>` : '<span class="text-slate-600 text-xs">—</span>'}</td>`;
+        <td class="px-4 py-3 text-right">${adminFull ? `<button type="button" class="remove-staff-btn text-xs text-red-600 hover:underline" data-uid="${uid}">Remove</button>` : '<span class="text-slate-600 text-xs">—</span>'}</td>`;
     staffTbody.appendChild(tr);
   });
 }
@@ -2303,25 +2303,25 @@ btnBackfillCoverThumbs?.addEventListener('click', async () => {
 btnPi?.addEventListener('click', async () => {
   if (!adminFull || !piMsg) return;
   piMsg.textContent = '';
-  piMsg.classList.remove('text-red-400', 'text-emerald-400');
+  piMsg.classList.remove('text-red-600', 'text-emerald-600');
   const invitee_name = (piName?.value || '').trim();
   const email = (piEmail?.value || '').trim();
   const intended_tier = piTier?.value === 'manager' ? 'manager' : 'admin';
   if (!invitee_name || !email) {
     piMsg.textContent = 'Name and email required.';
-    piMsg.classList.add('text-red-400');
+    piMsg.classList.add('text-red-600');
     return;
   }
   setAdminSubmitBusy(btnPi, true, 'Sending…');
   try {
     await platformCreateInviteFn({ invitee_name, email, intended_tier });
     piMsg.textContent = 'Invite created. They can accept after signing in with that Google account.';
-    piMsg.classList.add('text-emerald-400');
+    piMsg.classList.add('text-emerald-600');
     piName.value = '';
     piEmail.value = '';
   } catch (e) {
     piMsg.textContent = e?.message || e?.details || 'Invite failed';
-    piMsg.classList.add('text-red-400');
+    piMsg.classList.add('text-red-600');
   } finally {
     setAdminSubmitBusy(btnPi, false);
   }

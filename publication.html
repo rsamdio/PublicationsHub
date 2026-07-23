@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="dark" lang="en">
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -7,7 +7,7 @@
   <meta name="description" content="Read digital publications from Rotaract South Asia on Publications Hub — an initiative by Rotaract South Asia MDIO."/>
   <meta name="robots" content="index, follow"/>
   <link rel="canonical" href="https://publications.rsamdio.org/publication"/>
-  <meta name="theme-color" content="#101922"/>
+  <meta name="theme-color" content="#f6f3ed"/>
   <meta property="og:type" content="website"/>
   <meta property="og:site_name" content="Publications Hub"/>
   <meta property="og:title" content="Read publication | Publications Hub"/>
@@ -28,9 +28,9 @@
   <link rel="stylesheet" href="css/tailwind-bundle.css"/>
   <style>
     ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #101922; }
-    ::-webkit-scrollbar-thumb { background: #2e3b4b; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #3e4f63; }
+    ::-webkit-scrollbar-track { background: #efebe4; }
+    ::-webkit-scrollbar-thumb { background: #d4cdc2; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #bdb5a8; }
     .book-cover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
     .edition-card:hover .book-cover { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
     .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -54,18 +54,18 @@
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display antialiased min-h-screen flex flex-col">
 
-  <nav id="app-nav" class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md">
+  <nav id="app-nav" class="sticky top-0 z-50 w-full border-b border-stone-200/80 bg-[#fffcf8]/90 dark:border-slate-800 dark:bg-background-dark/80 backdrop-blur-md">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
         <a href="/" class="flex items-center text-left" aria-label="Publications Hub home">
-          <img src="images/rsamdio-wordmark.webp" alt="Rotaract South Asia MDIO" width="432" height="180" class="h-8 w-auto shrink-0 brightness-0 dark:brightness-100" decoding="async"/>
+          <img src="images/rsamdio.webp" alt="Rotaract South Asia MDIO" width="432" height="180" class="h-9 w-auto shrink-0" decoding="async"/>
         </a>
         <div class="hidden md:flex items-center space-x-8">
           <a href="/" class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors">Home</a>
           <a href="https://rsamdio.org/" target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors">RSAMDIO</a>
         </div>
         <div class="flex items-center gap-3 sm:gap-4">
-          <a href="studio.html" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg text-white bg-blue-700 hover:bg-blue-800 shadow-sm shadow-blue-900/25 transition-all">
+          <a href="studio.html" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg text-white bg-primary hover:bg-primary-dark shadow-sm shadow-primary/25 transition-all">
             Publisher studio
           </a>
         </div>
@@ -77,12 +77,12 @@
     <p id="series-error" class="hidden text-center py-4 text-sm text-red-400 max-w-7xl mx-auto px-4"></p>
 
     <div id="series-not-found" class="hidden flex flex-col flex-1 items-center justify-center px-4 py-20 text-center">
-      <span data-pub-icon="search_off" class="text-5xl text-slate-600 mb-4"></span>
-      <h1 class="text-xl font-bold text-white mb-2">Series not found</h1>
-      <p class="text-slate-400 mb-8 max-w-md">Check the link or browse all publication series.</p>
+      <span data-pub-icon="search_off" class="text-5xl text-slate-400 mb-4"></span>
+      <h1 class="text-xl font-bold text-slate-900 mb-2">Series not found</h1>
+      <p class="text-slate-600 mb-8 max-w-md">Check the link or browse all publication series.</p>
       <div class="flex flex-col sm:flex-row items-center gap-3">
         <a href="/#all-publications" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-medium">All publications</a>
-        <a href="/" class="text-sm text-slate-400 hover:text-primary transition-colors">Library home</a>
+        <a href="/" class="text-sm text-slate-600 hover:text-primary transition-colors">Library home</a>
       </div>
     </div>
 
@@ -145,7 +145,7 @@
     </div>
   </div>
 
-  <footer class="bg-white dark:bg-background-dark border-t border-slate-200 dark:border-slate-800 pt-12 pb-8 mt-auto">
+  <footer class="bg-[#fffcf8] dark:bg-background-dark border-t border-stone-200/80 dark:border-slate-800 pt-12 pb-8 mt-auto">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex flex-col md:flex-row justify-between items-center gap-4 pt-8 border-t border-slate-200 dark:border-slate-800">
         <p class="text-xs text-slate-600 dark:text-slate-400">© Rotaract South Asia MDIO. All rights reserved.</p>

@@ -8,7 +8,7 @@ A no-build web app for a multi-tenant digital library.
 - **Editors / owners** open [`studio.html`](studio.html): Google sign-in, **Library** tab (publications → editions; **covers**, **issue dates**, uploads, deletes) and **Team** tab (owners invite by name+email; **one publisher per user**).
 - **Platform staff** open [`admin.html`](admin.html): **Publishers** (search, CSV export, bulk CSV create, new publisher with optional `internal_reference`, edit name/reference, stepped browse: org → publications/team → editions), **Catalog** (search, CSV export with upload timestamp, cover/reader links, edit publication/edition metadata, feature toggle, delete; *all* vs *featured* tables), **Platform team** (invite staff, pending invites + revoke, current staff + remove, RTDB mirror rebuild and cover-thumb backfill for full admins). **Managers** have a narrower callable surface than full **admins** (see `tier` on `platform_admins`). Publisher **slugs are not used for routing**; duplicate display names are allowed—use `internal_reference` in admin to tell orgs apart.
 
-Reader stack: PDF.js + StPageFlip. UI: Inter, blue primary, dark surfaces.
+Reader stack: PDF.js + StPageFlip. UI: Inter, **Rotaract cranberry pink** primary (`#d81a6a`), cream light-only chrome; the flipbook **reader overlay stays dark**.
 
 **URLs (static deployment):** see **Public URL contract** in [`AGENTS.md`](AGENTS.md). New links use **`publication?s=<canonicalId>#/r/<ref>`** (short query + hash); **`?series=`** and **`#/read/`** remain supported for old bookmarks. Publisher **dashboard** still embeds the reader on the same page with a hash.
 
