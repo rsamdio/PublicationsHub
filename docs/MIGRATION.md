@@ -22,4 +22,4 @@ After verifying the public library reads editions, you can delete old `publicati
 
 - Console → `users/{yourAuthUid}/publisherMemberships/legacy` with `{ "role": "owner", "created_at": <timestamp> }`
 
-Or use the **`addPublisherMember`** callable (deploy [`functions/`](../functions)) from [`admin.html`](../admin.html) once you are a platform admin.
+Or use the **`addPublisherMember`** callable (deploy [`functions/`](../functions)) from [`/admin`](../app/admin/page.tsx) once you are a platform admin.

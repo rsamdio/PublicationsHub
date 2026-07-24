@@ -1,5 +1,0 @@
-User-agent: *
-Allow: /
-
-# Admin UI is staff-only; discourage crawling of the URL even if linked.
-Disallow: /admin.html

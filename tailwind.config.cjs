@@ -1,20 +1,14 @@
-/** Merged theme extensions from HTML entrypoints (previously inline with the Tailwind CDN). */
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    './index.html',
-    './admin.html',
-    './studio.html',
-    './publication.html',
-    './terms.html',
-    './privacy.html',
-    './js/**/*.js'
+    './app/**/*.{js,ts,jsx,tsx}',
+    './components/**/*.{js,ts,jsx,tsx}',
+    './lib/**/*.{js,ts,jsx,tsx}'
   ],
   darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        /* Rotaract cranberry pink (sampled from images/rsamdio.webp). */
         primary: '#d81a6a',
         'primary-dark': '#b81458',
         'background-light': '#f6f3ed',
