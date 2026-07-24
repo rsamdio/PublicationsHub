@@ -73,19 +73,41 @@ export function EditionReader({
 
   useEffect(() => {
     let cancelled = false;
-    void import('@/lib/client/viewer.js').then((m: any) => {
-      if (cancelled) return;
+    let viewerMod: {
+      preloadReaderAssets?: () => void;
+      setReaderCloseHandler?: (fn: (() => void) | null) => void;
+      closeReader?: () => void;
+      unlockReaderPageScroll?: () => void;
+    } | null = null;
+
+    void import('@/lib/client/viewer.js').then((m) => {
+      if (cancelled) {
+        // Unmounted before import finished — clear lock without navigating.
+        m.setReaderCloseHandler?.(null);
+        m.closeReader?.();
+        m.unlockReaderPageScroll?.();
+        return;
+      }
+      viewerMod = m;
       m.preloadReaderAssets?.();
       m.setReaderCloseHandler?.(() => {
         router.push(seriesPath);
       });
     });
+
     return () => {
       cancelled = true;
-      void import('@/lib/client/viewer.js').then((m: any) => {
+      const tearDown = (m: NonNullable<typeof viewerMod>) => {
+        // Clear handler first so closeReader does not router.push after browser Back.
         m.setReaderCloseHandler?.(null);
         m.closeReader?.();
-      });
+        m.unlockReaderPageScroll?.();
+      };
+      if (viewerMod) {
+        tearDown(viewerMod);
+      } else {
+        void import('@/lib/client/viewer.js').then(tearDown);
+      }
     };
   }, [router, seriesPath]);
 
