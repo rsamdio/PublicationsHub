@@ -278,6 +278,16 @@ function FeaturedCard({
       >
         <span className="sr-only">{title}</span>
       </Link>
+      {/* Share must be a sibling of the overlay Link (not inside the transformed cover)
+          or transform creates a stacking context under z-10 and blocks clicks. */}
+      <div className="absolute top-2 right-2 z-20">
+        <ShareMenu
+          title={title}
+          text={`${title}${badgeLabel !== 'Publisher' ? ` — ${badgeLabel}` : pub.publisher_name ? ` — ${pub.publisher_name}` : ''}`}
+          getUrl={() => buildEditionDeepLink(pub.id, seriesCanonical)}
+          variant="dark"
+        />
+      </div>
       <div className="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 relative shadow-lg shadow-slate-300/40 group-hover:shadow-primary/20 group-hover:shadow-2xl transition-all duration-300 transform group-hover:-translate-y-1 book-cover border border-slate-200">
         <CoverImage
           fullUrl={coverFull}
@@ -299,14 +309,6 @@ function FeaturedCard({
           </span>
         </div>
         <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-r from-white/20 to-transparent pointer-events-none" />
-        <div className="absolute top-2 right-2">
-          <ShareMenu
-            title={title}
-            text={`${title}${badgeLabel !== 'Publisher' ? ` — ${badgeLabel}` : pub.publisher_name ? ` — ${pub.publisher_name}` : ''}`}
-            getUrl={() => buildEditionDeepLink(pub.id, seriesCanonical)}
-            variant="dark"
-          />
-        </div>
       </div>
       <div className="mt-3">
         <h3 className="text-base font-semibold text-slate-900 leading-tight group-hover:text-primary transition-colors line-clamp-2">

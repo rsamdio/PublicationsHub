@@ -28,3 +28,6 @@ firebase-debug.*.log
 # Optional local archives (not part of the live app)
 Dump/
 newfolderOLD/
+
+# Local secret dumps — never commit
+secrets.md
