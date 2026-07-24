@@ -1,6 +1,6 @@
 # Storage: PDF and cover uploads
 
-**Final PDFs and WebP covers** are stored in **Cloudflare R2** (S3-compatible). The browser never receives R2 credentials: uploads go through **HTTPS** (`uploadPublicationPdf`, `uploadPublicationCover`, `uploadSeriesCover`) and **callables** (`prepareEditionPdfUpload` → Firebase Storage staging → `finalizeEditionPdfUpload` → R2). **`storageBucket`** in `js/config.js` is still required for the **large-file staging** path only.
+**Final PDFs and WebP covers** are stored in **Cloudflare R2** (S3-compatible). The browser never receives R2 credentials: uploads go through **HTTPS** (`uploadPublicationPdf`, `uploadPublicationCover`, `uploadSeriesCover`) and **callables** (`prepareEditionPdfUpload` → Firebase Storage staging → `finalizeEditionPdfUpload` → R2). **`storageBucket`** in Firebase web config ([`lib/firebase/config.ts`](../lib/firebase/config.ts) / `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`) is still required for the **large-file staging** path only.
 
 ## R2 setup
 
@@ -17,6 +17,17 @@
    echo -n 'YOUR_R2_SECRET_ACCESS_KEY' | firebase functions:secrets:set R2_SECRET_ACCESS_KEY
    ```
 7. **CORS** on the public R2 endpoint (Cloudflare dashboard → bucket → **CORS Policy** JSON): allow **GET** and **HEAD** from every origin where the reader runs; set **`AllowedHeaders`** to include **`Range`** (and optionally **`If-Range`**, **`If-None-Match`**) so **PDF.js** range/stream loads work. Use **`ExposeHeaders`** for **`Content-Length`**, **`Content-Range`**, **`ETag`**, etc., as needed. Do **not** list **`OPTIONS`** in **`AllowedMethods`** if the dashboard rejects it—R2 still answers preflights. After changes on a **custom domain**, [purge cache](https://developers.cloudflare.com/r2/buckets/cors/#use-cors-with-a-custom-domain) if CORS headers look stale. See [Configure CORS (R2)](https://developers.cloudflare.com/r2/buckets/cors/).
+
+### Reader performance checklist (free / zero new cost)
+
+Verify in browser DevTools → Network when opening an edition:
+
+1. PDF requests should use **Range** and may show **206 Partial Content** when CORS is correct (ExposeHeaders include `Content-Length` / `Content-Range` / `ETag`).
+2. Reader libraries load **same-origin** from `/vendor/pdfjs/…` and `/vendor/page-flip/…` (not third-party CDNs). Versioned paths are long-cached via Netlify (`/vendor/*` → immutable).
+3. Optional (free Cloudflare knobs only): Browser Cache TTL / Cache Rules for `*.pdf` on the R2 custom domain if already available on the plan. Do **not** buy Workers or paid cache products for this. Upload `PutObject` Cache-Control is not changed in Functions for this work.
+4. After CORS JSON edits on a custom domain, purge that hostname’s cache if ACAO / Range headers look stale.
+
+Publisher PDFs and covers remain on R2 only — never under `public/`.
 
 ## Object keys (same as before)
 

@@ -119,8 +119,9 @@ service cloud.firestore {
         && request.resource.data.publisher_id is string
         && request.resource.data.title is string
         && request.resource.data.created_by_uid == request.auth.uid;
+      // Platform staff edit via admin UI (same field allowlist as studio).
       allow update: if isSignedIn()
-        && isPublisherMember(resource.data.publisher_id)
+        && (isPlatformAdmin() || isPublisherMember(resource.data.publisher_id))
         && seriesUpdateKeysAllowed();
       allow delete: if isPlatformAdmin()
         || (isSignedIn() && isPublisherMember(resource.data.publisher_id));
@@ -137,8 +138,9 @@ service cloud.firestore {
         && request.resource.data.pdf_url is string
         && request.resource.data.status == 'published'
         && request.resource.data.created_by_uid == request.auth.uid;
+      // Platform staff edit via admin UI (same field allowlist as studio).
       allow update: if isSignedIn()
-        && isPublisherMember(resource.data.publisher_id)
+        && (isPlatformAdmin() || isPublisherMember(resource.data.publisher_id))
         && editionUpdateKeysAllowed();
       allow delete: if isPlatformAdmin()
         || (isSignedIn() && isPublisherMember(resource.data.publisher_id));

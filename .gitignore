@@ -1,14 +1,30 @@
-Dump/
-newfolderOLD/
+# Dependencies
 node_modules/
 functions/node_modules/
-functions/.env
-functions/.env.*
-functions/.secret.local
-.firebase/
-*.log
-.DS_Store
+
+# Env / secrets (keep *.example tracked)
 .env
 .env.*
-!**/.env.example
+!functions/.env.example
+functions/.secret.local
 *.pem
+
+# Next.js
+.next/
+out/
+*.tsbuildinfo
+
+# Firebase / Netlify local
+.firebase/
+.firebase-debug.log
+firebase-debug.log
+firebase-debug.*.log
+.netlify/
+
+# OS / editor
+.DS_Store
+*.log
+
+# Optional local archives (not part of the live app)
+Dump/
+newfolderOLD/

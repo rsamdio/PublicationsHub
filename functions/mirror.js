@@ -45,6 +45,61 @@ async function adjustEditionCount(delta) {
   });
 }
 
+/** Firestore batch writes in chunks (limit 500). */
+async function batchUpdateDocs(updates) {
+  const CHUNK = 400;
+  for (let i = 0; i < updates.length; i += CHUNK) {
+    const batch = fs().batch();
+    for (const u of updates.slice(i, i + CHUNK)) {
+      batch.update(u.ref, u.data);
+    }
+    await batch.commit();
+  }
+}
+
+/**
+ * Editions store denormalized `series_title` / `publisher_name` at upload time for catalog cards.
+ * Keep those fields in sync when the live series/publisher docs change.
+ */
+async function cascadeSeriesTitleToEditions(seriesId, title) {
+  const snap = await fs().collection('editions').where('series_id', '==', seriesId).get();
+  const updates = [];
+  for (const docSnap of snap.docs) {
+    const cur = docSnap.data().series_title ?? null;
+    if (cur === title) continue;
+    updates.push({ ref: docSnap.ref, data: { series_title: title } });
+  }
+  if (updates.length) {
+    await batchUpdateDocs(updates);
+    logger.info('cascaded series_title to editions', { seriesId, count: updates.length });
+  }
+}
+
+async function cascadePublisherNameToEditions(publisherId, name) {
+  const snap = await fs().collection('editions').where('publisher_id', '==', publisherId).get();
+  const updates = [];
+  for (const docSnap of snap.docs) {
+    const cur = docSnap.data().publisher_name ?? null;
+    if (cur === name) continue;
+    updates.push({ ref: docSnap.ref, data: { publisher_name: name } });
+  }
+  if (updates.length) {
+    await batchUpdateDocs(updates);
+    logger.info('cascaded publisher_name to editions', { publisherId, count: updates.length });
+  }
+}
+
+/** Catalog series rows also denormalize publisher_name — refresh without rewriting every series doc. */
+async function cascadePublisherNameToCatalogSeries(publisherId, name) {
+  const seriesSnap = await fs().collection('series').where('publisher_id', '==', publisherId).get();
+  if (seriesSnap.empty) return;
+  const patch = {};
+  for (const docSnap of seriesSnap.docs) {
+    patch[`public/catalog/series/${docSnap.id}/publisher_name`] = name;
+  }
+  await rtdb().ref().update(patch);
+}
+
 function editionOrgPayload(d) {
   return {
     publisher_id: d.publisher_id,
@@ -175,6 +230,12 @@ async function applySeriesMirror(seriesId, change) {
     cover_repo_path: after.cover_repo_path ?? null,
     created_at: tsMs(after.created_at)
   });
+
+  const beforeTitle = before?.title != null ? String(before.title) : null;
+  const afterTitle = after.title != null ? String(after.title) : null;
+  if (afterTitle != null && beforeTitle !== afterTitle) {
+    await cascadeSeriesTitleToEditions(seriesId, afterTitle);
+  }
 }
 
 exports.mirrorSeries = onDocumentWritten('series/{seriesId}', async (event) => {
@@ -214,6 +275,13 @@ async function applyPublisherMirror(publisherId, change) {
     id: publisherId,
     internal_reference: internalRef
   });
+
+  const beforeName = before?.name != null ? String(before.name) : null;
+  const afterName = after.name != null ? String(after.name) : null;
+  if (afterName != null && beforeName !== afterName) {
+    await cascadePublisherNameToEditions(publisherId, afterName);
+    await cascadePublisherNameToCatalogSeries(publisherId, afterName);
+  }
 }
 
 exports.mirrorPublisher = onDocumentWritten('publishers/{publisherId}', async (event) => {
@@ -411,12 +479,38 @@ async function runBackfill() {
     await applySeriesMirror(doc.id, syntheticCreate(doc.data()));
   }
 
+  /** Live maps so backfill repairs stale denormalized labels on edition docs. */
+  const publisherNameById = new Map();
+  for (const doc of publishers.docs) {
+    publisherNameById.set(doc.id, doc.data().name != null ? String(doc.data().name) : null);
+  }
+  const seriesTitleById = new Map();
+  for (const doc of seriesSnap.docs) {
+    seriesTitleById.set(doc.id, doc.data().title != null ? String(doc.data().title) : null);
+  }
+
   const editionsSnap = await db.collection('editions').get();
   for (const doc of editionsSnap.docs) {
-    const d = doc.data();
+    let d = doc.data();
     const editionId = doc.id;
     const pubId = d.publisher_id;
     if (!pubId) continue;
+
+    const wantSeriesTitle =
+      d.series_id && seriesTitleById.has(d.series_id)
+        ? seriesTitleById.get(d.series_id)
+        : (d.series_title ?? null);
+    const wantPublisherName = publisherNameById.has(pubId)
+      ? publisherNameById.get(pubId)
+      : (d.publisher_name ?? null);
+    const patch = {};
+    if ((d.series_title ?? null) !== wantSeriesTitle) patch.series_title = wantSeriesTitle;
+    if ((d.publisher_name ?? null) !== wantPublisherName) patch.publisher_name = wantPublisherName;
+    if (Object.keys(patch).length) {
+      await doc.ref.update(patch);
+      d = { ...d, ...patch };
+    }
+
     await r.ref(`org/${pubId}/editions/${editionId}`).set(editionOrgPayload(d));
     if (d.status === 'published') {
       await r.ref(`public/catalog/editions/${editionId}`).set(editionPublicPayload(d));

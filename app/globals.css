@@ -1,0 +1,284 @@
+@tailwind base;
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/inter-latin-300-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/inter-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/inter-latin-500-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/inter-latin-600-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/inter-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/inter-latin-800-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@tailwind components;
+
+@layer components {
+  .pub-icon svg {
+    display: block;
+    width: 1em;
+    height: 1em;
+  }
+}
+
+@tailwind utilities;
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #efebe4;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4cdc2;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #bdb5a8;
+}
+
+.book-cover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.edition-card:hover .book-cover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+}
+
+#shelf-grid > .edition-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 28rem;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.shelf-cover-img {
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.shelf-cover-img.shelf-cover-img--loaded {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shelf-cover-img {
+    opacity: 1;
+    transition: none;
+  }
+}
+
+/* Admin catalog featured toggle — switch chrome (input stays a checkbox for a11y/events). */
+.admin-featured-switch {
+  position: relative;
+  display: inline-flex;
+  width: 2.75rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  cursor: pointer;
+}
+.admin-featured-switch .fe-toggle {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.admin-featured-switch-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: #cbd5e1;
+  transition: background 0.2s ease;
+  pointer-events: none;
+}
+.admin-featured-switch .fe-toggle:checked + .admin-featured-switch-track {
+  background: #d81a6a;
+}
+.admin-featured-switch-thumb {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+.admin-featured-switch .fe-toggle:checked + .admin-featured-switch-track + .admin-featured-switch-thumb {
+  transform: translateX(1.25rem);
+}
+.admin-featured-switch .fe-toggle:focus-visible + .admin-featured-switch-track {
+  outline: 2px solid rgba(216, 26, 106, 0.55);
+  outline-offset: 2px;
+}
+.admin-featured-switch .fe-toggle:disabled {
+  cursor: not-allowed;
+}
+.admin-featured-switch .fe-toggle:disabled ~ .admin-featured-switch-track,
+.admin-featured-switch .fe-toggle:disabled ~ .admin-featured-switch-thumb {
+  opacity: 0.45;
+}
+
+@keyframes admin-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.admin-spinner {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid #d81a6a;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: admin-spin 0.7s linear infinite;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+/*
+ * Reader chrome icons: force light glyphs on dark panels (do not rely on JIT /
+ * currentColor alone — parent re-renders and late CSS can otherwise blank them).
+ */
+#reader-view {
+  --reader-icon: #f8fafc;
+}
+#reader-view #reader-close,
+#reader-view #reader-download-link,
+#reader-view #reader-first,
+#reader-view #reader-prev,
+#reader-view #reader-next,
+#reader-view #reader-last,
+#reader-view #reader-zoom-in,
+#reader-view #reader-zoom-out,
+#reader-view #reader-fit-reset,
+#reader-view #reader-fullscreen,
+#reader-view #reader-page-jump-go {
+  color: var(--reader-icon);
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  flex-shrink: 0;
+}
+#reader-view #reader-close:hover,
+#reader-view #reader-download-link:hover,
+#reader-view #reader-first:hover,
+#reader-view #reader-prev:hover,
+#reader-view #reader-next:hover,
+#reader-view #reader-last:hover,
+#reader-view #reader-zoom-in:hover,
+#reader-view #reader-zoom-out:hover,
+#reader-view #reader-fit-reset:hover,
+#reader-view #reader-fullscreen:hover,
+#reader-view #reader-page-jump-go:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.15);
+}
+#reader-view .pub-icon {
+  color: var(--reader-icon);
+}
+#reader-view .pub-icon svg,
+#reader-view .pub-icon svg path {
+  fill: var(--reader-icon);
+  color: var(--reader-icon);
+}
+#reader-view .pub-icon svg {
+  display: block;
+  width: 1.35rem;
+  height: 1.35rem;
+}
+#reader-view #reader-close .pub-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Standalone edition reader page (`data-reader-mode="page"`). */
+html.reader-page-active,
+body.reader-page-active {
+  overflow: hidden !important;
+  height: 100%;
+  overscroll-behavior: none;
+}
+.reader-route-shell {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 100dvh;
+  width: 100%;
+  background: #0b1219;
+}
+#reader-view.reader-page,
+#reader-view[data-reader-mode='page'] {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  background: #0b1219;
+}
