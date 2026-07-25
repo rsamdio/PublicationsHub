@@ -53,6 +53,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!edition || !editionBelongsToSeries(edition, seriesId, editionId)) {
     return {
       title: 'Edition not found',
+      description: 'This edition could not be found on Publications Hub.',
       robots: { index: false, follow: false }
     };
   }
@@ -60,8 +61,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = editionTitleSegment(edition.title, seriesTitle);
   const description = enrichDescription(edition.description || series?.description, {
     publisherName: edition.publisher_name || series?.publisher_name,
-    seriesTitle,
-    fallback: 'Read this edition on Publications Hub.'
+    seriesTitle: editionTitleSegment(edition.title, seriesTitle)
   });
   const path = editionPath(seriesId, editionId);
   const cover = edition.cover_url || series?.cover_url;

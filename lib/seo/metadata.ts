@@ -72,7 +72,10 @@ export function buildShareMetadata({
     description != null && String(description).trim()
       ? String(description).trim()
       : DEFAULT_DESCRIPTION;
-  const images = ogImages(coverUrl, title);
+  // Document `title` still uses the layout template; OG/Twitter need the absolute string
+  // (explicit openGraph.title bypasses Next’s title template).
+  const absoluteTitle = `${title} | ${SITE_NAME} | ${ORG_NAME}`;
+  const images = ogImages(coverUrl, absoluteTitle);
   return {
     title,
     description: desc,
@@ -81,14 +84,14 @@ export function buildShareMetadata({
       type,
       siteName: SITE_NAME,
       locale: 'en_US',
-      title,
+      title: absoluteTitle,
       description: desc,
       url: path,
       images
     },
     twitter: {
       card: 'summary_large_image',
-      title,
+      title: absoluteTitle,
       description: desc,
       images: images.map((img) => img.url)
     }
@@ -101,9 +104,21 @@ export function enrichDescription(
 ): string {
   const base = primary != null ? String(primary).trim() : '';
   if (base) return base;
-  const bits: string[] = [];
-  if (extras?.seriesTitle) bits.push(String(extras.seriesTitle).trim());
-  if (extras?.publisherName) bits.push(`by ${String(extras.publisherName).trim()}`);
-  if (bits.length) return bits.filter(Boolean).join(' — ');
+
+  const series =
+    extras?.seriesTitle != null ? String(extras.seriesTitle).trim() : '';
+  const publisher =
+    extras?.publisherName != null ? String(extras.publisherName).trim() : '';
+
+  if (series && publisher) {
+    return `Read ${series} by ${publisher} on Publications Hub — an initiative by RSAMDIO.`;
+  }
+  if (series) {
+    return `Read ${series} on Publications Hub — an initiative by RSAMDIO.`;
+  }
+  if (publisher) {
+    return `Read publications by ${publisher} on Publications Hub — an initiative by RSAMDIO.`;
+  }
+
   return extras?.fallback || DEFAULT_DESCRIPTION;
 }

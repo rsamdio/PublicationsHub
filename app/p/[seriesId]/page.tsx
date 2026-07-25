@@ -24,6 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!series && !edition) {
     return {
       title: 'Publication not found',
+      description: 'This publication could not be found on Publications Hub.',
       robots: { index: false, follow: false }
     };
   }
@@ -34,8 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     series?.description || edition?.description,
     {
       publisherName: series?.publisher_name || edition?.publisher_name,
-      seriesTitle: series?.title || edition?.series_title,
-      fallback: 'Read this publication on Publications Hub.'
+      seriesTitle: series?.title || edition?.series_title || edition?.title
     }
   );
   const path = publicationPath(seriesId);
