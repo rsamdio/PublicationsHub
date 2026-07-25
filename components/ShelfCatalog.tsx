@@ -19,6 +19,7 @@ import {
   absoluteUrl
 } from '@/lib/urls';
 import { CoverImage } from './CoverImage';
+import { ShareMenu } from './ShareMenu';
 
 const PAGE_SIZE = 12;
 const SKELETON_SHELF_COUNT = 8;
@@ -42,128 +43,6 @@ function formatDate(iso?: string | null): string {
   } catch {
     return '';
   }
-}
-
-/**
- * Share dropdown used on series + featured edition cards: copy link, plus `navigator.share`
- * when available. Closes on outside click / Escape (mirrors `closeAllShelfShareMenus` in shelf.js,
- * scoped per-instance here).
- */
-function ShareMenu({
-  title,
-  text,
-  getUrl,
-  variant = 'light'
-}: {
-  title: string;
-  text: string;
-  getUrl: () => string;
-  variant?: 'light' | 'dark';
-}) {
-  const [open, setOpen] = useState(false);
-  const [copyLabel, setCopyLabel] = useState('Copy link');
-  const rootRef = useRef<HTMLDivElement>(null);
-  const [deviceAvailable, setDeviceAvailable] = useState(false);
-
-  useEffect(() => {
-    setDeviceAvailable(typeof navigator !== 'undefined' && typeof navigator.share === 'function');
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDocClick = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('click', onDocClick);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('click', onDocClick);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open]);
-
-  async function handleDeviceShare(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    try {
-      await navigator.share({ title, text, url: getUrl() });
-      setOpen(false);
-    } catch (err: any) {
-      if (err?.name === 'AbortError') return;
-    }
-  }
-
-  async function handleCopy(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(getUrl());
-      setCopyLabel('Link copied');
-      setTimeout(() => {
-        setCopyLabel('Copy link');
-        setOpen(false);
-      }, 1200);
-    } catch {
-      setCopyLabel('Copy failed');
-      setTimeout(() => setCopyLabel('Copy link'), 2000);
-    }
-  }
-
-  const triggerClass =
-    variant === 'dark'
-      ? 'p-1.5 rounded-lg bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm transition-colors'
-      : 'p-2 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors';
-  const iconClass = variant === 'dark' ? 'text-base' : 'text-xl';
-
-  return (
-    <div className="relative shrink-0 z-20" ref={rootRef}>
-      <button
-        type="button"
-        className={triggerClass}
-        aria-expanded={open}
-        aria-haspopup="true"
-        title="Share this publication"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setOpen((v) => !v);
-        }}
-      >
-        <Icon name="share" className={iconClass} />
-      </button>
-      {open ? (
-        <div
-          className="absolute bottom-full right-0 mb-1 z-40 min-w-[13rem] rounded-xl border border-slate-200 bg-white shadow-xl py-1.5 overflow-hidden"
-          role="menu"
-          aria-label="Share publication"
-        >
-          {deviceAvailable ? (
-            <button
-              type="button"
-              className="w-full text-left px-4 py-3 text-sm text-slate-800 hover:bg-slate-100 flex items-center gap-2 border-b border-slate-100"
-              role="menuitem"
-              onClick={handleDeviceShare}
-            >
-              <Icon name="send" className="text-lg text-primary" />
-              <span>Share via device…</span>
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className="w-full text-left px-4 py-3 text-sm text-slate-800 hover:bg-slate-100 flex items-center gap-2"
-            role="menuitem"
-            onClick={handleCopy}
-          >
-            <Icon name="link" className="text-lg text-slate-500" />
-            <span>{copyLabel}</span>
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
 /**

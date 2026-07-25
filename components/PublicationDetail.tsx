@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { fetchPublishedCatalog, fetchPublishedSeriesMap } from '@/lib/firebase/db-public.js';
 import { groupEditionsIntoSeries, findSeriesGroup } from '@/lib/catalog/catalog-series.js';
@@ -15,6 +15,7 @@ import {
   absoluteUrl
 } from '@/lib/urls';
 import { CoverImage } from './CoverImage';
+import { ShareMenu } from './ShareMenu';
 
 type Props = {
   seriesId: string;
@@ -40,127 +41,6 @@ function Icon({ name, className = '' }: { name: string; className?: string }) {
         __html: pubIcon(name as Parameters<typeof pubIcon>[0], className)
       }}
     />
-  );
-}
-
-function ShareMenu({
-  title,
-  text,
-  getUrl,
-  triggerClassName,
-  label = 'Share',
-  stretchOnMobile = false
-}: {
-  title: string;
-  text: string;
-  getUrl: () => string;
-  triggerClassName: string;
-  label?: string;
-  /** Hero CTA: stack full-width on small screens. Icon-only card shares stay shrink-wrapped. */
-  stretchOnMobile?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const [copyLabel, setCopyLabel] = useState('Copy link');
-  const rootRef = useRef<HTMLDivElement>(null);
-  const [deviceAvailable, setDeviceAvailable] = useState(false);
-
-  useEffect(() => {
-    let ok = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
-    if (ok && typeof navigator.canShare === 'function') {
-      try {
-        ok = navigator.canShare({ url: getUrl() });
-      } catch {
-        ok = false;
-      }
-    }
-    setDeviceAvailable(ok);
-  }, [getUrl]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('click', onDoc);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('click', onDoc);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-
-  return (
-    <div
-      className={stretchOnMobile ? 'relative w-full sm:w-auto' : 'relative shrink-0'}
-      ref={rootRef}
-    >
-      <button
-        type="button"
-        className={triggerClassName}
-        aria-expanded={open}
-        aria-haspopup="true"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setOpen((v) => !v);
-        }}
-      >
-        <Icon name="share" className={label ? 'mr-2' : 'text-xl'} />
-        {label || null}
-      </button>
-      {open ? (
-        <div
-          className="absolute bottom-full left-0 right-0 sm:left-auto sm:right-0 mb-1 z-40 min-w-[13rem] rounded-xl border border-slate-200 bg-white shadow-xl py-1.5 overflow-hidden"
-          role="menu"
-        >
-          {deviceAvailable ? (
-            <button
-              type="button"
-              className="w-full text-left px-4 py-3 text-sm text-slate-800 hover:bg-slate-100 flex items-center gap-2 border-b border-slate-100"
-              role="menuitem"
-              onClick={async (e) => {
-                e.stopPropagation();
-                try {
-                  await navigator.share({ title, text, url: getUrl() });
-                  setOpen(false);
-                } catch (err: any) {
-                  if (err?.name === 'AbortError') return;
-                }
-              }}
-            >
-              <Icon name="send" className="text-lg text-primary" />
-              <span>Share via device…</span>
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className="w-full text-left px-4 py-3 text-sm text-slate-800 hover:bg-slate-100 flex items-center gap-2"
-            role="menuitem"
-            onClick={async (e) => {
-              e.stopPropagation();
-              const original = 'Copy link';
-              try {
-                await navigator.clipboard.writeText(getUrl());
-                setCopyLabel('Link copied');
-                setTimeout(() => {
-                  setCopyLabel(original);
-                  setOpen(false);
-                }, 1200);
-              } catch {
-                setCopyLabel('Copy failed');
-                setTimeout(() => setCopyLabel(original), 2000);
-              }
-            }}
-          >
-            <Icon name="link" className="text-lg text-slate-500" />
-            <span>{copyLabel}</span>
-          </button>
-        </div>
-      ) : null}
-    </div>
   );
 }
 
@@ -334,6 +214,7 @@ export function PublicationDetail({ seriesId }: Props) {
                     title={seriesShareTitle}
                     text={seriesShareText}
                     getUrl={seriesShareUrl}
+                    label="Share"
                     stretchOnMobile
                     triggerClassName="w-full sm:w-auto flex items-center justify-center px-8 py-3 border border-slate-300 text-base font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 md:py-3 md:text-lg md:px-10 transition-all"
                   />
