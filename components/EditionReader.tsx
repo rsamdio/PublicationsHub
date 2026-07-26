@@ -91,7 +91,9 @@ export function EditionReader({
       viewerMod = m;
       m.preloadReaderAssets?.();
       m.setReaderCloseHandler?.(() => {
-        router.push(seriesPath);
+        // Close is an exit, not a forward navigation: replace so browser Back
+        // does not land back on the edition and reopen the reader.
+        router.replace(seriesPath);
       });
     });
 

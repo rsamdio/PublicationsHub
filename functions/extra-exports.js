@@ -744,8 +744,13 @@ exports.removePlatformStaff = onCall(callableOptions, async (request) => {
   }
 
   const snap = await db.collection('platform_admins').get();
-  if (snap.size <= 1) {
-    throw new HttpsError('failed-precondition', 'Cannot remove last platform admin');
+  const targetDoc = snap.docs.find((d) => d.id === targetUid);
+  const targetIsFullAdmin = !!targetDoc && targetDoc.data()?.tier !== 'manager';
+  const fullAdminCount = snap.docs.filter((d) => d.data()?.tier !== 'manager').length;
+  // Managers cannot invite/promote or run privileged ops, so removing the last
+  // full admin (even with managers remaining) would lock the platform out.
+  if (targetIsFullAdmin && fullAdminCount <= 1) {
+    throw new HttpsError('failed-precondition', 'Cannot remove the last full platform admin');
   }
 
   await db.doc(`platform_admins/${targetUid}`).delete();

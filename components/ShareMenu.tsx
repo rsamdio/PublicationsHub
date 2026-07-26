@@ -52,6 +52,7 @@ export function ShareMenu({
   const [mounted, setMounted] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerBtnRef = useRef<HTMLButtonElement>(null);
   const [deviceAvailable, setDeviceAvailable] = useState(false);
 
   useEffect(() => {
@@ -79,7 +80,10 @@ export function ShareMenu({
       setOpen(false);
     };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') {
+        setOpen(false);
+        triggerBtnRef.current?.focus();
+      }
     };
     document.addEventListener('click', onDocClick);
     document.addEventListener('keydown', onKeyDown);
@@ -133,6 +137,17 @@ export function ShareMenu({
       window.removeEventListener('scroll', place, true);
     };
   }, [open, deviceAvailable, copyLabel]);
+
+  // Move focus into the portaled menu on open so keyboard users land on an item
+  // instead of tabbing through the whole document.
+  useEffect(() => {
+    if (!open || !mounted) return;
+    const raf = requestAnimationFrame(() => {
+      const first = menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]');
+      first?.focus();
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [open, mounted, deviceAvailable]);
 
   async function handleDeviceShare(e: React.MouseEvent) {
     e.preventDefault();
@@ -222,10 +237,12 @@ export function ShareMenu({
   return (
     <div className={rootClass} ref={rootRef}>
       <button
+        ref={triggerBtnRef}
         type="button"
         className={resolvedTriggerClass}
         aria-expanded={open}
         aria-haspopup="true"
+        aria-label={label || 'Share this publication'}
         title="Share this publication"
         onClick={(e) => {
           e.preventDefault();

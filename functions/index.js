@@ -281,14 +281,18 @@ exports.finalizeEditionPdfUpload = onCall(
       await sessRef.delete().catch(() => {});
       return out;
     } catch (e) {
-      await file.delete().catch(() => {});
-      await sessRef.delete().catch(() => {});
+      // Keep the staged Storage object and session so the publisher can retry
+      // without re-uploading. A transient R2 error must not destroy the upload.
       const msg = String(e?.message || e || 'R2 upload failed');
-      logger.error('finalizeEditionPdfUpload R2 failed', { message: msg, uploadId, key });
+      logger.error('finalizeEditionPdfUpload R2 failed (staging retained for retry)', {
+        message: msg,
+        uploadId,
+        key
+      });
       if (/Server missing R2_/i.test(msg) || /missing R2/i.test(msg)) {
         throw new HttpsError('failed-precondition', msg);
       }
-      throw new HttpsError('internal', `Could not store PDF in R2: ${msg.slice(0, 400)}`);
+      throw new HttpsError('unavailable', `Could not store PDF in R2, please retry: ${msg.slice(0, 400)}`);
     }
   }
 );
@@ -886,6 +890,7 @@ function seriesCoverThumbKeyFromCoverRepoPath(coverRepoPath) {
 
 const backfillCoverThumbsOptions = {
   region: 'us-central1',
+  secrets: [r2AccessKeyId, r2SecretAccessKey],
   timeoutSeconds: 300,
   memory: '512MiB',
   maxInstances: 2

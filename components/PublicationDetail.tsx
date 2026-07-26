@@ -115,7 +115,7 @@ export function PublicationDetail({ seriesId }: Props) {
         </p>
         <div className="flex flex-col sm:flex-row items-center gap-3">
           <Link
-            href="/#all-publications"
+            href="/"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-medium"
           >
             All publications
@@ -282,7 +282,7 @@ export function PublicationDetail({ seriesId }: Props) {
                     <div className="flex items-center gap-2 mt-auto">
                       <button
                         type="button"
-                        className="flex-1 border border-primary/50 bg-primary/10 text-primary hover:bg-primary hover:text-white hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
+                        className="flex-1 border border-primary/50 bg-primary/10 text-primary-dark hover:bg-primary hover:text-white hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
                         onPointerEnter={preloadReader}
                         onFocus={preloadReader}
                         onClick={(e) => {

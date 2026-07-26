@@ -452,30 +452,46 @@ function syntheticCreate(data) {
   };
 }
 
+/** Remove children under `ref` whose keys are not in `keepKeys` (stale mirror rows). */
+async function pruneStaleChildren(ref, keepKeys) {
+  const snap = await ref.once('value');
+  const removals = {};
+  snap.forEach((child) => {
+    if (!keepKeys.has(child.key)) removals[child.key] = null;
+  });
+  if (Object.keys(removals).length) {
+    await ref.update(removals);
+  }
+}
+
 /**
  * Full rebuild of RTDB mirror from Firestore (+ legacy publications into public catalog).
+ *
+ * Rebuilds every node in place (each write is a `set()` that overwrites), then prunes
+ * only stale keys. It never wipes `platformAdmins` or the public catalog up front, so a
+ * timeout or crash mid-run can never leave an empty catalog or lock staff out of `/admin`.
  */
 async function runBackfill() {
   const db = fs();
   const r = rtdb();
 
-  await r.ref('public/catalog/editions').remove();
-  await r.ref('public/catalog/series').remove();
-  await r.ref('org').remove();
-  await r.ref('userMemberships').remove();
-  await r.ref('platform/publishers').remove();
-  await r.ref('platform/staff').remove();
-  await r.ref('platform/staffInvites').remove();
-  await r.ref('platformAdmins').remove();
-  await r.ref('platform/stats/editionCount').set(0);
-
   const publishers = await db.collection('publishers').get();
+  const publisherIds = new Set();
   for (const doc of publishers.docs) {
+    publisherIds.add(doc.id);
     await applyPublisherMirror(doc.id, syntheticCreate(doc.data()));
   }
 
+  const orgSeriesIdsByPub = new Map();
   const seriesSnap = await db.collection('series').get();
+  const seriesIds = new Set();
   for (const doc of seriesSnap.docs) {
+    seriesIds.add(doc.id);
+    const pubId = doc.data().publisher_id;
+    if (pubId) {
+      if (!orgSeriesIdsByPub.has(pubId)) orgSeriesIdsByPub.set(pubId, new Set());
+      orgSeriesIdsByPub.get(pubId).add(doc.id);
+    }
     await applySeriesMirror(doc.id, syntheticCreate(doc.data()));
   }
 
@@ -490,6 +506,8 @@ async function runBackfill() {
   }
 
   const editionsSnap = await db.collection('editions').get();
+  const publicEditionIds = new Set();
+  const orgEditionIdsByPub = new Map();
   for (const doc of editionsSnap.docs) {
     let d = doc.data();
     const editionId = doc.id;
@@ -512,43 +530,61 @@ async function runBackfill() {
     }
 
     await r.ref(`org/${pubId}/editions/${editionId}`).set(editionOrgPayload(d));
+    if (!orgEditionIdsByPub.has(pubId)) orgEditionIdsByPub.set(pubId, new Set());
+    orgEditionIdsByPub.get(pubId).add(editionId);
     if (d.status === 'published') {
       await r.ref(`public/catalog/editions/${editionId}`).set(editionPublicPayload(d));
+      publicEditionIds.add(editionId);
     }
   }
   await r.ref('platform/stats/editionCount').set(editionsSnap.size);
 
+  const membershipPubsByUid = new Map();
   const memSnap = await db.collectionGroup('publisherMemberships').get();
   for (const doc of memSnap.docs) {
     const parts = doc.ref.path.split('/');
     const uid = parts[1];
     const publisherId = doc.id;
+    if (!membershipPubsByUid.has(uid)) membershipPubsByUid.set(uid, new Set());
+    membershipPubsByUid.get(uid).add(publisherId);
     await applyMembershipMirror(uid, publisherId, syntheticCreate(doc.data()));
   }
 
+  const orgInviteIdsByPub = new Map();
   const invitesSnap = await db.collectionGroup('invites').get();
   for (const doc of invitesSnap.docs) {
     const parts = doc.ref.path.split('/');
     const publisherId = parts[1];
     const inviteId = doc.id;
+    if (doc.data().status === 'pending') {
+      if (!orgInviteIdsByPub.has(publisherId)) orgInviteIdsByPub.set(publisherId, new Set());
+      orgInviteIdsByPub.get(publisherId).add(inviteId);
+    }
     await applyPublisherInviteMirror(publisherId, inviteId, syntheticCreate(doc.data()));
   }
 
+  const orgRosterIdsByPub = new Map();
   const rosterSnap = await db.collectionGroup('roster').get();
   for (const doc of rosterSnap.docs) {
     const parts = doc.ref.path.split('/');
     const publisherId = parts[1];
     const memberUid = doc.id;
+    if (!orgRosterIdsByPub.has(publisherId)) orgRosterIdsByPub.set(publisherId, new Set());
+    orgRosterIdsByPub.get(publisherId).add(memberUid);
     await applyPublisherRosterMirror(publisherId, memberUid, syntheticCreate(doc.data()));
   }
 
   const adminsSnap = await db.collection('platform_admins').get();
+  const adminUids = new Set();
   for (const doc of adminsSnap.docs) {
+    adminUids.add(doc.id);
     await applyPlatformAdminMirror(doc.id, syntheticCreate(doc.data()));
   }
 
   const platInvSnap = await db.collection('platform_invites').where('status', '==', 'pending').get();
+  const platInviteIds = new Set();
   for (const doc of platInvSnap.docs) {
+    platInviteIds.add(doc.id);
     await applyPlatformStaffInviteMirror(doc.id, syntheticCreate(doc.data()));
   }
 
@@ -569,6 +605,28 @@ async function runBackfill() {
       created_at: tsMs(d.created_at),
       featured: false
     });
+    publicEditionIds.add(id);
+  }
+
+  // Prune stale rows only after every current row is written (no empty window).
+  await pruneStaleChildren(r.ref('platformAdmins'), adminUids);
+  await pruneStaleChildren(r.ref('platform/staff'), adminUids);
+  await pruneStaleChildren(r.ref('platform/staffInvites'), platInviteIds);
+  await pruneStaleChildren(r.ref('platform/publishers'), publisherIds);
+  await pruneStaleChildren(r.ref('public/catalog/series'), seriesIds);
+  await pruneStaleChildren(r.ref('public/catalog/editions'), publicEditionIds);
+  await pruneStaleChildren(r.ref('org'), publisherIds);
+  await pruneStaleChildren(r.ref('userMemberships'), new Set(membershipPubsByUid.keys()));
+
+  for (const uid of membershipPubsByUid.keys()) {
+    await pruneStaleChildren(r.ref(`userMemberships/${uid}`), membershipPubsByUid.get(uid));
+  }
+  const empty = new Set();
+  for (const pubId of publisherIds) {
+    await pruneStaleChildren(r.ref(`org/${pubId}/editions`), orgEditionIdsByPub.get(pubId) || empty);
+    await pruneStaleChildren(r.ref(`org/${pubId}/series`), orgSeriesIdsByPub.get(pubId) || empty);
+    await pruneStaleChildren(r.ref(`org/${pubId}/invites`), orgInviteIdsByPub.get(pubId) || empty);
+    await pruneStaleChildren(r.ref(`org/${pubId}/roster`), orgRosterIdsByPub.get(pubId) || empty);
   }
 }
 
@@ -576,15 +634,35 @@ const backfillMirrorOptions = {
   region: 'us-central1',
   timeoutSeconds: 540,
   memory: '512MiB',
-  maxInstances: 2
+  maxInstances: 1
 };
+
+/** Lock is considered stale after this window so a crashed run cannot block forever. */
+const BACKFILL_LOCK_STALE_MS = 15 * 60 * 1000;
 
 exports.backfillMirror = onCall(backfillMirrorOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Sign in required');
   }
   await assertPlatformAdmin(request.auth.uid);
-  await runBackfill();
-  logger.info('backfillMirror completed');
-  return { ok: true };
+
+  const lockRef = rtdb().ref('platform/backfillLock');
+  const now = Date.now();
+  const res = await lockRef.transaction((cur) => {
+    if (cur && cur.running && typeof cur.startedAt === 'number' && now - cur.startedAt < BACKFILL_LOCK_STALE_MS) {
+      return; // abort: another backfill is in progress
+    }
+    return { running: true, startedAt: now, uid: request.auth.uid };
+  });
+  if (!res.committed) {
+    throw new HttpsError('failed-precondition', 'A mirror backfill is already running');
+  }
+
+  try {
+    await runBackfill();
+    logger.info('backfillMirror completed');
+    return { ok: true };
+  } finally {
+    await lockRef.remove().catch((err) => logger.warn('backfillMirror lock release failed', err));
+  }
 });

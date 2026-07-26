@@ -101,7 +101,7 @@ function SeriesCard({ group }: { group: any }) {
         <span className={badge.className}>{badge.text}</span>
         <div className="flex-1" />
         <div className="flex items-center gap-3 mt-auto">
-          <div className="flex-1 border border-primary/50 bg-primary/10 text-primary font-medium py-2 px-4 rounded-lg text-sm flex items-center justify-center gap-2">
+          <div className="flex-1 border border-primary/50 bg-primary/10 text-primary-dark font-medium py-2 px-4 rounded-lg text-sm flex items-center justify-center gap-2">
             <Icon name="library_books" className="text-base" />
             Open publication
           </div>
@@ -355,7 +355,9 @@ export function ShelfCatalog() {
     );
   }
 
-  const showFeaturedSection = loading || featuredEditions.length > 0;
+  // Featured is unfiltered highlights; hide it while the reader is searching so
+  // results (or "no matches") are not shown alongside unrelated featured cards.
+  const showFeaturedSection = !searching && (loading || featuredEditions.length > 0);
 
   return (
     <main className="flex-grow pt-8 lg:pt-12 space-y-16 lg:space-y-20 pb-20">
