@@ -4,9 +4,9 @@ import {
   useEffect,
   useLayoutEffect,
   useRef,
-  useState,
-  type ReactNode
+  useState
 } from 'react';
+import { createPortal } from 'react-dom';
 import { pubIcon } from '@/lib/catalog/icons-public.js';
 
 function Icon({
@@ -35,7 +35,8 @@ type ShareMenuProps = {
 const VIEWPORT_PAD = 8;
 
 /**
- * Share popover that stays inside the viewport (fixed positioning escapes card overflow).
+ * Share popover portaled to `document.body` so card `overflow` / `content-visibility`
+ * containment cannot trap or mis-place `position: fixed`.
  */
 export function ShareMenu({
   title,
@@ -48,9 +49,14 @@ export function ShareMenu({
 }: ShareMenuProps) {
   const [open, setOpen] = useState(false);
   const [copyLabel, setCopyLabel] = useState('Copy link');
+  const [mounted, setMounted] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [deviceAvailable, setDeviceAvailable] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     let ok = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
@@ -67,9 +73,10 @@ export function ShareMenu({
   useEffect(() => {
     if (!open) return;
     const onDocClick = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const t = e.target as Node;
+      if (rootRef.current?.contains(t)) return;
+      if (menuRef.current?.contains(t)) return;
+      setOpen(false);
     };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false);
@@ -117,7 +124,6 @@ export function ShareMenu({
     };
 
     place();
-    // Second pass after fonts/icons settle width.
     const raf = requestAnimationFrame(place);
     window.addEventListener('resize', place);
     window.addEventListener('scroll', place, true);
@@ -135,7 +141,12 @@ export function ShareMenu({
       await navigator.share({ title, text, url: getUrl() });
       setOpen(false);
     } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'name' in err && (err as { name: string }).name === 'AbortError') {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'name' in err &&
+        (err as { name: string }).name === 'AbortError'
+      ) {
         return;
       }
     }
@@ -168,45 +179,45 @@ export function ShareMenu({
       ? 'text-base'
       : 'text-xl';
 
-  // Treat empty string as icon-only (publication edition cards).
   const showLabel = Boolean(label);
 
   const rootClass = stretchOnMobile
     ? 'relative w-full sm:w-auto z-20'
     : 'relative shrink-0 z-20';
 
-  let menu: ReactNode = null;
-  if (open) {
-    menu = (
-      <div
-        ref={menuRef}
-        className="rounded-xl border border-slate-200 bg-white shadow-xl py-1.5 overflow-hidden"
-        role="menu"
-        aria-label="Share"
-      >
-        {deviceAvailable ? (
-          <button
-            type="button"
-            className="w-full text-left px-4 py-3 text-sm text-slate-800 hover:bg-slate-100 flex items-center gap-2 border-b border-slate-100"
-            role="menuitem"
-            onClick={handleDeviceShare}
+  const menu =
+    open && mounted
+      ? createPortal(
+          <div
+            ref={menuRef}
+            className="rounded-xl border border-slate-200 bg-white shadow-xl py-1.5 overflow-hidden"
+            role="menu"
+            aria-label="Share"
           >
-            <Icon name="send" className="text-lg text-primary shrink-0" />
-            <span>Share via device…</span>
-          </button>
-        ) : null}
-        <button
-          type="button"
-          className="w-full text-left px-4 py-3 text-sm text-slate-800 hover:bg-slate-100 flex items-center gap-2"
-          role="menuitem"
-          onClick={handleCopy}
-        >
-          <Icon name="link" className="text-lg text-slate-500 shrink-0" />
-          <span>{copyLabel}</span>
-        </button>
-      </div>
-    );
-  }
+            {deviceAvailable ? (
+              <button
+                type="button"
+                className="w-full text-left px-4 py-3 text-sm text-slate-800 hover:bg-slate-100 flex items-center gap-2 border-b border-slate-100"
+                role="menuitem"
+                onClick={handleDeviceShare}
+              >
+                <Icon name="send" className="text-lg text-primary shrink-0" />
+                <span>Share via device…</span>
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="w-full text-left px-4 py-3 text-sm text-slate-800 hover:bg-slate-100 flex items-center gap-2"
+              role="menuitem"
+              onClick={handleCopy}
+            >
+              <Icon name="link" className="text-lg text-slate-500 shrink-0" />
+              <span>{copyLabel}</span>
+            </button>
+          </div>,
+          document.body
+        )
+      : null;
 
   return (
     <div className={rootClass} ref={rootRef}>
