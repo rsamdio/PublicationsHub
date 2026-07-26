@@ -199,6 +199,23 @@
   vertical-align: middle;
 }
 
+/* Unrendered flipbook page shell — visible wait state instead of a blank sheet. */
+@keyframes reader-page-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.reader-page-spinner {
+  display: inline-block;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 2.5px solid #cbd5e1;
+  border-top-color: #94a3b8;
+  border-radius: 50%;
+  animation: reader-page-spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
 /*
  * Reader chrome icons: force light glyphs on dark panels (do not rely on JIT /
  * currentColor alone — parent re-renders and late CSS can otherwise blank them).
