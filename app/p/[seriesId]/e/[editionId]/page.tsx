@@ -11,7 +11,8 @@ import {
   enrichDescription,
   seriesTitleSegment
 } from '@/lib/seo/metadata';
-import { editionJsonLd } from '@/lib/seo/jsonld';
+import { editionJsonLd, organizationJsonLd, websiteJsonLd } from '@/lib/seo/jsonld';
+import { toIsoDate } from '@/lib/seo/dates';
 
 type Props = {
   params: Promise<{ seriesId: string; editionId: string }>;
@@ -31,15 +32,18 @@ function editionBelongsToSeries(
   return seriesId === editionId;
 }
 
-function toIsoDate(v: number | string | null | undefined): string | null {
-  if (v == null || v === '') return null;
-  if (typeof v === 'number' && !Number.isNaN(v)) {
-    return new Date(v).toISOString();
+function formatUiDate(v: number | string | null | undefined): string {
+  const iso = toIsoDate(v);
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  } catch {
+    return '';
   }
-  const s = String(v).trim();
-  if (!s) return null;
-  const d = new Date(s);
-  return Number.isNaN(d.getTime()) ? s : d.toISOString();
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -91,20 +95,27 @@ export default async function EditionReaderPage({ params }: Props) {
   const description = edition.description || series?.description || null;
   const publisherName = edition.publisher_name || series?.publisher_name || null;
   const path = editionPath(seriesId, editionId);
+  const datePublished = toIsoDate(edition.issue_date ?? edition.created_at);
+  const datePublishedLabel = formatUiDate(edition.issue_date ?? edition.created_at) || null;
 
   return (
     <>
       <JsonLd
-        data={editionJsonLd({
-          name: editionTitleSegment(editionTitle, seriesTitle),
-          description,
-          url: path,
-          image: edition.cover_url || series?.cover_url,
-          datePublished: toIsoDate(edition.issue_date ?? edition.created_at),
-          seriesName: seriesTitle,
-          seriesUrl: publicationPath(seriesId),
-          publisherName
-        })}
+        data={[
+          websiteJsonLd(),
+          organizationJsonLd(),
+          ...editionJsonLd({
+            name: editionTitleSegment(editionTitle, seriesTitle),
+            description,
+            url: path,
+            image: edition.cover_url || series?.cover_url,
+            datePublished,
+            seriesName: seriesTitle,
+            seriesUrl: publicationPath(seriesId),
+            publisherName,
+            pdfUrl: edition.pdf_url
+          })
+        ]}
       />
       <PublicationCrawlSummary
         mode="edition"
@@ -113,6 +124,7 @@ export default async function EditionReaderPage({ params }: Props) {
         editionTitle={editionTitle}
         description={description}
         publisherName={publisherName}
+        datePublishedLabel={datePublishedLabel}
         editions={[{ id: editionId, title: editionTitle }]}
         editionId={editionId}
       />

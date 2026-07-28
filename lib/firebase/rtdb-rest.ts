@@ -1,4 +1,6 @@
 import { firebaseConfig } from '@/lib/firebase/config';
+import { compareEditionsNewestFirst } from '@/lib/catalog/edition-sort.js';
+import { toIsoDate } from '@/lib/seo/dates';
 
 async function rtdbGet<T>(path: string): Promise<T | null> {
   const base = firebaseConfig.databaseURL?.replace(/\/$/, '');
@@ -53,6 +55,9 @@ export type CatalogSeries = {
   created_at?: number | string | null;
 };
 
+export type CatalogEditionRow = CatalogEdition & { id: string };
+export type CatalogSeriesRow = CatalogSeries & { id: string };
+
 export async function fetchPublicSeries(seriesId: string) {
   return rtdbGet<CatalogSeries>(`public/catalog/series/${encodeURIComponent(seriesId)}`);
 }
@@ -61,6 +66,18 @@ export async function fetchPublicEdition(editionId: string) {
   return rtdbGet<CatalogEdition>(`public/catalog/editions/${encodeURIComponent(editionId)}`);
 }
 
+/** Page SSR catalog maps (60s revalidate). */
+export async function fetchPublicSeriesMap() {
+  const val = await rtdbGet<Record<string, CatalogSeries>>('public/catalog/series');
+  return val && typeof val === 'object' ? val : {};
+}
+
+export async function fetchPublicEditionsMap() {
+  const val = await rtdbGet<Record<string, CatalogEdition>>('public/catalog/editions');
+  return val && typeof val === 'object' ? val : {};
+}
+
+/** Sitemap builds (1h revalidate). */
 export async function fetchAllPublicSeriesMap() {
   const val = await rtdbGetSitemap<Record<string, CatalogSeries>>('public/catalog/series');
   return val && typeof val === 'object' ? val : {};
@@ -70,3 +87,54 @@ export async function fetchAllPublicEditionsMap() {
   const val = await rtdbGetSitemap<Record<string, CatalogEdition>>('public/catalog/editions');
   return val && typeof val === 'object' ? val : {};
 }
+
+/** Editions belonging to a series, newest first. Standalone editions use editionId === seriesId. */
+export function editionsForSeries(
+  editionsMap: Record<string, CatalogEdition>,
+  seriesId: string
+): CatalogEditionRow[] {
+  const sid = String(seriesId || '').trim();
+  if (!sid) return [];
+  const rows: CatalogEditionRow[] = [];
+  for (const [id, ed] of Object.entries(editionsMap || {})) {
+    if (!id || !ed) continue;
+    const edSid =
+      ed.series_id != null && String(ed.series_id).trim()
+        ? String(ed.series_id).trim()
+        : id;
+    if (edSid !== sid) continue;
+    rows.push({ id, ...ed });
+  }
+  rows.sort(compareEditionsNewestFirst);
+  return rows;
+}
+
+export function featuredEditions(
+  editionsMap: Record<string, CatalogEdition>
+): CatalogEditionRow[] {
+  const rows: CatalogEditionRow[] = [];
+  for (const [id, ed] of Object.entries(editionsMap || {})) {
+    if (!id || !ed || ed.featured !== true) continue;
+    rows.push({ id, ...ed });
+  }
+  rows.sort(compareEditionsNewestFirst);
+  return rows;
+}
+
+export function seriesSummaries(
+  seriesMap: Record<string, CatalogSeries>
+): CatalogSeriesRow[] {
+  const rows: CatalogSeriesRow[] = [];
+  for (const [id, s] of Object.entries(seriesMap || {})) {
+    if (!id || !s) continue;
+    rows.push({ id, ...s });
+  }
+  rows.sort((a, b) => {
+    const ta = a.title != null ? String(a.title) : a.id;
+    const tb = b.title != null ? String(b.title) : b.id;
+    return ta.localeCompare(tb, undefined, { sensitivity: 'base' });
+  });
+  return rows;
+}
+
+export { toIsoDate };

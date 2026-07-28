@@ -7,6 +7,9 @@ export function SiteFooter() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between text-sm text-slate-600">
         <p>© Rotaract South Asia MDIO. All rights reserved.</p>
         <div className="flex flex-wrap gap-4">
+          <Link href="/about" className="hover:text-primary transition-colors">
+            About
+          </Link>
           <Link href="/privacy" className="hover:text-primary transition-colors">
             Privacy
           </Link>

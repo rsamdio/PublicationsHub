@@ -34,6 +34,12 @@ export function SiteNav({ showStudioCta = true }: Props) {
             >
               Home
             </Link>
+            <Link
+              href="/about"
+              className="text-sm font-medium text-slate-600 hover:text-primary transition-colors"
+            >
+              About
+            </Link>
             <a
               href="https://rsamdio.org/"
               target="_blank"

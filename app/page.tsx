@@ -3,7 +3,12 @@ import { SiteNav } from '@/components/SiteNav';
 import { SiteFooter } from '@/components/SiteFooter';
 import { ShelfCatalog } from '@/components/ShelfCatalog';
 import { JsonLd } from '@/components/JsonLd';
-import { organizationJsonLd, websiteJsonLd } from '@/lib/seo/jsonld';
+import { loadGeoCatalogData } from '@/lib/seo/geo-catalog';
+import {
+  itemListJsonLd,
+  organizationJsonLd,
+  websiteJsonLd
+} from '@/lib/seo/jsonld';
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_OG_IMAGE,
@@ -39,10 +44,19 @@ export const metadata: Metadata = {
   }
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const geo = await loadGeoCatalogData();
+  const showStats = geo.seriesCount > 0 || geo.editionCount > 0;
+
   return (
     <>
-      <JsonLd data={[websiteJsonLd(), organizationJsonLd()]} />
+      <JsonLd
+        data={[
+          websiteJsonLd(),
+          organizationJsonLd(),
+          itemListJsonLd({ name: geo.listName, items: geo.listItems })
+        ]}
+      />
       <SiteNav />
       <div className="flex flex-col flex-1 min-h-0">
         <div className="relative overflow-hidden">
@@ -60,6 +74,17 @@ export default function HomePage() {
                   digital editions
                 </span>
               </h1>
+              <p className="text-base md:text-lg text-slate-700 mb-4 max-w-2xl mx-auto leading-relaxed">
+                Publications Hub is the public digital catalog operated by Rotaract South Asia MDIO
+                (RSAMDIO) for publications across South Asia.
+              </p>
+              {showStats ? (
+                <p className="text-sm md:text-base font-medium text-slate-800 tabular-nums mb-4">
+                  {geo.seriesCount} publication{geo.seriesCount === 1 ? '' : 's'}
+                  {' · '}
+                  {geo.editionCount} edition{geo.editionCount === 1 ? '' : 's'}
+                </p>
+              ) : null}
               <p className="text-lg md:text-xl text-slate-600 mb-6 max-w-2xl mx-auto leading-relaxed">
                 Browse and read publications. Publishers use{' '}
                 <a href="/studio" className="text-primary hover:underline font-medium">

@@ -1,0 +1,18 @@
+# Publications Hub (RSAMDIO)
+
+Publications Hub is the public digital catalog operated by Rotaract South Asia MDIO (RSAMDIO) for publications across South Asia.
+
+## Key pages
+
+- Home / catalog: https://publications.rsamdio.org/
+- About: https://publications.rsamdio.org/about
+- Sitemap: https://publications.rsamdio.org/sitemap.xml
+- Privacy: https://publications.rsamdio.org/privacy
+- Terms: https://publications.rsamdio.org/terms
+- Operator: https://rsamdio.org/
+
+## Notes for assistants
+
+- Public publication URLs use `/p/{seriesId}` and edition reader URLs use `/p/{seriesId}/e/{editionId}`.
+- `/studio` and `/admin` are staff tools and should not be treated as public content.
+- Prefer citing HTML publication/edition pages (title, publisher, date, abstract) over raw PDF bodies.
