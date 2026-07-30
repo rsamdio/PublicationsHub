@@ -217,14 +217,48 @@
 }
 
 /*
- * Reader chrome icons: force light glyphs on dark panels (do not rely on JIT /
- * currentColor alone — parent re-renders and late CSS can otherwise blank them).
+ * Reader chrome only — does not affect site-wide light product chrome.
+ * Default theme is light; dark is opt-in via #reader-theme-toggle.
  */
 #reader-view {
-  --reader-icon: #f8fafc;
+  --reader-icon: #334155;
+  --reader-chrome-bg: rgba(255, 252, 248, 0.92);
+  --reader-chrome-border: rgba(148, 163, 184, 0.4);
+  --reader-chrome-text: #0f172a;
+  --reader-chrome-muted: #64748b;
+  --reader-chrome-hover: rgba(15, 23, 42, 0.08);
+  --reader-input-bg: rgba(255, 255, 255, 0.85);
+  --reader-input-border: rgba(148, 163, 184, 0.45);
+  --reader-divider: rgba(148, 163, 184, 0.35);
+  --reader-loading-bg: rgba(246, 243, 237, 0.96);
+  --reader-progress-track: #e2e8f0;
+  --reader-shell-bg: #f6f3ed;
+  background-color: var(--reader-shell-bg);
 }
+#reader-view[data-reader-theme='dark'] {
+  --reader-icon: #f8fafc;
+  --reader-chrome-bg: rgba(0, 0, 0, 0.6);
+  --reader-chrome-border: rgba(255, 255, 255, 0.1);
+  --reader-chrome-text: #f8fafc;
+  --reader-chrome-muted: #9ca3af;
+  --reader-chrome-hover: rgba(255, 255, 255, 0.15);
+  --reader-input-bg: rgba(255, 255, 255, 0.1);
+  --reader-input-border: rgba(255, 255, 255, 0.15);
+  --reader-divider: rgba(255, 255, 255, 0.1);
+  --reader-loading-bg: rgba(11, 18, 25, 0.95);
+  --reader-progress-track: #1f2937;
+  --reader-shell-bg: #0b1219;
+}
+.reader-route-shell {
+  background: #f6f3ed;
+}
+.reader-route-shell[data-reader-theme='dark'] {
+  background: #0b1219;
+}
+
 #reader-view #reader-close,
 #reader-view #reader-download-link,
+#reader-view #reader-theme-toggle,
 #reader-view #reader-first,
 #reader-view #reader-prev,
 #reader-view #reader-next,
@@ -239,8 +273,52 @@
   min-height: 2.25rem;
   flex-shrink: 0;
 }
+#reader-view #reader-close,
+#reader-view #reader-download-link,
+#reader-view #reader-theme-toggle,
+#reader-view #reader-name-card {
+  background-color: var(--reader-chrome-bg) !important;
+  border-color: var(--reader-chrome-border) !important;
+  color: var(--reader-chrome-text);
+}
+#reader-view #reader-title {
+  color: var(--reader-chrome-text) !important;
+}
+#reader-view #reader-edition {
+  color: var(--reader-chrome-muted) !important;
+}
+#reader-view footer > div {
+  background-color: var(--reader-chrome-bg) !important;
+  border-color: var(--reader-chrome-border) !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+}
+#reader-view footer > div > div {
+  border-color: var(--reader-divider) !important;
+}
+#reader-view #reader-page-info {
+  color: var(--reader-chrome-text) !important;
+}
+#reader-view #reader-page-jump,
+#reader-view #reader-zoom-input {
+  background-color: var(--reader-input-bg) !important;
+  border-color: var(--reader-input-border) !important;
+  color: var(--reader-chrome-text) !important;
+}
+#reader-view footer .text-gray-500,
+#reader-view footer .text-gray-400,
+#reader-view footer .text-gray-300 {
+  color: var(--reader-chrome-muted) !important;
+}
+#reader-view footer .text-gray-100,
+#reader-view footer .text-gray-200,
+#reader-view #reader-close,
+#reader-view #reader-download-link,
+#reader-view #reader-theme-toggle {
+  color: var(--reader-icon) !important;
+}
 #reader-view #reader-close:hover,
 #reader-view #reader-download-link:hover,
+#reader-view #reader-theme-toggle:hover,
 #reader-view #reader-first:hover,
 #reader-view #reader-prev:hover,
 #reader-view #reader-next:hover,
@@ -250,8 +328,8 @@
 #reader-view #reader-fit-reset:hover,
 #reader-view #reader-fullscreen:hover,
 #reader-view #reader-page-jump-go:hover {
-  color: #fff;
-  background-color: rgba(255, 255, 255, 0.15);
+  color: var(--reader-chrome-text) !important;
+  background-color: var(--reader-chrome-hover) !important;
 }
 #reader-view .pub-icon {
   color: var(--reader-icon);
@@ -270,6 +348,19 @@
   width: 1.25rem;
   height: 1.25rem;
 }
+#reader-view #reader-loading {
+  background-color: var(--reader-loading-bg) !important;
+}
+#reader-view #reader-loading > p:first-child {
+  color: var(--reader-chrome-text) !important;
+}
+#reader-view #reader-loading-detail {
+  color: var(--reader-chrome-muted) !important;
+}
+#reader-view #reader-loading .bg-gray-800,
+#reader-view #reader-loading > div.w-52 {
+  background-color: var(--reader-progress-track) !important;
+}
 
 /* Standalone edition reader page (`data-reader-mode="page"`). */
 html.reader-page-active,
@@ -283,7 +374,6 @@ body.reader-page-active {
   flex: 1 1 auto;
   min-height: 100dvh;
   width: 100%;
-  background: #0b1219;
 }
 #reader-view.reader-page,
 #reader-view[data-reader-mode='page'] {
@@ -297,5 +387,4 @@ body.reader-page-active {
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
-  background: #0b1219;
 }

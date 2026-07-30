@@ -1,5 +1,5 @@
 /** Full-viewport reader shell for the standalone edition page (`/p/.../e/...`). */
-export const readerChromeHtml = `<div id="reader-view" data-reader-mode="page" class="reader-page flex flex-col touch-manipulation bg-reader-bg">
+export const readerChromeHtml = `<div id="reader-view" data-reader-mode="page" data-reader-theme="light" class="reader-page flex flex-col touch-manipulation bg-reader-bg">
     <div id="flipbook-wrapper" class="flex-1 flex items-center justify-center w-full min-h-0 overflow-hidden overscroll-none p-2 sm:p-4 pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] sm:pb-4" style="min-width: 0;">
       <div id="flipbook-pan" class="relative transition-transform duration-300 ease-out will-change-transform">
         <div id="flipbook-container" class="relative"></div>
@@ -19,9 +19,14 @@ export const readerChromeHtml = `<div id="reader-view" data-reader-mode="page" c
           <span id="reader-edition" class="text-gray-400 text-xs font-medium"></span>
         </div>
       </div>
-      <a id="reader-download-link" href="#" class="pointer-events-auto inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/10 text-gray-200 hover:text-white shadow-lg transition-all shrink-0" title="Download PDF">
-        <span data-pub-icon="download" class="text-[22px]"></span>
-      </a>
+      <div class="pointer-events-auto flex items-center gap-2 shrink-0">
+        <button type="button" id="reader-theme-toggle" class="inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/10 text-gray-200 hover:text-white shadow-lg transition-all" title="Switch to dark reader" aria-label="Switch to dark reader">
+          <span data-pub-icon="dark_mode" class="text-[22px]"></span>
+        </button>
+        <a id="reader-download-link" href="#" class="inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/10 text-gray-200 hover:text-white shadow-lg transition-all" title="Download PDF">
+          <span data-pub-icon="download" class="text-[22px]"></span>
+        </a>
+      </div>
     </div>
     <footer class="fixed sm:absolute inset-x-0 bottom-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:bottom-4 z-30 flex justify-center px-2 sm:px-4 pointer-events-none pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-0">
       <div class="pointer-events-auto w-full max-w-[min(100vw-0.5rem,28rem)] sm:max-w-none sm:w-auto bg-black/80 backdrop-blur-md rounded-t-2xl sm:rounded-2xl shadow-2xl border border-white/10 border-b-0 sm:border-b">
