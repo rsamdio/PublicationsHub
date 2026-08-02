@@ -28,6 +28,8 @@ If folders named `Dump/` or `newfolderOLD/` appear locally, treat them as archiv
 
 - Product chrome is **light only**. Page background `background-light` (`#f6f3ed`); nav/footer `#fffcf8`. Accent/`primary` is Rotaract cranberry pink (`#d81a6a`).
 - The **PDF reader** (`#reader-view`) is themed separately: **light by default**, with an in-reader toggle to dark. Preference is stored in `localStorage` (`pubhub-reader-theme`). Site chrome stays light-only.
+- Reader layout is **reactive**: single-page vs two-page spread follows `(width ≥ 768) || (landscape && width ≥ 560)` and rebuilds on orientation/width class change. Compact toolbar (one row) applies below 768px width or short landscape (`max-height: 500px`).
+- Reader open is **progressive / zero-cost**: cover image as page-1 stand-in; intent warm via `warmReaderForEdition` (vendor + Range prefetch); first-spread priority queue. No page-raster pipeline or paid CDN.
 
 ## Architecture
 

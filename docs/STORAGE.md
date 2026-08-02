@@ -24,8 +24,9 @@ Verify in browser DevTools → Network when opening an edition:
 
 1. PDF requests should use **Range** and may show **206 Partial Content** when CORS is correct (ExposeHeaders include `Content-Length` / `Content-Range` / `ETag`).
 2. Reader libraries load **same-origin** from `/vendor/pdfjs/…` and `/vendor/page-flip/…` (not third-party CDNs). Versioned paths are long-cached via Netlify (`/vendor/*` → immutable).
-3. Optional (free Cloudflare knobs only): Browser Cache TTL / Cache Rules for `*.pdf` on the R2 custom domain if already available on the plan. Do **not** buy Workers or paid cache products for this. Upload `PutObject` Cache-Control is not changed in Functions for this work.
-4. After CORS JSON edits on a custom domain, purge that hostname’s cache if ACAO / Range headers look stale.
+3. Client warm path (no new products): hover/focus on Read / featured edition / studio edition card calls `warmReaderForEdition` (vendor + small Range prefetch). Edition route also warms on mount. Do **not** prefetch every catalog series card (no edition PDF yet).
+4. Optional (free Cloudflare knobs only): Browser Cache TTL / Cache Rules for `*.pdf` on the R2 custom domain if already available on the plan. Do **not** buy Workers or paid cache products for this. Upload `PutObject` Cache-Control is not changed in Functions for this work.
+5. After CORS JSON edits on a custom domain, purge that hostname’s cache if ACAO / Range headers look stale.
 
 Publisher PDFs and covers remain on R2 only — never under `public/`.
 

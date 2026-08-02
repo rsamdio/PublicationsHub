@@ -51,13 +51,16 @@ export function PublicationDetail({ seriesId }: Props) {
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  function preloadReader() {
-    void import('@/lib/client/viewer.js').then((m: any) => m.preloadReaderAssets?.());
+  function warmReader(pdfUrl?: string | null) {
+    void import('@/lib/client/viewer.js').then((m: any) => {
+      if (pdfUrl) m.warmReaderForEdition?.(pdfUrl);
+      else m.preloadReaderAssets?.();
+    });
   }
 
   // Warm pdf.js / page-flip when browsing a series (edition links open the reader page).
   useEffect(() => {
-    preloadReader();
+    warmReader();
   }, []);
 
   useEffect(() => {
@@ -202,8 +205,8 @@ export function PublicationDetail({ seriesId }: Props) {
                   {group.latestEdition ? (
                     <Link
                       href={editionPath(seriesId, group.latestEdition.id)}
-                      onPointerEnter={preloadReader}
-                      onFocus={preloadReader}
+                      onPointerEnter={() => warmReader(group.latestEdition?.pdf_url)}
+                      onFocus={() => warmReader(group.latestEdition?.pdf_url)}
                       className="w-full sm:w-auto flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary hover:bg-primary-dark md:py-3 md:text-lg md:px-10 transition-all shadow-lg shadow-primary/20"
                     >
                       <Icon name="auto_stories" className="mr-2" />
@@ -242,8 +245,8 @@ export function PublicationDetail({ seriesId }: Props) {
                 <article
                   key={ed.id}
                   className="edition-card group flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden transition-colors hover:border-primary/50 cursor-pointer"
-                  onPointerEnter={preloadReader}
-                  onFocus={preloadReader}
+                  onPointerEnter={() => warmReader(ed.pdf_url)}
+                  onFocus={() => warmReader(ed.pdf_url)}
                   onClick={(e) => {
                     if ((e.target as HTMLElement).closest('button')) return;
                     openEdition(ed);
@@ -283,8 +286,8 @@ export function PublicationDetail({ seriesId }: Props) {
                       <button
                         type="button"
                         className="flex-1 border border-primary/50 bg-primary/10 text-primary-dark hover:bg-primary hover:text-white hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
-                        onPointerEnter={preloadReader}
-                        onFocus={preloadReader}
+                        onPointerEnter={() => warmReader(ed.pdf_url)}
+                        onFocus={() => warmReader(ed.pdf_url)}
                         onClick={(e) => {
                           e.stopPropagation();
                           openEdition(ed);

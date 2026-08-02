@@ -149,10 +149,16 @@ function FeaturedCard({
         className="absolute inset-0 z-10"
         aria-label={title}
         onPointerEnter={() => {
-          void import('@/lib/client/viewer.js').then((m: any) => m.preloadReaderAssets?.());
+          void import('@/lib/client/viewer.js').then((m: any) => {
+            if (pub.pdf_url) m.warmReaderForEdition?.(pub.pdf_url);
+            else m.preloadReaderAssets?.();
+          });
         }}
         onFocus={() => {
-          void import('@/lib/client/viewer.js').then((m: any) => m.preloadReaderAssets?.());
+          void import('@/lib/client/viewer.js').then((m: any) => {
+            if (pub.pdf_url) m.warmReaderForEdition?.(pub.pdf_url);
+            else m.preloadReaderAssets?.();
+          });
         }}
       >
         <span className="sr-only">{title}</span>

@@ -292,11 +292,18 @@
   border-color: var(--reader-chrome-border) !important;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
 }
-#reader-view footer > div > div {
-  border-color: var(--reader-divider) !important;
+#reader-view .reader-chrome-divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 0.35rem 0.35rem;
+  background-color: var(--reader-divider);
+  flex-shrink: 0;
 }
 #reader-view #reader-page-info {
   color: var(--reader-chrome-text) !important;
+}
+#reader-view #reader-page-info:hover {
+  background-color: var(--reader-chrome-hover) !important;
 }
 #reader-view #reader-page-jump,
 #reader-view #reader-zoom-input {
@@ -330,6 +337,47 @@
 #reader-view #reader-page-jump-go:hover {
   color: var(--reader-chrome-text) !important;
   background-color: var(--reader-chrome-hover) !important;
+}
+
+/*
+ * Flipbook bottom padding + compact toolbar.
+ * Compact when narrow OR short landscape (true OR — wide phones in landscape stay compact).
+ */
+#reader-view .reader-flipbook-wrapper {
+  padding-bottom: 1rem;
+}
+#reader-view .reader-chrome-bar {
+  flex-wrap: nowrap;
+}
+#reader-view .reader-page-jump-group {
+  display: flex;
+}
+
+@media (max-width: 767px), (max-height: 500px) and (orientation: landscape) {
+  #reader-view .reader-flipbook-wrapper {
+    padding-bottom: calc(3.25rem + env(safe-area-inset-bottom, 0px));
+  }
+  #reader-view .reader-chrome-wide-only {
+    display: none !important;
+  }
+  #reader-view .reader-page-jump-group {
+    display: none;
+  }
+  #reader-view[data-page-jump-open='true'] .reader-page-jump-group {
+    display: flex;
+    max-width: 7.5rem;
+  }
+  #reader-view[data-page-jump-open='true'] #reader-page-info {
+    display: none;
+  }
+  #reader-view footer > div {
+    max-width: min(100vw - 0.5rem, 28rem);
+  }
+  #reader-view .reader-chrome-bar {
+    gap: 0;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
 }
 #reader-view .pub-icon {
   color: var(--reader-icon);

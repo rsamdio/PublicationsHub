@@ -75,6 +75,7 @@ export function EditionReader({
     let cancelled = false;
     let viewerMod: {
       preloadReaderAssets?: () => void;
+      warmReaderForEdition?: (url: string) => void;
       setReaderCloseHandler?: (fn: (() => void) | null) => void;
       closeReader?: () => void;
       unlockReaderPageScroll?: () => void;
@@ -89,7 +90,9 @@ export function EditionReader({
         return;
       }
       viewerMod = m;
-      m.preloadReaderAssets?.();
+      const pdf = initialEdition?.pdf_url;
+      if (pdf) m.warmReaderForEdition?.(pdf);
+      else m.preloadReaderAssets?.();
       m.setReaderCloseHandler?.(() => {
         // Close is an exit, not a forward navigation: replace so browser Back
         // does not land back on the edition and reopen the reader.
@@ -111,7 +114,7 @@ export function EditionReader({
         void import('@/lib/client/viewer.js').then(tearDown);
       }
     };
-  }, [router, seriesPath]);
+  }, [router, seriesPath, initialEdition?.pdf_url]);
 
   useEffect(() => {
     if (!chromeReady) return;
