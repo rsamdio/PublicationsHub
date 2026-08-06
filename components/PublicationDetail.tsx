@@ -59,10 +59,8 @@ export function PublicationDetail({ seriesId }: Props) {
     });
   }
 
-  // Warm pdf.js / page-flip when browsing a series (edition links open the reader page).
-  useEffect(() => {
-    warmReader();
-  }, []);
+  // Warm pdf.js / page-flip only on intent (hover/focus), not on every series mount.
+  // Eager warm injects viewer CSS into the document and is unnecessary for browsing.
 
   useEffect(() => {
     let cancelled = false;
@@ -149,29 +147,34 @@ export function PublicationDetail({ seriesId }: Props) {
 
     body = (
       <div className="flex flex-col flex-1 min-h-0">
-        {/* Hero — restored glow, tilted cover, publisher / cadence / latest / edition meta */}
-        <div className="relative bg-white border-b border-slate-200 overflow-hidden">
-          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+        {/* Hero — glow stays inside the hero box (no negative-margin overflow). */}
+        <div className="relative bg-white border-b border-slate-200 overflow-x-clip overflow-y-hidden">
+          <div
+            className="pointer-events-none absolute top-0 right-0 h-72 w-72 rounded-full bg-primary/10 blur-3xl"
+            aria-hidden
+          />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
             <div className="lg:grid lg:grid-cols-12 lg:gap-12 items-center">
               <div className="lg:col-span-4 flex justify-center lg:justify-start mb-8 lg:mb-0">
-                <div className="relative rounded-lg shadow-2xl transform -rotate-2 hover:rotate-0 transition-transform duration-500">
-                  <div className="absolute inset-0 bg-primary blur-xl opacity-20 rounded-lg" />
-                  <div className="relative w-64 max-w-full aspect-[3/4] rounded-lg shadow-lg border border-white/10 overflow-hidden bg-slate-200 book-cover">
-                    {group.coverUrl || group.coverThumbUrl ? (
-                      <CoverImage
-                        fullUrl={group.coverUrl}
-                        thumbUrl={group.coverThumbUrl}
-                        className="absolute inset-0 w-full h-full object-cover"
-                        sizes="(max-width: 1024px) 80vw, 256px"
-                        loading="eager"
-                        fetchPriority="high"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/30 to-rose-400/20 text-slate-500 font-bold">
-                        PDF
-                      </div>
-                    )}
+                <div className="relative w-64 max-w-full overflow-hidden p-3 -m-1">
+                  <div className="relative rounded-lg shadow-2xl origin-center transform -rotate-2 hover:rotate-0 transition-transform duration-500">
+                    <div className="absolute inset-0 bg-primary blur-xl opacity-20 rounded-lg" />
+                    <div className="relative w-full aspect-[3/4] rounded-lg shadow-lg border border-white/10 overflow-hidden bg-slate-200 book-cover">
+                      {group.coverUrl || group.coverThumbUrl ? (
+                        <CoverImage
+                          fullUrl={group.coverUrl}
+                          thumbUrl={group.coverThumbUrl}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          sizes="(max-width: 1024px) 80vw, 256px"
+                          loading="eager"
+                          fetchPriority="high"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/30 to-rose-400/20 text-slate-500 font-bold">
+                          PDF
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

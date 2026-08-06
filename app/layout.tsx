@@ -68,7 +68,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="overflow-x-clip">
       <body className="bg-background-light text-slate-900 font-display antialiased min-h-screen flex flex-col overflow-x-clip">
         <GoogleAnalytics />
         {children}

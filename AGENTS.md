@@ -31,6 +31,7 @@ If folders named `Dump/` or `newfolderOLD/` appear locally, treat them as archiv
 - Reader layout is **reactive**: single-page vs two-page spread follows `(width ≥ 768) || (landscape && width ≥ 560)` and rebuilds on orientation/width class change. Compact toolbar (one row) applies below 768px width or short landscape (`max-height: 500px`).
 - Reader open is **progressive / zero-cost**: cover image as page-1 stand-in; intent warm via `warmReaderForEdition` (vendor + Range prefetch); first-spread priority queue. No page-raster pipeline or paid CDN.
 - **Iframe embed** (any host, e.g. `rsamdio.org`): when `window.self !== window.top`, edition “Read” / `/p/…/e/…` opens in a **new tab** (`noopener`); catalog and series stay in the frame. Top-level reader UX is unchanged. Framing allowlist: CSP `frame-ancestors` in [`netlify.toml`](netlify.toml) (`'self'` + `rsamdio.org`).
+- Series/hero chrome stays embed-safe: no negative-margin glow past the viewport; crawl summary uses `clip-path` (not Tailwind `sr-only` nowrap) so scaled iframe previews do not gain horizontal overflow.
 
 ### Embed smoke checklist
 

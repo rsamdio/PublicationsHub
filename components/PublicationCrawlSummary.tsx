@@ -23,8 +23,11 @@ type Props = {
 };
 
 /**
- * Server-rendered crawl/GEO facts (sr-only). Interactive UI carries the visible UX;
+ * Server-rendered crawl/GEO facts (visually hidden). Interactive UI carries the visible UX;
  * JSON-LD on the page carries structured data.
+ *
+ * Do not use Tailwind `sr-only` alone: its `whitespace-nowrap` + 1px clip pattern can
+ * inflate document scrollWidth (breaks scaled iframe previews).
  */
 export function PublicationCrawlSummary({
   mode,
@@ -45,7 +48,11 @@ export function PublicationCrawlSummary({
       : seriesTitle || 'Publication';
 
   return (
-    <section className="sr-only" aria-label="Publication summary">
+    <section
+      className="absolute h-px w-px overflow-hidden whitespace-nowrap border-0 p-0"
+      style={{ clipPath: 'inset(50%)', margin: '-1px' }}
+      aria-label="Publication summary"
+    >
       <h1>{heading}</h1>
       {mode === 'edition' && seriesTitle ? (
         <p>
