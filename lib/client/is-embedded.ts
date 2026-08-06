@@ -14,11 +14,10 @@ export function isEmbeddedFrame(): boolean {
 }
 
 /**
- * When running inside an iframe, open the edition (or any same-origin path)
- * in a new top-level tab and return true. Otherwise return false so the
- * caller can use normal in-app navigation.
+ * When running inside an iframe, open the path in a new top-level tab and return true.
+ * Otherwise return false so the caller can use normal in-app navigation.
  */
-export function openEditionIfEmbedded(
+export function openInNewTabIfEmbedded(
   path: string,
   event?: { preventDefault(): void }
 ): boolean {

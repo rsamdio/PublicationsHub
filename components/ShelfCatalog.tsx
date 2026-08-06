@@ -18,7 +18,7 @@ import {
   buildEditionDeepLink,
   absoluteUrl
 } from '@/lib/urls';
-import { openEditionIfEmbedded } from '@/lib/client/is-embedded';
+import { openInNewTabIfEmbedded } from '@/lib/client/is-embedded';
 import { CoverImage } from './CoverImage';
 import { ShareMenu } from './ShareMenu';
 
@@ -63,6 +63,9 @@ function SeriesCard({ group }: { group: any }) {
         href={href}
         className="absolute inset-0 z-10"
         aria-label={`Open ${group.seriesTitle}`}
+        onClick={(e) => {
+          openInNewTabIfEmbedded(href, e);
+        }}
         onPointerEnter={() => {
           void import('@/lib/client/viewer.js').then((m: any) => m.preloadReaderAssets?.());
         }}
@@ -150,7 +153,7 @@ function FeaturedCard({
         className="absolute inset-0 z-10"
         aria-label={title}
         onClick={(e) => {
-          openEditionIfEmbedded(href, e);
+          openInNewTabIfEmbedded(href, e);
         }}
         onPointerEnter={() => {
           void import('@/lib/client/viewer.js').then((m: any) => {

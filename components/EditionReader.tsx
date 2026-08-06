@@ -10,7 +10,7 @@ import {
 import { editionPath, publicationPath } from '@/lib/urls';
 import {
   isEmbeddedFrame,
-  openEditionIfEmbedded
+  openInNewTabIfEmbedded
 } from '@/lib/client/is-embedded';
 
 export type EditionReaderSeed = {
@@ -57,7 +57,7 @@ function toReaderPub(
 /**
  * Standalone full-viewport edition reader for `/p/[seriesId]/e/[editionId]`.
  * When framed (any third-party iframe), opens the edition in a new tab and
- * returns the iframe to the series page — never mounts the fullscreen flipbook.
+ * returns the iframe to Home — never mounts the fullscreen flipbook.
  */
 export function EditionReader({
   seriesId,
@@ -79,15 +79,15 @@ export function EditionReader({
     setChromeReady(true);
   }, []);
 
-  // Framed: break out to a top-level tab; keep catalog/series in the iframe.
+  // Framed: break out to a top-level tab; keep Home in the iframe preview.
   useEffect(() => {
     if (!isEmbeddedFrame()) return;
     setFramedEscape(true);
     if (framedEscapeStartedRef.current) return;
     framedEscapeStartedRef.current = true;
-    openEditionIfEmbedded(editionPath(seriesId, editionId));
-    router.replace(seriesPath);
-  }, [seriesId, editionId, seriesPath, router]);
+    openInNewTabIfEmbedded(editionPath(seriesId, editionId));
+    router.replace('/');
+  }, [seriesId, editionId, router]);
 
   useEffect(() => {
     if (framedEscape || isEmbeddedFrame()) return;

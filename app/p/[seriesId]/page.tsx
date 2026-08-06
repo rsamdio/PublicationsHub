@@ -4,6 +4,7 @@ import { SiteNav } from '@/components/SiteNav';
 import { SiteFooter } from '@/components/SiteFooter';
 import { PublicationDetail } from '@/components/PublicationDetail';
 import { PublicationCrawlSummary } from '@/components/PublicationCrawlSummary';
+import { FramedDeepLinkEscape } from '@/components/FramedDeepLinkEscape';
 import { JsonLd } from '@/components/JsonLd';
 import {
   editionsForSeries,
@@ -132,21 +133,23 @@ export default async function PublicationPage({ params }: Props) {
           })
         ]}
       />
-      <SiteNav />
-      <PublicationCrawlSummary
-        mode="series"
-        seriesId={seriesId}
-        seriesTitle={seriesTitle}
-        description={description}
-        publisherName={publisherName}
-        frequencyLabel={frequencyLabel}
-        latestLabel={latestLabel}
-        editions={editionLinks}
-      />
-      <div className="flex flex-col flex-1 min-h-0 w-full">
-        <PublicationDetail seriesId={seriesId} />
-      </div>
-      <SiteFooter />
+      <FramedDeepLinkEscape>
+        <SiteNav />
+        <PublicationCrawlSummary
+          mode="series"
+          seriesId={seriesId}
+          seriesTitle={seriesTitle}
+          description={description}
+          publisherName={publisherName}
+          frequencyLabel={frequencyLabel}
+          latestLabel={latestLabel}
+          editions={editionLinks}
+        />
+        <div className="flex flex-col flex-1 min-h-0 w-full">
+          <PublicationDetail seriesId={seriesId} />
+        </div>
+        <SiteFooter />
+      </FramedDeepLinkEscape>
     </>
   );
 }

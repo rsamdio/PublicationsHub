@@ -14,7 +14,7 @@ import {
   getSeriesCanonicalIdForPublication,
   absoluteUrl
 } from '@/lib/urls';
-import { openEditionIfEmbedded } from '@/lib/client/is-embedded';
+import { openInNewTabIfEmbedded } from '@/lib/client/is-embedded';
 import { CoverImage } from './CoverImage';
 import { ShareMenu } from './ShareMenu';
 
@@ -94,7 +94,7 @@ export function PublicationDetail({ seriesId }: Props) {
 
   const openEdition = (ed: any) => {
     const path = editionPath(seriesId, ed.id);
-    if (openEditionIfEmbedded(path)) return;
+    if (openInNewTabIfEmbedded(path)) return;
     router.push(path);
   };
 
@@ -212,7 +212,7 @@ export function PublicationDetail({ seriesId }: Props) {
                     <Link
                       href={editionPath(seriesId, group.latestEdition.id)}
                       onClick={(e) => {
-                        openEditionIfEmbedded(
+                        openInNewTabIfEmbedded(
                           editionPath(seriesId, group.latestEdition.id),
                           e
                         );
