@@ -31,7 +31,8 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = "SAMEORIGIN"
+    # Allow framing from RSAMDIO main site embeds; X-Frame-Options cannot allowlist hosts.
+    Content-Security-Policy = "frame-ancestors 'self' https://rsamdio.org https://www.rsamdio.org"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"

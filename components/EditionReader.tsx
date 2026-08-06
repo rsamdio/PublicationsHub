@@ -8,6 +8,10 @@ import {
   fetchPublishedSeries
 } from '@/lib/firebase/db-public.js';
 import { publicationPath } from '@/lib/urls';
+import {
+  applyReaderEmbedAttrs,
+  clearReaderEmbedAttrs
+} from '@/lib/client/is-embedded';
 
 export type EditionReaderSeed = {
   id: string;
@@ -68,7 +72,16 @@ export function EditionReader({
   const onChromeReady = useCallback(() => {
     if (chromeReadyRef.current) return;
     chromeReadyRef.current = true;
+    applyReaderEmbedAttrs();
     setChromeReady(true);
+  }, []);
+
+  // Embed attrs as early as possible so CSS applies before chrome mounts.
+  useEffect(() => {
+    applyReaderEmbedAttrs();
+    return () => {
+      clearReaderEmbedAttrs();
+    };
   }, []);
 
   useEffect(() => {
@@ -90,6 +103,7 @@ export function EditionReader({
         return;
       }
       viewerMod = m;
+      applyReaderEmbedAttrs();
       const pdf = initialEdition?.pdf_url;
       if (pdf) m.warmReaderForEdition?.(pdf);
       else m.preloadReaderAssets?.();
