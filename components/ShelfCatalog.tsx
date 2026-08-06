@@ -18,6 +18,7 @@ import {
   buildEditionDeepLink,
   absoluteUrl
 } from '@/lib/urls';
+import { openEditionIfEmbedded } from '@/lib/client/is-embedded';
 import { CoverImage } from './CoverImage';
 import { ShareMenu } from './ShareMenu';
 
@@ -148,6 +149,9 @@ function FeaturedCard({
         href={href}
         className="absolute inset-0 z-10"
         aria-label={title}
+        onClick={(e) => {
+          openEditionIfEmbedded(href, e);
+        }}
         onPointerEnter={() => {
           void import('@/lib/client/viewer.js').then((m: any) => {
             if (pub.pdf_url) m.warmReaderForEdition?.(pub.pdf_url);

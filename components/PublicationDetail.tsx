@@ -14,6 +14,7 @@ import {
   getSeriesCanonicalIdForPublication,
   absoluteUrl
 } from '@/lib/urls';
+import { openEditionIfEmbedded } from '@/lib/client/is-embedded';
 import { CoverImage } from './CoverImage';
 import { ShareMenu } from './ShareMenu';
 
@@ -94,7 +95,9 @@ export function PublicationDetail({ seriesId }: Props) {
   }, [seriesId]);
 
   const openEdition = (ed: any) => {
-    router.push(editionPath(seriesId, ed.id));
+    const path = editionPath(seriesId, ed.id);
+    if (openEditionIfEmbedded(path)) return;
+    router.push(path);
   };
 
   let body: ReactNode;
@@ -205,6 +208,12 @@ export function PublicationDetail({ seriesId }: Props) {
                   {group.latestEdition ? (
                     <Link
                       href={editionPath(seriesId, group.latestEdition.id)}
+                      onClick={(e) => {
+                        openEditionIfEmbedded(
+                          editionPath(seriesId, group.latestEdition.id),
+                          e
+                        );
+                      }}
                       onPointerEnter={() => warmReader(group.latestEdition?.pdf_url)}
                       onFocus={() => warmReader(group.latestEdition?.pdf_url)}
                       className="w-full sm:w-auto flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary hover:bg-primary-dark md:py-3 md:text-lg md:px-10 transition-all shadow-lg shadow-primary/20"

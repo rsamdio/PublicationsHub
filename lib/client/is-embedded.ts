@@ -1,3 +1,5 @@
+import { absoluteUrl } from '@/lib/urls';
+
 /**
  * True when this document is running inside an iframe (e.g. rsamdio.org embed).
  * Cross-origin parents throw on `window.top` access — treat that as embedded.
@@ -12,33 +14,17 @@ export function isEmbeddedFrame(): boolean {
 }
 
 /**
- * Mark html / reader shell / #reader-view for embed-only CSS.
- * Idempotent; clears attrs when not embedded.
+ * When running inside an iframe, open the edition (or any same-origin path)
+ * in a new top-level tab and return true. Otherwise return false so the
+ * caller can use normal in-app navigation.
  */
-export function applyReaderEmbedAttrs(): void {
-  if (typeof document === 'undefined') return;
-  const embedded = isEmbeddedFrame();
-  const html = document.documentElement;
-  const shell = document.querySelector('.reader-route-shell');
-  const rv = document.getElementById('reader-view');
-
-  if (embedded) {
-    html.dataset.readerEmbed = 'true';
-    if (shell instanceof HTMLElement) shell.dataset.readerEmbed = 'true';
-    if (rv) rv.dataset.readerEmbed = 'true';
-  } else {
-    delete html.dataset.readerEmbed;
-    if (shell instanceof HTMLElement) delete shell.dataset.readerEmbed;
-    if (rv) delete rv.dataset.readerEmbed;
-  }
-}
-
-/** Clear embed attrs (route unmount). */
-export function clearReaderEmbedAttrs(): void {
-  if (typeof document === 'undefined') return;
-  delete document.documentElement.dataset.readerEmbed;
-  const shell = document.querySelector('.reader-route-shell');
-  if (shell instanceof HTMLElement) delete shell.dataset.readerEmbed;
-  const rv = document.getElementById('reader-view');
-  if (rv) delete rv.dataset.readerEmbed;
+export function openEditionIfEmbedded(
+  path: string,
+  event?: { preventDefault(): void }
+): boolean {
+  if (!isEmbeddedFrame()) return false;
+  event?.preventDefault();
+  const href = absoluteUrl(path);
+  window.open(href, '_blank', 'noopener,noreferrer');
+  return true;
 }

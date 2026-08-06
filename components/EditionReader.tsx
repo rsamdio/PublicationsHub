@@ -7,10 +7,10 @@ import {
   fetchPublishedEdition,
   fetchPublishedSeries
 } from '@/lib/firebase/db-public.js';
-import { publicationPath } from '@/lib/urls';
+import { editionPath, publicationPath } from '@/lib/urls';
 import {
-  applyReaderEmbedAttrs,
-  clearReaderEmbedAttrs
+  isEmbeddedFrame,
+  openEditionIfEmbedded
 } from '@/lib/client/is-embedded';
 
 export type EditionReaderSeed = {
@@ -56,6 +56,8 @@ function toReaderPub(
 
 /**
  * Standalone full-viewport edition reader for `/p/[seriesId]/e/[editionId]`.
+ * When framed (any third-party iframe), opens the edition in a new tab and
+ * returns the iframe to the series page — never mounts the fullscreen flipbook.
  */
 export function EditionReader({
   seriesId,
@@ -66,25 +68,30 @@ export function EditionReader({
   const router = useRouter();
   const openedRef = useRef<string | null>(null);
   const chromeReadyRef = useRef(false);
+  const framedEscapeStartedRef = useRef(false);
   const [chromeReady, setChromeReady] = useState(false);
+  const [framedEscape, setFramedEscape] = useState(false);
   const seriesPath = publicationPath(seriesId);
 
   const onChromeReady = useCallback(() => {
     if (chromeReadyRef.current) return;
     chromeReadyRef.current = true;
-    applyReaderEmbedAttrs();
     setChromeReady(true);
   }, []);
 
-  // Embed attrs as early as possible so CSS applies before chrome mounts.
+  // Framed: break out to a top-level tab; keep catalog/series in the iframe.
   useEffect(() => {
-    applyReaderEmbedAttrs();
-    return () => {
-      clearReaderEmbedAttrs();
-    };
-  }, []);
+    if (!isEmbeddedFrame()) return;
+    setFramedEscape(true);
+    if (framedEscapeStartedRef.current) return;
+    framedEscapeStartedRef.current = true;
+    openEditionIfEmbedded(editionPath(seriesId, editionId));
+    router.replace(seriesPath);
+  }, [seriesId, editionId, seriesPath, router]);
 
   useEffect(() => {
+    if (framedEscape || isEmbeddedFrame()) return;
+
     let cancelled = false;
     let viewerMod: {
       preloadReaderAssets?: () => void;
@@ -96,14 +103,12 @@ export function EditionReader({
 
     void import('@/lib/client/viewer.js').then((m) => {
       if (cancelled) {
-        // Unmounted before import finished — clear lock without navigating.
         m.setReaderCloseHandler?.(null);
         m.closeReader?.();
         m.unlockReaderPageScroll?.();
         return;
       }
       viewerMod = m;
-      applyReaderEmbedAttrs();
       const pdf = initialEdition?.pdf_url;
       if (pdf) m.warmReaderForEdition?.(pdf);
       else m.preloadReaderAssets?.();
@@ -117,7 +122,6 @@ export function EditionReader({
     return () => {
       cancelled = true;
       const tearDown = (m: NonNullable<typeof viewerMod>) => {
-        // Clear handler first so closeReader does not router.push after browser Back.
         m.setReaderCloseHandler?.(null);
         m.closeReader?.();
         m.unlockReaderPageScroll?.();
@@ -128,9 +132,10 @@ export function EditionReader({
         void import('@/lib/client/viewer.js').then(tearDown);
       }
     };
-  }, [router, seriesPath, initialEdition?.pdf_url]);
+  }, [framedEscape, router, seriesPath, initialEdition?.pdf_url]);
 
   useEffect(() => {
+    if (framedEscape || isEmbeddedFrame()) return;
     if (!chromeReady) return;
     let cancelled = false;
     const key = `${seriesId}:${editionId}`;
@@ -139,7 +144,7 @@ export function EditionReader({
 
     (async () => {
       const viewer = await import('@/lib/client/viewer.js');
-      if (cancelled) return;
+      if (cancelled || isEmbeddedFrame()) return;
 
       let seed: EditionReaderSeed | null =
         seedPdf && initialEdition ? { ...initialEdition, id: editionId } : null;
@@ -168,7 +173,7 @@ export function EditionReader({
           null;
       }
 
-      if (!seed?.pdf_url || cancelled) return;
+      if (!seed?.pdf_url || cancelled || isEmbeddedFrame()) return;
       if (openedRef.current === key) return;
       openedRef.current = key;
 
@@ -194,7 +199,22 @@ export function EditionReader({
       cancelled = true;
       if (openedRef.current === key) openedRef.current = null;
     };
-  }, [chromeReady, seriesId, editionId, initialEdition, seriesTitle]);
+  }, [
+    framedEscape,
+    chromeReady,
+    seriesId,
+    editionId,
+    initialEdition,
+    seriesTitle
+  ]);
+
+  if (framedEscape) {
+    return (
+      <div className="flex flex-1 items-center justify-center py-16 text-sm text-slate-500">
+        Opening reader…
+      </div>
+    );
+  }
 
   return (
     <div className="reader-route-shell">
