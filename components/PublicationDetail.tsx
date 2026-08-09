@@ -141,13 +141,13 @@ export function PublicationDetail({ seriesId }: Props) {
     const total = group.editions.length;
     const seriesShareTitle = group.seriesTitle || 'Publication';
     const seriesShareText = `${seriesShareTitle}${
-      group.publisherName ? ` — ${group.publisherName}` : ''
+      group.publisherName ? ` - ${group.publisherName}` : ''
     }`;
     const seriesShareUrl = () => absoluteUrl(publicationPath(seriesId));
 
     body = (
       <div className="flex flex-col flex-1 min-h-0">
-        {/* Hero — glow stays inside the hero box (no negative-margin overflow). */}
+        {/* Hero - glow stays inside the hero box (no negative-margin overflow). */}
         <div className="relative bg-white border-b border-slate-200 overflow-x-clip overflow-y-hidden">
           <div
             className="pointer-events-none absolute top-0 right-0 h-72 w-72 rounded-full bg-primary/10 blur-3xl"
@@ -190,7 +190,7 @@ export function PublicationDetail({ seriesId }: Props) {
                   ) : null}
                   <span className="text-slate-600 text-sm flex items-center">
                     <Icon name="new_releases" className="text-sm mr-1" />
-                    <span>{latestWhen ? `Latest Issue · ${latestWhen}` : '—'}</span>
+                    <span>{latestWhen ? `Latest Issue · ${latestWhen}` : '-'}</span>
                   </span>
                   <span className="text-slate-600 text-sm flex items-center">
                     <Icon name="library_books" className="text-sm mr-1" />
@@ -311,7 +311,7 @@ export function PublicationDetail({ seriesId }: Props) {
                       <ShareMenu
                         title={ed.title || 'Edition'}
                         text={`${ed.title || 'Edition'}${
-                          group.publisherName ? ` — ${group.publisherName}` : ''
+                          group.publisherName ? ` - ${group.publisherName}` : ''
                         }`}
                         getUrl={() =>
                           buildEditionDeepLink(

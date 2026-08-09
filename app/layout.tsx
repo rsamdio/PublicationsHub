@@ -39,7 +39,7 @@ export const metadata: Metadata = {
         url: DEFAULT_OG_IMAGE,
         width: 600,
         height: 400,
-        alt: 'Publications Hub — Rotaract South Asia MDIO'
+        alt: 'Publications Hub - Rotaract South Asia MDIO'
       }
     ]
   },

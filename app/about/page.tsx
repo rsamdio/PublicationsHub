@@ -47,11 +47,11 @@ export default function AboutPage() {
             <h2 className="text-lg font-semibold text-slate-900">Who it is for</h2>
             <ul className="mt-2 list-disc pl-5 space-y-2">
               <li>
-                <strong className="text-slate-800">Readers</strong> — members, Rotaractors, and the
+                <strong className="text-slate-800">Readers</strong> - members, Rotaractors, and the
                 public looking for club and district magazines, newsletters, and digital editions.
               </li>
               <li>
-                <strong className="text-slate-800">Publishers</strong> — authorized club or district
+                <strong className="text-slate-800">Publishers</strong> - authorized club or district
                 teams who upload and manage editions in Publisher Studio.
               </li>
             </ul>

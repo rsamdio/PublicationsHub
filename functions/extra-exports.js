@@ -218,7 +218,7 @@ exports.uploadSeriesCover = onRequest(
           }
           if (webpBuffer.length > MAX_COVER_BYTES) {
             res.status(413).json({
-              error: `Lossless WebP exceeds ${MAX_COVER_BYTES / (1024 * 1024)} MB — use a smaller source image`
+              error: `Lossless WebP exceeds ${MAX_COVER_BYTES / (1024 * 1024)} MB - use a smaller source image`
             });
             resolve();
             return;
@@ -473,7 +473,7 @@ exports.listMyPendingInvites = onCall(callableOptions, async (request) => {
     ) {
       throw new HttpsError(
         'failed-precondition',
-        'Firestore needs a composite index for publisher invites. Run: firebase deploy --only firestore:indexes — then wait until the index shows Enabled in the Firebase console (Build → Firestore → Indexes).'
+        'Firestore needs a composite index for publisher invites. Run: firebase deploy --only firestore:indexes - then wait until the index shows Enabled in the Firebase console (Build → Firestore → Indexes).'
       );
     }
     throw new HttpsError('internal', 'Could not list invitations');

@@ -13,7 +13,7 @@ export const DEFAULT_OG_IMAGE = '/images/ogimg.webp';
 export const HOME_TITLE_ABSOLUTE = DEFAULT_TITLE;
 
 /**
- * Edition document/OG title segment: `{Edition} – {Series}` before the brand template.
+ * Edition document/OG title segment: `{Edition} - {Series}` before the brand template.
  * Drops series when missing or identical to edition (case-insensitive).
  */
 export function editionTitleSegment(
@@ -23,7 +23,7 @@ export function editionTitleSegment(
   const ed = editionTitle != null ? String(editionTitle).trim() : '';
   const series = seriesTitle != null ? String(seriesTitle).trim() : '';
   if (ed && series && ed.toLowerCase() !== series.toLowerCase()) {
-    return `${ed} – ${series}`;
+    return `${ed} - ${series}`;
   }
   return ed || series || 'Edition';
 }
@@ -37,7 +37,7 @@ export function ogImages(
   coverUrl?: string | null,
   alt?: string
 ): { url: string; width?: number; height?: number; alt: string }[] {
-  const label = (alt && String(alt).trim()) || `${SITE_NAME} — ${ORG_NAME}`;
+  const label = (alt && String(alt).trim()) || `${SITE_NAME} - ${ORG_NAME}`;
   const cover = safeHttpUrl(coverUrl);
   if (cover) {
     return [{ url: cover, alt: label }];
@@ -111,13 +111,13 @@ export function enrichDescription(
     extras?.publisherName != null ? String(extras.publisherName).trim() : '';
 
   if (series && publisher) {
-    return `Read ${series} by ${publisher} on Publications Hub — an initiative by RSAMDIO.`;
+    return `Read ${series} by ${publisher} on Publications Hub - an initiative by RSAMDIO.`;
   }
   if (series) {
-    return `Read ${series} on Publications Hub — an initiative by RSAMDIO.`;
+    return `Read ${series} on Publications Hub - an initiative by RSAMDIO.`;
   }
   if (publisher) {
-    return `Read publications by ${publisher} on Publications Hub — an initiative by RSAMDIO.`;
+    return `Read publications by ${publisher} on Publications Hub - an initiative by RSAMDIO.`;
   }
 
   return extras?.fallback || DEFAULT_DESCRIPTION;

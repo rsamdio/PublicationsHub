@@ -111,7 +111,7 @@ function SeriesCard({ group }: { group: any }) {
           </div>
           <ShareMenu
             title={group.seriesTitle || 'Publication'}
-            text={`${group.seriesTitle || 'Publication'}${group.publisherName ? ` — ${group.publisherName}` : ''}`}
+            text={`${group.seriesTitle || 'Publication'}${group.publisherName ? ` - ${group.publisherName}` : ''}`}
             getUrl={() => absoluteUrl(href)}
           />
         </div>
@@ -143,7 +143,7 @@ function FeaturedCard({
   // Prefer live series/publisher labels from catalog/series over edition snapshots.
   const badgeLabel =
     (liveSeries?.publisher_name || pub.publisher_name || '').trim() || 'Publisher';
-  const seriesLine = (liveSeries?.title || pub.series_title || '').trim() || '—';
+  const seriesLine = (liveSeries?.title || pub.series_title || '').trim() || '-';
   const title = pub.title || 'Edition';
 
   return (
@@ -175,7 +175,7 @@ function FeaturedCard({
       <div className="absolute top-2 right-2 z-20">
         <ShareMenu
           title={title}
-          text={`${title}${badgeLabel !== 'Publisher' ? ` — ${badgeLabel}` : pub.publisher_name ? ` — ${pub.publisher_name}` : ''}`}
+          text={`${title}${badgeLabel !== 'Publisher' ? ` - ${badgeLabel}` : pub.publisher_name ? ` - ${pub.publisher_name}` : ''}`}
           getUrl={() => buildEditionDeepLink(pub.id, seriesCanonical)}
           variant="dark"
         />

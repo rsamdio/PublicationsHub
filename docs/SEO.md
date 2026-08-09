@@ -9,7 +9,7 @@ Canonical site: `NEXT_PUBLIC_SITE_URL` (default `https://publications.rsamdio.or
 | Home | `Publications Hub \| Rotaract South Asia MDIO` (absolute) |
 | About | `About \| Publications Hub \| Rotaract South Asia MDIO` |
 | Publication `/p/[seriesId]` | `{Series} \| Publications Hub \| Rotaract South Asia MDIO` |
-| Edition `/p/.../e/...` | `{Edition} – {Series} \| Publications Hub \| Rotaract South Asia MDIO` |
+| Edition `/p/.../e/...` | `{Edition} - {Series} \| Publications Hub \| Rotaract South Asia MDIO` |
 | Privacy / Terms | `{Page} \| Publications Hub \| Rotaract South Asia MDIO` |
 | Studio / Admin | Short titles + `noindex` |
 
@@ -30,21 +30,21 @@ Stable `@id`s: `{site}/#organization`, `{site}/#website`, `{seriesUrl}#series`, 
 
 ## Crawl config
 
-- `/robots.txt` — [`app/robots.ts`](../app/robots.ts): disallow `/studio`, `/admin`; explicit allow for GPTBot, ChatGPT-User, PerplexityBot, ClaudeBot, Google-Extended, Applebot-Extended
-- `/sitemap.xml` — [`app/sitemap.ts`](../app/sitemap.ts): home, about, legal, all public series + editions; `lastModified` from dates when present
-- `/llms.txt` — [`public/llms.txt`](../public/llms.txt): short mission + key URLs for assistants
+- `/robots.txt` - [`app/robots.ts`](../app/robots.ts): disallow `/studio`, `/admin`; explicit allow for GPTBot, ChatGPT-User, PerplexityBot, ClaudeBot, Google-Extended, Applebot-Extended
+- `/sitemap.xml` - [`app/sitemap.ts`](../app/sitemap.ts): home, about, legal, all public series + editions; `lastModified` from dates when present
+- `/llms.txt` - [`public/llms.txt`](../public/llms.txt): short mission + key URLs for assistants
 
 ## Post-deploy checklist
 
 1. Open `/robots.txt`, `/sitemap.xml`, `/llms.txt`, `/about` on production.
 2. Confirm staff paths disallowed and AI bot allows present.
 3. Submit/refresh sitemap in Google Search Console.
-4. Spot-check share previews for home, one series, one edition (**Edition – Series** title).
+4. Spot-check share previews for home, one series, one edition (**Edition - Series** title).
 5. **View Source** (no JS):
    - Home: definitional sentence, catalog counts/list, `ItemList` JSON-LD
    - Series: visible facts + `BreadcrumbList` + `hasPart`
    - Edition: `sr-only` facts + `PublicationIssue` + `MediaObject` + breadcrumbs
-6. URL Inspection for 3–5 publications after crawl.
+6. URL Inspection for 3-5 publications after crawl.
 
 ## Off-site authority (ops, not code)
 

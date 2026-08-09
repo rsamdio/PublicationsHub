@@ -17,7 +17,7 @@ function activeGcpProjectId() {
 }
 
 /**
- * Bucket name for admin.storage() — must match the default bucket in Firebase Console
+ * Bucket name for admin.storage() - must match the default bucket in Firebase Console
  * (client `config.firebase.storageBucket`; new projects use *.firebasestorage.app).
  * Optional override: set STORAGE_BUCKET in `functions/.env` for deploy.
  */
@@ -203,7 +203,7 @@ exports.prepareEditionPdfUpload = onCall(callableOptions, async (request) => {
     if (/sign|Sign|iam\.|IAM|permission|Permission|credential|Credential|access token/i.test(msg)) {
       throw new HttpsError(
         'failed-precondition',
-        'Could not create a signed upload URL. In IAM, ensure the Cloud Functions runtime service account has "Service Account Token Creator" (on itself) and roles that allow Storage object create — see Google Cloud documentation for signed URL permissions.'
+        'Could not create a signed upload URL. In IAM, ensure the Cloud Functions runtime service account has "Service Account Token Creator" (on itself) and roles that allow Storage object create - see Google Cloud documentation for signed URL permissions.'
       );
     }
     if (/not exist|Not Found|404|No such bucket|bucket/i.test(msg)) {
@@ -783,7 +783,7 @@ exports.uploadPublicationCover = onRequest(
           }
           if (losslessWebpBuffer.length > MAX_COVER_BYTES) {
             res.status(413).json({
-              error: `Lossless WebP exceeds ${MAX_COVER_BYTES / (1024 * 1024)} MB — reduce PDF preview size or use a smaller image`
+              error: `Lossless WebP exceeds ${MAX_COVER_BYTES / (1024 * 1024)} MB - reduce PDF preview size or use a smaller image`
             });
             resolve();
             return;

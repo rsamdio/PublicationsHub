@@ -45,7 +45,7 @@ export const readerChromeHtml = `<div id="reader-view" data-reader-mode="page" d
           <span class="reader-chrome-divider reader-chrome-wide-only" aria-hidden="true"></span>
           <button type="button" id="reader-zoom-out" class="text-gray-100 hover:text-white min-h-10 min-w-10 sm:min-h-9 sm:min-w-9 inline-flex items-center justify-center rounded-md hover:bg-white/15 p-0.5 transition-colors shrink-0" title="Zoom out"><span data-pub-icon="remove" class="text-lg"></span></button>
           <div class="reader-chrome-wide-only flex items-center gap-0.5 shrink-0">
-            <label for="reader-zoom-input" class="sr-only">Zoom percent (50–250, Enter to apply)</label>
+            <label for="reader-zoom-input" class="sr-only">Zoom percent (50-250, Enter to apply)</label>
             <input type="number" id="reader-zoom-input" min="50" max="250" step="1" value="100" inputmode="numeric" autocomplete="off" class="w-[3rem] sm:w-[3.25rem] min-h-8 rounded-md bg-white/10 border border-white/15 text-white text-xs py-1 px-0.5 text-center tabular-nums focus:ring-1 focus:ring-primary focus:border-primary" title="Zoom % (Enter or blur to apply)"/>
             <span class="text-[10px] text-gray-400 font-medium tabular-nums select-none" aria-hidden="true">%</span>
           </div>

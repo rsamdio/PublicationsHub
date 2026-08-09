@@ -81,7 +81,7 @@ export function PublicationCrawlSummary({
               <li key={ed.id}>
                 <Link href={editionPath(seriesId, ed.id)}>
                   {ed.title || ed.id}
-                  {ed.dateLabel ? ` — ${ed.dateLabel}` : ''}
+                  {ed.dateLabel ? ` - ${ed.dateLabel}` : ''}
                   {editionId && ed.id === editionId ? ' (current)' : ''}
                 </Link>
               </li>
