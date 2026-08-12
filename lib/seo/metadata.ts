@@ -7,7 +7,7 @@ export const DEFAULT_TITLE = `${SITE_NAME} | ${ORG_NAME}`;
 export const TITLE_TEMPLATE = `%s | ${SITE_NAME} | ${ORG_NAME}`;
 export const DEFAULT_DESCRIPTION =
   'One place for all the digital publications across Rotaract South Asia. An initiative by Rotaract South Asia MDIO.';
-export const DEFAULT_OG_IMAGE = '/images/ogimg.webp';
+export const DEFAULT_OG_IMAGE = '/images/ogimage.webp';
 
 /** Home uses absolute title so the layout template does not double-append. */
 export const HOME_TITLE_ABSOLUTE = DEFAULT_TITLE;
@@ -45,8 +45,8 @@ export function ogImages(
   return [
     {
       url: DEFAULT_OG_IMAGE,
-      width: 600,
-      height: 400,
+      width: 1200,
+      height: 630,
       alt: label
     }
   ];

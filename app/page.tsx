@@ -30,8 +30,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: DEFAULT_OG_IMAGE,
-        width: 600,
-        height: 400,
+        width: 1200,
+        height: 630,
         alt: 'Publications Hub - Rotaract South Asia MDIO'
       }
     ]
