@@ -8,6 +8,8 @@ export const TITLE_TEMPLATE = `%s | ${SITE_NAME} | ${ORG_NAME}`;
 export const DEFAULT_DESCRIPTION =
   'One place for all the digital publications across Rotaract South Asia. An initiative by Rotaract South Asia MDIO.';
 export const DEFAULT_OG_IMAGE = '/images/ogimage.webp';
+export const TWITTER_HANDLE = '@rsa_mdio';
+export const TWITTER_URL = 'https://x.com/rsa_mdio';
 
 /** Home uses absolute title so the layout template does not double-append. */
 export const HOME_TITLE_ABSOLUTE = DEFAULT_TITLE;
@@ -91,6 +93,8 @@ export function buildShareMetadata({
     },
     twitter: {
       card: 'summary_large_image',
+      site: TWITTER_HANDLE,
+      creator: TWITTER_HANDLE,
       title: absoluteTitle,
       description: desc,
       images: images.map((img) => img.url)

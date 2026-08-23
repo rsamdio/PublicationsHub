@@ -7,7 +7,8 @@ import {
   DEFAULT_OG_IMAGE,
   DEFAULT_TITLE,
   SITE_NAME,
-  TITLE_TEMPLATE
+  TITLE_TEMPLATE,
+  TWITTER_HANDLE
 } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = {
@@ -45,6 +46,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
+    site: TWITTER_HANDLE,
+    creator: TWITTER_HANDLE,
     title: DEFAULT_TITLE,
     description: DEFAULT_DESCRIPTION,
     images: [DEFAULT_OG_IMAGE]

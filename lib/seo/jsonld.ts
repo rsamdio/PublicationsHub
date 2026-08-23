@@ -1,5 +1,10 @@
 import { siteUrl } from '@/lib/firebase/config';
-import { ORG_NAME, SITE_NAME, DEFAULT_DESCRIPTION } from '@/lib/seo/metadata';
+import {
+  ORG_NAME,
+  SITE_NAME,
+  DEFAULT_DESCRIPTION,
+  TWITTER_URL
+} from '@/lib/seo/metadata';
 import { safeHttpUrl } from '@/lib/urls';
 
 function abs(pathOrUrl: string): string {
@@ -59,7 +64,7 @@ export function organizationJsonLd() {
     name: ORG_NAME,
     url: 'https://rsamdio.org/',
     logo: abs('/images/rsamdio.webp'),
-    sameAs: ['https://rsamdio.org/']
+    sameAs: ['https://rsamdio.org/', TWITTER_URL]
   };
 }
 

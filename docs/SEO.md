@@ -57,5 +57,6 @@ Stable `@id`s: `{site}/#organization`, `{site}/#website`, `{seriesUrl}#series`, 
 ## Notes
 
 - Default OG fallback image: `/images/ogimage.webp` (1200×630).
+- Twitter card handle: `@rsa_mdio` (`twitter:site` and `twitter:creator`).
 - Interactive shelf/reader remain client-side; SSR layers above are for citation and crawl.
 - Do not index Studio/Admin; do not treat PDF body text as the primary snippet source.
