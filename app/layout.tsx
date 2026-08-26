@@ -58,6 +58,11 @@ export const metadata: Metadata = {
       { url: '/images/favicon.ico' }
     ],
     apple: '/images/rsamdio.webp'
+  },
+  manifest: '/manifest.webmanifest',
+  other: {
+    'geo.region': 'IN',
+    'geo.placename': 'South Asia'
   }
 };
 

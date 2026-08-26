@@ -128,6 +128,7 @@ function checkRouteCoverage() {
     { route: '/[seriesSlug]/[editionSlug]', marker: 'app/[seriesSlug]/[editionSlug]/page.tsx' },
     { route: '/privacy', marker: 'app/privacy' },
     { route: '/terms', marker: 'app/terms' },
+    { route: '/manifest.webmanifest', marker: 'app/manifest.ts' },
     { route: '/robots.txt', marker: 'app/robots.ts' },
     { route: '/sitemap.xml', marker: 'app/sitemap.ts' },
   ];

@@ -13,7 +13,7 @@ PublicationsHub is a Next.js 15 application using the App Router, React 19, Type
 │  Public Readers │  Publisher Teams    │ Platform Staff      │
 │  - Home (/)     │  - Studio (/studio) │ - Admin (/admin)    │
 │  - Detail (Slug) │  - Roster / Invites │ - Catalog Backfill  │
-│  - Reader (/e/) │  - PDF/Cover Upload │ - User Management   │
+│  - Reader (Slug) │  - PDF/Cover Upload │ - User Management   │
 └────────┬────────┴──────────┬──────────┴──────────┬──────────┘
          │                   │                     │
          ▼                   ▼                     ▼

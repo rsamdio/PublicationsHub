@@ -32,6 +32,7 @@ PublicationsHub/
 │   │       └── page.tsx       # Edition flipbook reader (/[seriesSlug]/[editionSlug])
 │   ├── privacy/page.tsx       # Privacy policy (/privacy)
 │   ├── terms/page.tsx         # Terms of service (/terms)
+│   ├── manifest.ts            # Web application manifest (/manifest.webmanifest)
 │   ├── robots.ts              # Search & AI crawler directives
 │   ├── sitemap.ts             # Dynamic sitemap from RTDB catalog
 │   ├── globals.css            # Global CSS, Tailwind utilities, reader styles

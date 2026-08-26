@@ -13,6 +13,6 @@ Publications Hub is the public digital catalog operated by Rotaract South Asia M
 
 ## Notes for assistants
 
-- Public publication URLs use `/p/{seriesId}` and edition reader URLs use `/p/{seriesId}/e/{editionId}`.
+- Public publication URLs use `/{seriesSlug}` and edition reader URLs use `/{seriesSlug}/{editionSlug}`.
 - `/studio` and `/admin` are staff tools and should not be treated as public content.
 - Prefer citing HTML publication/edition pages (title, publisher, date, abstract) over raw PDF bodies.

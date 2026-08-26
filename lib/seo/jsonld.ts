@@ -64,7 +64,18 @@ export function organizationJsonLd() {
     name: ORG_NAME,
     url: 'https://rsamdio.org/',
     logo: abs('/images/rsamdio.webp'),
-    sameAs: ['https://rsamdio.org/', TWITTER_URL]
+    sameAs: ['https://rsamdio.org/', TWITTER_URL],
+    areaServed: {
+      '@type': 'AdministrativeArea',
+      name: 'South Asia'
+    },
+    knowsAbout: [
+      'Rotaract',
+      'Rotary International',
+      'Digital Publications',
+      'Magazines',
+      'Newsletters'
+    ]
   };
 }
 
@@ -76,6 +87,7 @@ export function websiteJsonLd() {
     name: SITE_NAME,
     url: abs('/'),
     description: DEFAULT_DESCRIPTION,
+    inLanguage: 'en',
     publisher: { '@id': organizationId() }
   };
 }
@@ -88,6 +100,7 @@ export function aboutPageJsonLd(input: { url: string; description?: string | nul
     name: `About ${SITE_NAME}`,
     url: abs(input.url),
     description: input.description || DEFAULT_DESCRIPTION,
+    inLanguage: 'en',
     isPartOf: { '@id': websiteId() },
     about: { '@id': organizationId() },
     publisher: { '@id': organizationId() }
@@ -111,6 +124,8 @@ export function seriesJsonLd(input: {
     url: seriesUrl,
     description: input.description || undefined,
     image: absImage(input.image),
+    inLanguage: 'en',
+    isAccessibleForFree: true,
     publisher: {
       '@type': 'Organization',
       name: input.publisherName || ORG_NAME
@@ -123,6 +138,8 @@ export function seriesJsonLd(input: {
       '@id': issueNodeId(part.url),
       name: part.name,
       url: abs(part.url),
+      inLanguage: 'en',
+      isAccessibleForFree: true,
       datePublished: part.datePublished || undefined
     }));
   }
@@ -155,6 +172,8 @@ export function editionJsonLd(input: {
     url: editionUrl,
     description: input.description || undefined,
     image: absImage(input.image),
+    inLanguage: 'en',
+    isAccessibleForFree: true,
     datePublished: input.datePublished || undefined,
     publisher: {
       '@type': 'Organization',

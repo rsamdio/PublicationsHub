@@ -102,6 +102,7 @@ Created manually in Console, via `acceptPlatformInvite`, or break-glass `setPlat
 |-------|------|--------|
 | `publisher_id` | string | |
 | `series_id` | string | |
+| `slug` | string | optional; URL-safe slug for /[seriesSlug]/[editionSlug] reader route |
 | `title` | string | |
 | `description` | string | optional |
 | `pdf_url` | string | |
