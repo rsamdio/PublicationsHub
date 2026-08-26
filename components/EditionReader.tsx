@@ -37,12 +37,15 @@ type Props = {
 };
 
 function toReaderPub(
-  ed: EditionReaderSeed & { pdf_url: string },
+  ed: EditionReaderSeed & { pdf_url: string; slug?: string | null },
   seriesCanonicalId: string,
-  seriesTitle?: string | null
+  seriesTitle?: string | null,
+  seriesSlug?: string | null,
+  editionSlug?: string | null
 ) {
   return {
     id: ed.id,
+    slug: editionSlug || ed.slug || null,
     title: ed.title || 'Publication',
     description: ed.description ?? undefined,
     pdf_url: ed.pdf_url,
@@ -52,7 +55,8 @@ function toReaderPub(
     issue_date: ed.issue_date == null ? undefined : String(ed.issue_date),
     series_title: seriesTitle || ed.series_title || null,
     series_id: ed.series_id || seriesCanonicalId,
-    _seriesCanonicalId: seriesCanonicalId
+    _seriesCanonicalId: seriesCanonicalId,
+    _seriesSlug: seriesSlug || null
   };
 }
 
@@ -194,7 +198,9 @@ export function EditionReader({
               seed.issue_date == null ? undefined : String(seed.issue_date)
           },
           seriesId,
-          titleFromSeries
+          titleFromSeries,
+          seriesSlug,
+          editionSlug
         ) as any
       );
     })();

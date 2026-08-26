@@ -41,9 +41,11 @@ function formatUiDate(v: number | string | null | undefined): string {
   const iso = toIsoDate(v);
   if (!iso) return '';
   try {
-    return new Date(iso).toLocaleDateString('en-US', {
-      month: 'short',
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-GB', {
       day: 'numeric',
+      month: 'long',
       year: 'numeric'
     });
   } catch {

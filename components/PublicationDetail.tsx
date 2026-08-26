@@ -25,9 +25,11 @@ type Props = {
 function formatDate(iso?: string | null) {
   if (!iso) return '';
   try {
-    return new Date(iso).toLocaleDateString('en-US', {
-      month: 'short',
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-GB', {
       day: 'numeric',
+      month: 'long',
       year: 'numeric'
     });
   } catch {
@@ -93,7 +95,7 @@ export function PublicationDetail({ seriesId }: Props) {
   }, [seriesId]);
 
   const openEdition = (ed: any) => {
-    const sId = group?.slug || seriesId;
+    const sId = group?.slug || ed.series_slug || seriesId;
     const eId = ed.slug || ed.id;
     const path = editionPath(sId, eId);
     if (openInNewTabIfEmbedded(path)) return;
@@ -318,7 +320,7 @@ export function PublicationDetail({ seriesId }: Props) {
                         getUrl={() =>
                           buildEditionDeepLink(
                             ed.slug || ed.id,
-                            group?.slug || getSeriesCanonicalIdForPublication(ed) || seriesId
+                            group?.slug || ed.series_slug || getSeriesCanonicalIdForPublication(ed) || seriesId
                           )
                         }
                         label=""

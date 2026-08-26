@@ -40,7 +40,9 @@ function Icon({
 function formatDate(iso?: string | null): string {
   if (!iso) return '';
   try {
-    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   } catch {
     return '';
   }
@@ -176,7 +178,7 @@ function FeaturedCard({
         <ShareMenu
           title={title}
           text={`${title}${badgeLabel !== 'Publisher' ? ` - ${badgeLabel}` : pub.publisher_name ? ` - ${pub.publisher_name}` : ''}`}
-          getUrl={() => buildEditionDeepLink(pub.id, seriesCanonical)}
+          getUrl={() => absoluteUrl(href)}
           variant="dark"
         />
       </div>
