@@ -53,6 +53,7 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly([
         'publisher_id',
         'series_id',
+        'slug',
         'title',
         'description',
         'pdf_url',
@@ -73,6 +74,7 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'title',
         'description',
+        'slug',
         'cover_url',
         'cover_thumb_url',
         'series_id',

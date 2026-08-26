@@ -8,8 +8,8 @@ Canonical site: `NEXT_PUBLIC_SITE_URL` (default `https://publications.rsamdio.or
 |---------|--------|
 | Home | `Publications Hub \| Rotaract South Asia MDIO` (absolute) |
 | About | `About \| Publications Hub \| Rotaract South Asia MDIO` |
-| Publication `/p/[seriesId]` | `{Series} \| Publications Hub \| Rotaract South Asia MDIO` |
-| Edition `/p/.../e/...` | `{Edition} - {Series} \| Publications Hub \| Rotaract South Asia MDIO` |
+| Publication `/[seriesSlug]` | `{Series} \| Publications Hub \| Rotaract South Asia MDIO` |
+| Edition `/[seriesSlug]/[editionSlug]` | `{Edition} - {Series} \| Publications Hub \| Rotaract South Asia MDIO` |
 | Privacy / Terms | `{Page} \| Publications Hub \| Rotaract South Asia MDIO` |
 | Studio / Admin | Short titles + `noindex` |
 
@@ -23,8 +23,8 @@ Public pages aim to be **citable without executing client JS**:
 |-------|------------|---------|
 | `/` | Definitional sentence + hero catalog counts; interactive shelf below | `WebSite`, `Organization` (`@id`), `ItemList` (from [`lib/seo/geo-catalog.ts`](../lib/seo/geo-catalog.ts)) |
 | `/about` | Mission / audience / how to read & publish | `AboutPage`, `WebSite`, `Organization` |
-| `/p/[seriesId]` | Interactive publication UI; enriched `sr-only` crawl summary | `CreativeWorkSeries` + `hasPart` + `BreadcrumbList` |
-| `/p/.../e/...` | Enriched `sr-only` crawl summary (reader stays full-screen) | `PublicationIssue` + `MediaObject` (PDF) + `BreadcrumbList` |
+| `/[seriesSlug]` | Interactive publication UI; enriched `sr-only` crawl summary | `CreativeWorkSeries` + `hasPart` + `BreadcrumbList` |
+| `/[seriesSlug]/[editionSlug]` | Enriched `sr-only` crawl summary (reader stays full-screen) | `PublicationIssue` + `MediaObject` (PDF) + `BreadcrumbList` |
 
 Stable `@id`s: `{site}/#organization`, `{site}/#website`, `{seriesUrl}#series`, `{editionUrl}#issue`.
 
@@ -49,7 +49,7 @@ Stable `@id`s: `{site}/#organization`, `{site}/#website`, `{seriesUrl}#series`, 
 ## Off-site authority (ops, not code)
 
 1. RSAMDIO.org landing + link to Publications Hub with the definitional sentence  
-2. Promote specific `/p/.../e/...` URLs in district channels  
+2. Promote specific `/[seriesSlug]/[editionSlug]` URLs in district channels  
 3. Wikidata / `sameAs` when eligible  
 4. Mentions → links recovery for clubs already using the product  
 5. Quarterly Perplexity / AI Overview probes for “RSAMDIO Publications Hub” / “Rotaract South Asia publications”

@@ -29,6 +29,8 @@ export type EditionReaderSeed = {
 type Props = {
   seriesId: string;
   editionId: string;
+  seriesSlug?: string;
+  editionSlug?: string;
   /** SSR edition fields so open can start without waiting on RTDB when possible. */
   initialEdition?: EditionReaderSeed | null;
   seriesTitle?: string | null;
@@ -55,13 +57,15 @@ function toReaderPub(
 }
 
 /**
- * Standalone full-viewport edition reader for `/p/[seriesId]/e/[editionId]`.
+ * Standalone full-viewport edition reader for `/[seriesSlug]/[editionSlug]`.
  * When framed (any third-party iframe), opens the edition in a new tab and
  * returns the iframe to Home — never mounts the fullscreen flipbook.
  */
 export function EditionReader({
   seriesId,
   editionId,
+  seriesSlug,
+  editionSlug,
   initialEdition = null,
   seriesTitle = null
 }: Props) {
@@ -71,7 +75,7 @@ export function EditionReader({
   const framedEscapeStartedRef = useRef(false);
   const [chromeReady, setChromeReady] = useState(false);
   const [framedEscape, setFramedEscape] = useState(false);
-  const seriesPath = publicationPath(seriesId);
+  const seriesPath = publicationPath(seriesSlug || seriesId);
 
   const onChromeReady = useCallback(() => {
     if (chromeReadyRef.current) return;
@@ -85,7 +89,7 @@ export function EditionReader({
     setFramedEscape(true);
     if (framedEscapeStartedRef.current) return;
     framedEscapeStartedRef.current = true;
-    openInNewTabIfEmbedded(editionPath(seriesId, editionId));
+    openInNewTabIfEmbedded(editionPath(seriesSlug || seriesId, editionSlug || editionId));
     router.replace('/');
   }, [seriesId, editionId, router]);
 

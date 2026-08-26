@@ -1,4 +1,4 @@
-/** Full-viewport reader shell for the standalone edition page (`/p/.../e/...`). */
+/** Full-viewport reader shell for the standalone edition page (`/[seriesSlug]/[editionSlug]`). */
 export const readerChromeHtml = `<div id="reader-view" data-reader-mode="page" data-reader-theme="light" class="reader-page flex flex-col touch-manipulation bg-reader-bg">
     <div id="flipbook-wrapper" class="reader-flipbook-wrapper flex-1 flex items-center justify-center w-full min-h-0 overflow-hidden overscroll-none p-2 sm:p-4" style="min-width: 0;">
       <div id="flipbook-pan" class="relative transition-transform duration-300 ease-out will-change-transform">

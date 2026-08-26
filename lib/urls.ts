@@ -6,14 +6,14 @@
 export function publicationPath(seriesId: string): string {
   const id = seriesId != null ? String(seriesId).trim() : '';
   if (!id) return '/';
-  return `/p/${encodeURIComponent(id)}`;
+  return `/${encodeURIComponent(id)}`;
 }
 
 export function editionPath(seriesId: string, editionId: string): string {
   const sid = seriesId != null ? String(seriesId).trim() : '';
   const eid = editionId != null ? String(editionId).trim() : '';
   if (!sid || !eid) return sid ? publicationPath(sid) : '/';
-  return `/p/${encodeURIComponent(sid)}/e/${encodeURIComponent(eid)}`;
+  return `/${encodeURIComponent(sid)}/${encodeURIComponent(eid)}`;
 }
 
 export function getSeriesCanonicalIdForPublication(pub: {
@@ -66,7 +66,7 @@ export function buildSeriesPagePath(canonicalId: string): string {
   return publicationPath(canonicalId);
 }
 
-/** @deprecated Studio overlay only — public reader uses path `/p/…/e/…`. */
+/** @deprecated Studio overlay only — public reader uses path `/[seriesSlug]/[editionSlug]`. */
 export const READ_HASH_SEGMENT = 'r';
 
 export function formatReadLocationHash(editionRef: string): string {
@@ -94,11 +94,11 @@ export function readEditionRefFromHash(): string | null {
   );
 }
 
-/** Parse `/p/[seriesId]/e/[editionId]` from a pathname. */
+/** Parse `/[seriesSlug]/[editionSlug]` from a pathname. */
 export function parseEditionPath(
   pathname: string
 ): { seriesId: string; editionId: string } | null {
-  const m = /^\/p\/([^/]+)\/e\/([^/]+)\/?$/.exec(pathname || '');
+  const m = /^\/([^/]+)\/([^/]+)\/?$/.exec(pathname || '');
   if (!m) return null;
   return {
     seriesId: decodeURIComponent(m[1]),
@@ -107,7 +107,29 @@ export function parseEditionPath(
 }
 
 export function parsePublicationPath(pathname: string): string | null {
-  const m = /^\/p\/([^/]+)\/?$/.exec(pathname || '');
+  const m = /^\/([^/]+)\/?$/.exec(pathname || '');
   if (!m) return null;
   return decodeURIComponent(m[1]);
+}
+
+export function sanitizeSlug(raw: string): string {
+  return (raw || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 60);
+}
+
+export function isValidSlug(s: string): boolean {
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s || '');
+}
+
+const RESERVED_SLUGS = new Set([
+  'about', 'admin', 'studio', 'privacy', 'terms', 'api', 'auth', 'login',
+  'p', 'e', 'b', 'public', 'catalog', 'images', 'fonts', 'vendor', '_next',
+  'sitemap.xml', 'robots.txt', 'manifest.json', 'favicon.ico', 'sw.js'
+]);
+
+export function isReservedSlug(s: string): boolean {
+  return RESERVED_SLUGS.has((s || '').toLowerCase());
 }

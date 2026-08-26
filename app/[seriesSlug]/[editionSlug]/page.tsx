@@ -3,7 +3,12 @@ import { notFound } from 'next/navigation';
 import { EditionReader } from '@/components/EditionReader';
 import { PublicationCrawlSummary } from '@/components/PublicationCrawlSummary';
 import { JsonLd } from '@/components/JsonLd';
-import { fetchPublicEdition, fetchPublicSeries } from '@/lib/firebase/rtdb-rest';
+import { fetchPublicEdition, fetchPublicSeries,
+  fetchPublicSeriesMap,
+  fetchPublicEditionsMap,
+  resolveSeriesBySlugOrId,
+  resolveEditionBySlugOrId
+} from '@/lib/firebase/rtdb-rest';
 import { editionPath, publicationPath } from '@/lib/urls';
 import {
   buildShareMetadata,
@@ -15,10 +20,10 @@ import { editionJsonLd, organizationJsonLd, websiteJsonLd } from '@/lib/seo/json
 import { toIsoDate } from '@/lib/seo/dates';
 
 type Props = {
-  params: Promise<{ seriesId: string; editionId: string }>;
+  params: Promise<{ seriesSlug: string; editionSlug: string }>;
 };
 
-/** Series path must match edition.series_id, or standalone `/p/{id}/e/{id}`. */
+/** Series path must match edition.series_id, or standalone `/[editionSlug]/[editionSlug]`. */
 function editionBelongsToSeries(
   edition: { series_id?: string | null },
   seriesId: string,
@@ -47,9 +52,18 @@ function formatUiDate(v: number | string | null | undefined): string {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { seriesId: sRaw, editionId: eRaw } = await params;
-  const seriesId = decodeURIComponent(sRaw);
-  const editionId = decodeURIComponent(eRaw);
+  const { seriesSlug: sRaw, editionSlug: eRaw } = await params;
+  const seriesSlug = decodeURIComponent(sRaw);
+  const editionSlug = decodeURIComponent(eRaw);
+  
+  const [seriesMap, editionsMap] = await Promise.all([
+    fetchPublicSeriesMap(),
+    fetchPublicEditionsMap()
+  ]);
+  
+  const seriesId = resolveSeriesBySlugOrId(seriesMap, seriesSlug)?.seriesId || seriesSlug;
+  const editionId = resolveEditionBySlugOrId(editionsMap, seriesId, editionSlug)?.editionId || editionSlug;
+  
   const [series, edition] = await Promise.all([
     fetchPublicSeries(seriesId),
     fetchPublicEdition(editionId)
@@ -67,7 +81,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     publisherName: edition.publisher_name || series?.publisher_name,
     seriesTitle: editionTitleSegment(edition.title, seriesTitle)
   });
-  const path = editionPath(seriesId, editionId);
+  const path = editionPath(seriesSlug, editionSlug);
   const cover = edition.cover_url || series?.cover_url;
   return buildShareMetadata({
     title,
@@ -79,9 +93,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function EditionReaderPage({ params }: Props) {
-  const { seriesId: sRaw, editionId: eRaw } = await params;
-  const seriesId = decodeURIComponent(sRaw);
-  const editionId = decodeURIComponent(eRaw);
+  const { seriesSlug: sRaw, editionSlug: eRaw } = await params;
+  const seriesSlug = decodeURIComponent(sRaw);
+  const editionSlug = decodeURIComponent(eRaw);
+  
+  const [seriesMap, editionsMap] = await Promise.all([
+    fetchPublicSeriesMap(),
+    fetchPublicEditionsMap()
+  ]);
+  
+  const seriesId = resolveSeriesBySlugOrId(seriesMap, seriesSlug)?.seriesId || seriesSlug;
+  const editionId = resolveEditionBySlugOrId(editionsMap, seriesId, editionSlug)?.editionId || editionSlug;
+  
   const [series, edition] = await Promise.all([
     fetchPublicSeries(seriesId),
     fetchPublicEdition(editionId)
@@ -94,7 +117,7 @@ export default async function EditionReaderPage({ params }: Props) {
   const editionTitle = edition.title || 'Edition';
   const description = edition.description || series?.description || null;
   const publisherName = edition.publisher_name || series?.publisher_name || null;
-  const path = editionPath(seriesId, editionId);
+  const path = editionPath(seriesSlug, editionSlug);
   const datePublished = toIsoDate(edition.issue_date ?? edition.created_at);
   const datePublishedLabel = formatUiDate(edition.issue_date ?? edition.created_at) || null;
 
@@ -111,7 +134,7 @@ export default async function EditionReaderPage({ params }: Props) {
             image: edition.cover_url || series?.cover_url,
             datePublished,
             seriesName: seriesTitle,
-            seriesUrl: publicationPath(seriesId),
+            seriesUrl: publicationPath(seriesSlug),
             publisherName,
             pdfUrl: edition.pdf_url
           })
@@ -119,7 +142,7 @@ export default async function EditionReaderPage({ params }: Props) {
       />
       <PublicationCrawlSummary
         mode="edition"
-        seriesId={seriesId}
+        seriesId={seriesSlug}
         seriesTitle={seriesTitle}
         editionTitle={editionTitle}
         description={description}
@@ -131,6 +154,8 @@ export default async function EditionReaderPage({ params }: Props) {
       <EditionReader
         seriesId={seriesId}
         editionId={editionId}
+        seriesSlug={seriesSlug}
+        editionSlug={editionSlug}
         seriesTitle={seriesTitle}
         initialEdition={{
           id: editionId,

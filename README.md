@@ -4,13 +4,13 @@
 
 Next.js frontend for a multi-tenant digital library. **Firebase Functions / Firestore / RTDB / Storage / R2 backend is frozen** — clients call the same endpoints as before.
 
-- **Readers** open `/`: browse **published** editions from the **Realtime Database** mirror—**featured** plus **all publications** (series grouped by `series_id`). The main grid loads **12 series cards at a time** with **infinite scroll**; search filters the full in-memory catalog. Read flipbooks **without signing in**. Publication pages live at **`/p/[seriesId]`**; the reader at **`/p/[seriesId]/e/[editionId]`**.
+- **Readers** open `/`: browse **published** editions from the **Realtime Database** mirror—**featured** plus **all publications** (series grouped by `series_id`). The main grid loads **12 series cards at a time** with **infinite scroll**; search filters the full in-memory catalog. Read flipbooks **without signing in**. Publication pages live at **`/[seriesSlug]`**; the reader at **`/[seriesSlug]/[editionSlug]`**.
 - **Editors / owners** open **`/studio`**: Google sign-in, Publications + Team tabs (uploads, covers, invites). Prefer a full page load into `/studio` so the studio boot script binds cleanly.
 - **Platform staff** open **`/admin`**: Publishers, Catalog, Platform team (mirror rebuild, cover-thumb backfill for full admins).
 
 Reader stack: PDF.js + StPageFlip. UI: Inter, **Rotaract cranberry pink** primary (`#d81a6a`), cream light-only chrome; the flipbook **reader overlay stays dark**.
 
-**URLs:** see [`AGENTS.md`](AGENTS.md). Canonical shapes only: `/`, `/p/…`, `/p/…/e/…`, `/studio`, `/admin`, `/privacy`, `/terms`.
+**URLs:** see [`AGENTS.md`](AGENTS.md). Canonical shapes only: `/`, `/[seriesSlug]`, `/[seriesSlug]/[editionSlug]`, `/studio`, `/admin`, `/privacy`, `/terms`.
 
 ## Run locally
 
@@ -75,7 +75,7 @@ See [`docs/STORAGE.md`](docs/STORAGE.md). For invite index issues: `firebase dep
 app/                 # Next.js App Router pages (+ robots.ts / sitemap.ts)
 components/          # React UI (shelf, publication, studio/admin shells)
 lib/
-  urls.ts            # Canonical /p/… helpers
+  urls.ts            # Canonical URL helpers
   firebase/          # Auth, RTDB/Firestore clients, uploads
   catalog/           # Series grouping, covers, icons
   client/            # Viewer + studio/admin imperative UIs

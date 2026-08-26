@@ -4,6 +4,7 @@ import { editionTitleSegment } from '@/lib/seo/metadata';
 
 type EditionLink = {
   id: string;
+  slug?: string;
   title?: string;
   dateLabel?: string;
 };
@@ -79,7 +80,7 @@ export function PublicationCrawlSummary({
           <ul>
             {editions.map((ed) => (
               <li key={ed.id}>
-                <Link href={editionPath(seriesId, ed.id)}>
+                <Link href={editionPath(seriesId, ed.slug || ed.id)}>
                   {ed.title || ed.id}
                   {ed.dateLabel ? ` - ${ed.dateLabel}` : ''}
                   {editionId && ed.id === editionId ? ' (current)' : ''}

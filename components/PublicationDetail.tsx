@@ -93,7 +93,9 @@ export function PublicationDetail({ seriesId }: Props) {
   }, [seriesId]);
 
   const openEdition = (ed: any) => {
-    const path = editionPath(seriesId, ed.id);
+    const sId = group?.slug || seriesId;
+    const eId = ed.slug || ed.id;
+    const path = editionPath(sId, eId);
     if (openInNewTabIfEmbedded(path)) return;
     router.push(path);
   };
@@ -143,7 +145,7 @@ export function PublicationDetail({ seriesId }: Props) {
     const seriesShareText = `${seriesShareTitle}${
       group.publisherName ? ` - ${group.publisherName}` : ''
     }`;
-    const seriesShareUrl = () => absoluteUrl(publicationPath(seriesId));
+    const seriesShareUrl = () => absoluteUrl(publicationPath(group?.slug || seriesId));
 
     body = (
       <div className="flex flex-col flex-1 min-h-0">
@@ -210,10 +212,10 @@ export function PublicationDetail({ seriesId }: Props) {
                 <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                   {group.latestEdition ? (
                     <Link
-                      href={editionPath(seriesId, group.latestEdition.id)}
+                      href={editionPath(group?.slug || seriesId, group.latestEdition.slug || group.latestEdition.id)}
                       onClick={(e) => {
                         openInNewTabIfEmbedded(
-                          editionPath(seriesId, group.latestEdition.id),
+                          editionPath(group?.slug || seriesId, group.latestEdition.slug || group.latestEdition.id),
                           e
                         );
                       }}
@@ -315,8 +317,8 @@ export function PublicationDetail({ seriesId }: Props) {
                         }`}
                         getUrl={() =>
                           buildEditionDeepLink(
-                            ed.id,
-                            getSeriesCanonicalIdForPublication(ed) || seriesId
+                            ed.slug || ed.id,
+                            group?.slug || getSeriesCanonicalIdForPublication(ed) || seriesId
                           )
                         }
                         label=""

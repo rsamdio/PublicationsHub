@@ -11,6 +11,9 @@ import {
   fetchPublicEdition,
   fetchPublicEditionsMap,
   fetchPublicSeries,
+  fetchPublicSeriesMap,
+  resolveSeriesBySlugOrId,
+  resolveEditionBySlugOrId,
   toIsoDate
 } from '@/lib/firebase/rtdb-rest';
 import { editionPath, publicationPath } from '@/lib/urls';
@@ -22,7 +25,7 @@ import {
 import { organizationJsonLd, seriesJsonLd, websiteJsonLd } from '@/lib/seo/jsonld';
 import { seriesFrequencyLabel } from '@/lib/catalog/frequency-label.js';
 
-type Props = { params: Promise<{ seriesId: string }> };
+type Props = { params: Promise<{ seriesSlug: string }> };
 
 function formatUiDate(v: number | string | null | undefined): string {
   const iso = toIsoDate(v);
@@ -39,10 +42,26 @@ function formatUiDate(v: number | string | null | undefined): string {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { seriesId: raw } = await params;
-  const seriesId = decodeURIComponent(raw);
-  const series = await fetchPublicSeries(seriesId);
-  const edition = series ? null : await fetchPublicEdition(seriesId);
+  const { seriesSlug: raw } = await params;
+  const seriesSlug = decodeURIComponent(raw);
+  const [seriesMap, editionsMap] = await Promise.all([
+    fetchPublicSeriesMap(),
+    fetchPublicEditionsMap()
+  ]);
+  const seriesId = resolveSeriesBySlugOrId(seriesMap, seriesSlug)?.seriesId;
+  const editionId = !seriesId ? resolveEditionBySlugOrId(editionsMap, seriesSlug, seriesSlug)?.editionId : null;
+  const resolvedId = seriesId || editionId;
+
+  if (!resolvedId) {
+    return {
+      title: 'Publication not found',
+      description: 'This publication could not be found on Publications Hub.',
+      robots: { index: false, follow: false }
+    };
+  }
+
+  const series = seriesId ? await fetchPublicSeries(seriesId) : null;
+  const edition = editionId ? await fetchPublicEdition(editionId) : null;
   if (!series && !edition) {
     return {
       title: 'Publication not found',
@@ -60,7 +79,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       seriesTitle: series?.title || edition?.series_title || edition?.title
     }
   );
-  const path = publicationPath(seriesId);
+  const path = publicationPath(seriesSlug);
   const cover = series?.cover_url || edition?.cover_url;
   return buildShareMetadata({
     title,
@@ -72,15 +91,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PublicationPage({ params }: Props) {
-  const { seriesId: raw } = await params;
-  const seriesId = decodeURIComponent(raw);
-  const seriesDoc = await fetchPublicSeries(seriesId);
-  const standalone = seriesDoc ? null : await fetchPublicEdition(seriesId);
-  if (!seriesDoc && !standalone) {
+  const { seriesSlug: raw } = await params;
+  const seriesSlug = decodeURIComponent(raw);
+  
+  const [seriesMap, editionsMap] = await Promise.all([
+    fetchPublicSeriesMap(),
+    fetchPublicEditionsMap()
+  ]);
+  const seriesId = resolveSeriesBySlugOrId(seriesMap, seriesSlug)?.seriesId;
+  const editionId = !seriesId ? resolveEditionBySlugOrId(editionsMap, seriesSlug, seriesSlug)?.editionId : null;
+  const resolvedId = seriesId || editionId;
+
+  if (!resolvedId) {
     notFound();
   }
 
-  const editionsMap = await fetchPublicEditionsMap();
+  const seriesDoc = seriesId ? await fetchPublicSeries(seriesId) : null;
+  const standalone = editionId ? await fetchPublicEdition(editionId) : null;
 
   const seriesTitle = seriesTitleSegment(
     seriesDoc?.title || standalone?.series_title || standalone?.title
@@ -91,14 +118,15 @@ export default async function PublicationPage({ params }: Props) {
     seriesDoc?.publisher_name || standalone?.publisher_name || null;
   const freqRaw = seriesDoc?.frequency != null ? String(seriesDoc.frequency) : '';
   const frequencyLabel = freqRaw ? seriesFrequencyLabel(freqRaw) || freqRaw : null;
-  const path = publicationPath(seriesId);
+  const path = publicationPath(seriesSlug);
 
   const editionRows = standalone
-    ? [{ id: seriesId, ...standalone }]
-    : editionsForSeries(editionsMap, seriesId);
+    ? [{ id: String(seriesId || ""), ...standalone }]
+    : editionsForSeries(editionsMap, resolvedId);
 
   const editionLinks = editionRows.map((ed) => ({
-    id: ed.id,
+    id: String(ed.id || ""), // ensure id is always a string
+    slug: ed.slug || undefined,
     title: ed.title,
     dateLabel: formatUiDate(ed.issue_date ?? ed.created_at) || undefined
   }));
@@ -113,7 +141,7 @@ export default async function PublicationPage({ params }: Props) {
 
   const hasPart = editionRows.map((ed) => ({
     name: (ed.title && String(ed.title).trim()) || ed.id,
-    url: editionPath(seriesId, ed.id),
+    url: editionPath(seriesSlug, ed.slug || ed.id),
     datePublished: toIsoDate(ed.issue_date ?? ed.created_at)
   }));
 
@@ -137,7 +165,7 @@ export default async function PublicationPage({ params }: Props) {
         <SiteNav />
         <PublicationCrawlSummary
           mode="series"
-          seriesId={seriesId}
+          seriesId={seriesSlug}
           seriesTitle={seriesTitle}
           description={description}
           publisherName={publisherName}
@@ -146,7 +174,7 @@ export default async function PublicationPage({ params }: Props) {
           editions={editionLinks}
         />
         <div className="flex flex-col flex-1 min-h-0 w-full">
-          <PublicationDetail seriesId={seriesId} />
+          <PublicationDetail seriesId={resolvedId} />
         </div>
         <SiteFooter />
       </FramedDeepLinkEscape>

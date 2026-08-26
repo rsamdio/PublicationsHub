@@ -104,6 +104,7 @@ function editionOrgPayload(d) {
   return {
     publisher_id: d.publisher_id,
     series_id: d.series_id,
+    slug: d.slug ?? null,
     title: d.title,
     description: d.description ?? null,
     pdf_url: d.pdf_url,
@@ -123,6 +124,7 @@ function editionOrgPayload(d) {
 function editionPublicPayload(d) {
   return {
     title: d.title,
+    slug: d.slug ?? null,
     description: d.description ?? null,
     pdf_url: d.pdf_url,
     cover_url: d.cover_url ?? null,

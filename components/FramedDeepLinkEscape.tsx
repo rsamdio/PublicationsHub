@@ -13,7 +13,7 @@ type Props = {
 };
 
 /**
- * When a `/p/…` route loads inside an iframe, open the same URL in a new tab
+ * When a `/[seriesSlug]/…` route loads inside an iframe, open the same URL in a new tab
  * and send the iframe back to Home so the host preview chrome stays intact.
  */
 export function FramedDeepLinkEscape({ children }: Props) {

@@ -53,7 +53,7 @@ function formatDate(iso?: string | null): string {
  */
 function SeriesCard({ group }: { group: any }) {
   const badge = seriesFrequencyBadgeAttrs(group.frequency, { compact: true });
-  const href = publicationPath(group.canonicalId);
+  const href = publicationPath(group.slug || group.canonicalId);
   const coverFull = group.coverUrl || '';
   const coverThumb = group.coverThumbUrl || '';
 
@@ -133,13 +133,13 @@ function FeaturedCard({
   highPriority: boolean;
 }) {
   const seriesCanonical = getSeriesCanonicalIdForPublication(pub);
-  const href = editionPath(seriesCanonical, pub.id);
-  const coverFull = pub.cover_url || '';
-  const coverThumb = pub.cover_thumb_url || '';
   const liveSeries =
     pub.series_id != null && seriesMap[String(pub.series_id)]
       ? seriesMap[String(pub.series_id)]
       : null;
+  const href = editionPath(liveSeries?.slug || seriesCanonical, pub.slug || pub.id);
+  const coverFull = pub.cover_url || '';
+  const coverThumb = pub.cover_thumb_url || '';
   // Prefer live series/publisher labels from catalog/series over edition snapshots.
   const badgeLabel =
     (liveSeries?.publisher_name || pub.publisher_name || '').trim() || 'Publisher';

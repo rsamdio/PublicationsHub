@@ -65,7 +65,7 @@ export default function AboutPage() {
                 home catalog
               </Link>
               , open a publication page, then choose an edition. Each edition has a stable public
-              URL under <code className="text-xs bg-slate-100 px-1 rounded">/p/…/e/…</code> that you
+              URL under <code className="text-xs bg-slate-100 px-1 rounded">/[seriesSlug]/[editionSlug]</code> that you
               can share.
             </p>
           </section>

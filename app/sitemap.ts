@@ -44,8 +44,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   for (const [seriesId, s] of Object.entries(seriesMap || {})) {
     if (!seriesId) continue;
+    const seriesSlug = s?.slug || seriesId;
     entries.push({
-      url: abs(publicationPath(seriesId)),
+      url: abs(publicationPath(seriesSlug)),
       changeFrequency: 'weekly',
       priority: 0.8,
       lastModified: toLastModified(s?.created_at)
@@ -58,8 +59,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ed.series_id != null && String(ed.series_id).trim()
         ? String(ed.series_id).trim()
         : editionId;
+    const series = seriesMap?.[seriesId];
+    const seriesSlug = series?.slug || seriesId;
+    const editionSlug = ed.slug || editionId;
     entries.push({
-      url: abs(editionPath(seriesId, editionId)),
+      url: abs(editionPath(seriesSlug, editionSlug)),
       changeFrequency: 'weekly',
       priority: 0.6,
       lastModified: toLastModified(ed.issue_date ?? ed.created_at)

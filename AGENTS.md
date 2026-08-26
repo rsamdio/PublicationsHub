@@ -1,161 +1,53 @@
-# PublicationsHub — persistent agent context
+# PublicationsHub - Agent Operating Context
 
-Use this file as the source of truth for live product behavior.
-The app is a **Next.js App Router** frontend at the repository root (Netlify).
-**Backend is frozen**: [`functions/`](functions/), Firestore / RTDB / Storage rules, and R2 stay as-is — do not change them for frontend-only URL or UI work.
+Use this file as the root instruction layer. Consult [index.md](index.md) for full directory maps, file concerns, and task workflows.
 
-If folders named `Dump/` or `newfolderOLD/` appear locally, treat them as archive-only and never wire them into the app.
+## 1. Authority and Precedence
 
-## Canonical hosts
+When facts conflict, adhere to this hierarchy:
+1. **Current source code and configuration** (System of record)
+2. **Automated tests and build outputs** (`npm run validate:all`)
+3. **Explicit repository invariants** (Section 2 below)
+4. **Primary navigation map** ([index.md](index.md))
+5. **Architecture documentation** (`docs/architecture/*`)
+6. **Agent assumptions** (Verify against source before assuming)
 
-| Host | Role |
-|------|------|
-| `https://publications.rsamdio.org` | Production canonical (`NEXT_PUBLIC_SITE_URL`) |
-| `https://publicationshub.netlify.app` | Netlify default subdomain — **301** forced redirect to canonical ([`netlify.toml`](netlify.toml)) |
+## 2. Core Repository Invariants
 
-## Product surfaces
+- **Backend is Frozen (with exceptions)**: Do not arbitrarily modify `functions/`, Firestore/RTDB/Storage security rules, or R2 bucket configurations for frontend UI tasks. However, if a new feature requires schema additions (e.g. adding a `slug` field to an existing collection), you may carefully update `firestore.rules` and `functions/mirror.js` to support it, provided no existing data is lost or broken.
+- **Client Read/Write Split**:
+  - Writes: Firestore collections / Cloud Function callables via `lib/firebase/db-publisher.js` or `db-admin.js`.
+  - Reads: Realtime Database (RTDB) read mirrors via `lib/firebase/db-public.js`, `db-publisher.js`, `db-admin.js`. Direct client reads to mirrored Firestore collections are blocked.
+- **UI Theme**: Site chrome is light-only (`#f6f3ed` background, `#fffcf8` nav/footer, `#d81a6a` Rotaract cranberry pink accent). The PDF flipbook reader (`#reader-view`) defaults to light with an in-reader toggle to dark.
+- **Iframe Embed Safety**: Embedded contexts (`window.self !== window.top`) are restricted to Home + About. Any `/[seriesSlug]/...` links escape to a new tab (`noopener`). Direct framed deep links open a new tab and reset the iframe to `/`.
+- **Canonical URLs**: Use path shapes defined in [lib/urls.ts](lib/urls.ts) (`/[seriesSlug]`, `/[seriesSlug]/[editionSlug]`). No legacy `.html` routes or query-param bridges.
+- **No Long Em Dashes**: Never use em dashes (`\u2014`) in any agent-generated text, documentation, comments, commit messages, or UI copy. Use hyphens, colons, parentheses, or separate sentences instead.
+- **Zero Secrets in Frontend**: Cloudflare R2 credentials stay strictly server-side in Cloud Functions.
 
-| Route | Audience | Implementation |
-|------|----------|----------------|
-| [`/`](app/page.tsx) | Public readers | [`components/ShelfCatalog.tsx`](components/ShelfCatalog.tsx) → RTDB public catalog |
-| [`/p/[seriesId]`](app/p/[seriesId]/page.tsx) | Public readers | [`components/PublicationDetail.tsx`](components/PublicationDetail.tsx) |
-| [`/p/[seriesId]/e/[editionId]`](app/p/[seriesId]/e/[editionId]/page.tsx) | Public readers (reader) | Same publication shell + [`lib/client/viewer.js`](lib/client/viewer.js) |
-| [`/studio`](app/studio/page.tsx) | Publisher owners/editors | [`components/StudioApp.tsx`](components/StudioApp.tsx) → [`lib/client/dashboard/main.js`](lib/client/dashboard/main.js) |
-| [`/admin`](app/admin/page.tsx) | Platform staff | [`components/AdminApp.tsx`](components/AdminApp.tsx) → [`lib/client/admin/main.js`](lib/client/admin/main.js) |
-| [`/privacy`](app/privacy/page.tsx), [`/terms`](app/terms/page.tsx) | Legal | Static policy HTML via [`lib/client/privacy-main.ts`](lib/client/privacy-main.ts) / [`terms-main.ts`](lib/client/terms-main.ts) |
+## 3. Fast Routing & Progressive Disclosure
 
-## UI theme
+- **Primary Repository Map**: See [index.md](index.md) for quick lookups on where features live and what to read before modifying an area.
+- **Architecture Deep Dives**:
+  - System Overview: [docs/architecture/system-overview.md](docs/architecture/system-overview.md)
+  - Data Flow & RTDB Mirrors: [docs/architecture/data-flow-and-mirrors.md](docs/architecture/data-flow-and-mirrors.md)
+  - Storage & Reader Engine: [docs/architecture/storage-and-reader.md](docs/architecture/storage-and-reader.md)
+  - Security & Invariants: [docs/architecture/security-and-invariants.md](docs/architecture/security-and-invariants.md)
+- **Workflows**:
+  - Development Guide: [docs/workflows/development.md](docs/workflows/development.md)
+  - Agent Maintenance Guide: [docs/workflows/maintenance.md](docs/workflows/maintenance.md)
+- **Agent Skills**:
+  - Full Verification: [.agents/skills/validate-repo/SKILL.md](.agents/skills/validate-repo/SKILL.md)
+  - Harness Maintenance: [.agents/skills/update-harness/SKILL.md](.agents/skills/update-harness/SKILL.md)
+  - Reader Engine: [.agents/skills/reader-engine/SKILL.md](.agents/skills/reader-engine/SKILL.md)
+  - Catalog Sync: [.agents/skills/catalog-sync/SKILL.md](.agents/skills/catalog-sync/SKILL.md)
 
-- Product chrome is **light only**. Page background `background-light` (`#f6f3ed`); nav/footer `#fffcf8`. Accent/`primary` is Rotaract cranberry pink (`#d81a6a`).
-- The **PDF reader** (`#reader-view`) is themed separately: **light by default**, with an in-reader toggle to dark. Preference is stored in `localStorage` (`pubhub-reader-theme`). Site chrome stays light-only.
-- Reader layout is **reactive**: single-page vs two-page spread follows `(width ≥ 768) || (landscape && width ≥ 560)` and rebuilds on orientation/width class change. Compact toolbar (one row) applies below 768px width or short landscape (`max-height: 500px`).
-- Reader open is **progressive / zero-cost**: cover image as page-1 stand-in; intent warm via `warmReaderForEdition` (vendor + Range prefetch); first-spread priority queue. No page-raster pipeline or paid CDN.
-- **Iframe embed** (any host, e.g. `rsamdio.org`): when `window.self !== window.top`, the preview is **Home + About only**. Any `/p/…` (series or edition) opens in a **new tab** (`noopener`); direct framed deep links escape to a new tab and `replace` the iframe to `/`. Top-level (unframed) UX is unchanged. Framing allowlist: CSP `frame-ancestors` in [`netlify.toml`](netlify.toml) (`'self'` + `rsamdio.org`).
-- Catalog crawl summary uses `clip-path` (not Tailwind `sr-only` nowrap). Series hero glow stays inside the hero box (no negative-margin overflow).
-
-### Embed smoke checklist
-
-- Top-level `/p/...` and `/p/.../e/...`: normal in-tab series + fullscreen reader.
-- Framed Home + About: preview chrome (dots, URL pill, Open site) stays intact.
-- Framed series card / Featured / Read: new tab; iframe stays on Home (or About).
-- Framed direct `/p/...` or `/e/...`: new tab + iframe returns to `/`.
-- Response headers: `Content-Security-Policy: frame-ancestors …` present; no `X-Frame-Options: SAMEORIGIN`.
-
-## Architecture
-
-- **Next.js on Netlify** (`@netlify/plugin-nextjs`) is the only frontend.
-- Firestore is the system of record; client writes go to Firestore / callables.
-- Realtime Database is the read-optimized mirror. Triggers in [`functions/mirror.js`](functions/mirror.js) keep RTDB in sync.
-- Clients read RTDB via [`lib/firebase/db-public.js`](lib/firebase/db-public.js), [`db-publisher.js`](lib/firebase/db-publisher.js), [`db-admin.js`](lib/firebase/db-admin.js). Firestore client reads for mirrored collections stay denied.
-
-## Canonical URL schema
-
-Implemented in [`lib/urls.ts`](lib/urls.ts).
-
-| Surface | URL |
-|---------|-----|
-| Home / catalog | `/` |
-| Publication | `/p/[seriesId]` |
-| Read edition | `/p/[seriesId]/e/[editionId]` |
-| Studio / Admin | `/studio`, `/admin` |
-| Legal | `/privacy`, `/terms` |
-
-**Edge cases:** `/p` and `/p/` → **308** to `/`. `/p/[seriesId]/e` (no edition) → **308** to `/p/[seriesId]`. Unknown series → not-found UI. Studio may still use hash `#/r/…` for its **in-page** reader overlay only.
-
-No public legacy URL compatibility (no `.html` redirects, no `/publication?s=` bridge). Canonical paths only.
-
-Standalone editions (no `series_id`) use `/p/[editionId]/e/[editionId]`.
-
-## Data model and flows
-
-### Firestore authoritative collections
-
-- `publishers`, `series`, `editions`
-- `users/{uid}/publisherMemberships/{publisherId}`
-- `publishers/{publisherId}/invites`, `publishers/{publisherId}/roster`
-- `platform_admins`, `platform_invites`
-- `pdf_upload_sessions`
-- legacy `publications` (migration / backfill compatibility only — see [`docs/MIGRATION.md`](docs/MIGRATION.md))
-
-### RTDB mirror paths used by clients
-
-- Public: `public/catalog/editions`, `public/catalog/series`
-- Publisher studio: `org/{publisherId}/profile|series|editions|invites|roster`, `userMemberships/{uid}`
-- Platform: `platform/publishers`, `platform/staff`, `platform/staffInvites`, `platform/stats`, `platformAdmins/{uid}`
-
-### Reader flow
-
-- Catalog cards link to `/p/…` or `/p/…/e/…` via [`lib/urls.ts`](lib/urls.ts).
-- Edition route opens flipbook through [`lib/client/viewer.js`](lib/client/viewer.js) using **same-origin** assets under [`public/vendor/`](public/vendor/) (PDF.js `3.11.174`, StPageFlip `2.0.7`) plus [`public/st-page-flip.css`](public/st-page-flip.css).
-- Closing the public reader navigates back to `/p/[seriesId]`.
-
-### Public home catalog (All Publications)
-
-[`components/ShelfCatalog.tsx`](components/ShelfCatalog.tsx):
-
-- One-shot RTDB fetch; full catalog in memory for search.
-- **Featured** row + **All Publications** series groups (`groupEditionsIntoSeries`).
-- Initial batch **12**; infinite scroll (~480px root margin); short viewports auto-fill.
-- Search resets to first batch; “Showing X of Y”.
-- Off-screen cards: `content-visibility` on `#shelf-grid > .edition-card` in [`app/globals.css`](app/globals.css).
-
-### Platform admin (`/admin`)
-
-- **Publishers**: search, CSV export, bulk CSV create, drill-down, edit name/reference.
-- **Catalog**: search, CSV export, feature toggle, edit/delete.
-- **Platform team**: invite/revoke, `backfillMirror`, `backfillCoverThumbs` (tier-gated).
-
-### Publisher identity
-
-- Public URLs use **series/edition IDs**, not publisher slugs.
-- `createPublisher` takes `name`, `owner_name`, `owner_email`; optional `internal_reference`. No slug generation.
-
-## Upload / storage flow
-
-Unchanged and backend-owned: small PDF multipart `uploadPublicationPdf`; large PDF signed Storage PUT + finalize → R2; covers via upload HTTP endpoints. R2 secrets stay server-side only ([`lib/firebase/storage.js`](lib/firebase/storage.js), [`docs/STORAGE.md`](docs/STORAGE.md)).
-
-## Functions map (authoritative backend — frozen)
-
-- [`functions/index.js`](functions/index.js), [`functions/extra-exports.js`](functions/extra-exports.js), [`functions/mirror.js`](functions/mirror.js).
-- Region **`us-central1`** ([`lib/firebase/init.ts`](lib/firebase/init.ts)).
-
-## Security model
-
-Unchanged: RTDB client read / no client write; Firestore mirrored reads denied; Storage client denied.
-
-## Deployment and environment
-
-- **Frontend:** Netlify + `@netlify/plugin-nextjs` ([`netlify.toml`](netlify.toml)). Build: `npm run build` → `next build`.
-- **Canonical redirect:** `publicationshub.netlify.app/*` → `publications.rsamdio.org/:splat` (**301**, `force = true`).
-- **Backend:** `firebase deploy --only functions` (and rules) — separate from Netlify.
-- **Env (frontend):** defaults live in [`lib/firebase/config.ts`](lib/firebase/config.ts). Optional Netlify / `.env.local` overrides via `NEXT_PUBLIC_*` if you ever need them. Never commit `.env` / `.env.local`.
-- **Env (functions):** copy [`functions/.env.example`](functions/.env.example) → `functions/.env` locally; R2 access secrets via Firebase secrets. Never commit `functions/.env`.
-- **Static assets:** [`public/images`](public/images), [`public/fonts`](public/fonts), [`public/vendor`](public/vendor).
-
-## Local development
+## 4. Key Commands
 
 ```bash
-npm install
-npm run dev
+npm run dev              # Start Next.js development server (port 3000)
+npx tsc --noEmit         # TypeScript typecheck
+npm run build            # Next.js production build
+npm run validate:harness # Validate all harness links, routes, components, skills
+npm run validate:dashes  # Verify zero em dashes across harness and docs
+npm run validate:all     # Complete CI check (dashes + harness + types + build)
 ```
-
-Open `http://localhost:3000`. Routes match production (`/p/…`, `/studio`, `/admin`).
-
-## Authoritative paths for product work
-
-| Area | Path |
-|------|------|
-| App Router | `app/` |
-| React UI | `components/` |
-| URLs | `lib/urls.ts` |
-| SEO | `lib/seo/`, checklist [`docs/SEO.md`](docs/SEO.md) |
-| Firebase clients | `lib/firebase/` |
-| Imperative studio / admin / viewer | `lib/client/` |
-| Catalog helpers | `lib/catalog/` |
-| Backend (frozen) | `functions/` |
-| Policy | `firestore.rules`, `database.rules.json`, `storage.rules` |
-| One-time data migrate | `scripts/migrate-publications.mjs` + [`docs/MIGRATION.md`](docs/MIGRATION.md) |
-
-## Do not reintroduce
-
-The pre-Next static site is gone. Do not recreate top-level `*.html`, `js/`, `css/`, or public legacy redirects — use App Router + `public/` and the canonical `/p/…` URL schema only.

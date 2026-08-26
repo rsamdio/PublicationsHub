@@ -37,9 +37,10 @@ export async function loadGeoCatalogData(): Promise<GeoCatalogData> {
     listName = 'Featured editions on Publications Hub';
     listItems = featured.slice(0, ITEM_LIST_LIMIT).map((ed: CatalogEditionRow) => {
       const seriesId = getSeriesCanonicalIdForPublication(ed) || ed.id;
+      const resolvedSeriesSlug = seriesMap[seriesId]?.slug || seriesId;
       return {
         name: (ed.title && String(ed.title).trim()) || ed.id,
-        url: editionPath(seriesId, ed.id),
+        url: editionPath(resolvedSeriesSlug, ed.slug || ed.id),
         image: ed.cover_url || ed.cover_thumb_url || null
       };
     });
@@ -47,7 +48,7 @@ export async function loadGeoCatalogData(): Promise<GeoCatalogData> {
     listName = 'Publications on Publications Hub';
     listItems = seriesRows.slice(0, ITEM_LIST_LIMIT).map((s) => ({
       name: (s.title && String(s.title).trim()) || s.id,
-      url: publicationPath(s.id),
+      url: publicationPath(s.slug || s.id),
       image: s.cover_url || s.cover_thumb_url || null
     }));
   }

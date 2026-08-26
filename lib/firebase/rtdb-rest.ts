@@ -31,6 +31,7 @@ async function rtdbGetSitemap<T>(path: string): Promise<T | null> {
 
 export type CatalogEdition = {
   title?: string;
+  slug?: string | null;
   description?: string | null;
   cover_url?: string | null;
   cover_thumb_url?: string | null;
@@ -46,6 +47,7 @@ export type CatalogEdition = {
 
 export type CatalogSeries = {
   title?: string;
+  slug?: string | null;
   description?: string | null;
   cover_url?: string | null;
   cover_thumb_url?: string | null;
@@ -135,6 +137,37 @@ export function seriesSummaries(
     return ta.localeCompare(tb, undefined, { sensitivity: 'base' });
   });
   return rows;
+}
+
+export function resolveSeriesBySlugOrId(
+  seriesMap: Record<string, CatalogSeries>,
+  segment: string
+): { seriesId: string; data: CatalogSeries } | null {
+  if (!segment) return null;
+  if (seriesMap[segment]) return { seriesId: segment, data: seriesMap[segment] };
+  for (const [id, s] of Object.entries(seriesMap || {})) {
+    if (s.slug === segment) return { seriesId: id, data: s };
+  }
+  return null;
+}
+
+export function resolveEditionBySlugOrId(
+  editionsMap: Record<string, CatalogEdition>,
+  seriesId: string,
+  segment: string
+): { editionId: string; data: CatalogEdition } | null {
+  if (!segment || !seriesId) return null;
+  if (editionsMap[segment]) return { editionId: segment, data: editionsMap[segment] };
+  for (const [id, ed] of Object.entries(editionsMap || {})) {
+    const edSid =
+      ed.series_id != null && String(ed.series_id).trim()
+        ? String(ed.series_id).trim()
+        : id;
+    if (edSid === seriesId && ed.slug === segment) {
+      return { editionId: id, data: ed };
+    }
+  }
+  return null;
 }
 
 export { toIsoDate };
