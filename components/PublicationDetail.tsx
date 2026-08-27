@@ -20,6 +20,7 @@ import { ShareMenu } from './ShareMenu';
 
 type Props = {
   seriesId: string;
+  initialGroup?: any | null;
 };
 
 function formatDate(iso?: string | null) {
@@ -47,12 +48,12 @@ function Icon({ name, className = '' }: { name: string; className?: string }) {
   );
 }
 
-export function PublicationDetail({ seriesId }: Props) {
+export function PublicationDetail({ seriesId, initialGroup = null }: Props) {
   const router = useRouter();
-  const [group, setGroup] = useState<any | null>(null);
+  const [group, setGroup] = useState<any | null>(initialGroup);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialGroup);
 
   function warmReader(pdfUrl?: string | null) {
     void import('@/lib/client/viewer.js').then((m: any) => {
@@ -65,6 +66,8 @@ export function PublicationDetail({ seriesId }: Props) {
   // Eager warm injects viewer CSS into the document and is unnecessary for browsing.
 
   useEffect(() => {
+    if (initialGroup) return; // Zero-latency hydration, skip fetch entirely
+    
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -92,7 +95,7 @@ export function PublicationDetail({ seriesId }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [seriesId]);
+  }, [seriesId, initialGroup]);
 
   const openEdition = (ed: any) => {
     const sId = group?.slug || ed.series_slug || seriesId;
@@ -221,8 +224,14 @@ export function PublicationDetail({ seriesId }: Props) {
                           e
                         );
                       }}
-                      onPointerEnter={() => warmReader(group.latestEdition?.pdf_url)}
-                      onFocus={() => warmReader(group.latestEdition?.pdf_url)}
+                      onPointerEnter={() => {
+                        router.prefetch(editionPath(group?.slug || seriesId, group.latestEdition.slug || group.latestEdition.id));
+                        warmReader(group.latestEdition?.pdf_url);
+                      }}
+                      onFocus={() => {
+                        router.prefetch(editionPath(group?.slug || seriesId, group.latestEdition.slug || group.latestEdition.id));
+                        warmReader(group.latestEdition?.pdf_url);
+                      }}
                       className="w-full sm:w-auto flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary hover:bg-primary-dark md:py-3 md:text-lg md:px-10 transition-all shadow-lg shadow-primary/20"
                     >
                       <Icon name="auto_stories" className="mr-2" />
@@ -261,8 +270,18 @@ export function PublicationDetail({ seriesId }: Props) {
                 <article
                   key={ed.id}
                   className="edition-card group flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden transition-colors hover:border-primary/50 cursor-pointer"
-                  onPointerEnter={() => warmReader(ed.pdf_url)}
-                  onFocus={() => warmReader(ed.pdf_url)}
+                  onPointerEnter={() => {
+                    const eId = ed.slug || ed.id;
+                    const path = editionPath(group?.slug || ed.series_slug || seriesId, eId);
+                    router.prefetch(path);
+                    warmReader(ed.pdf_url);
+                  }}
+                  onFocus={() => {
+                    const eId = ed.slug || ed.id;
+                    const path = editionPath(group?.slug || ed.series_slug || seriesId, eId);
+                    router.prefetch(path);
+                    warmReader(ed.pdf_url);
+                  }}
                   onClick={(e) => {
                     if ((e.target as HTMLElement).closest('button')) return;
                     openEdition(ed);
@@ -302,8 +321,18 @@ export function PublicationDetail({ seriesId }: Props) {
                       <button
                         type="button"
                         className="flex-1 border border-primary/50 bg-primary/10 text-primary-dark hover:bg-primary hover:text-white hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
-                        onPointerEnter={() => warmReader(ed.pdf_url)}
-                        onFocus={() => warmReader(ed.pdf_url)}
+                        onPointerEnter={() => {
+                          const eId = ed.slug || ed.id;
+                          const path = editionPath(group?.slug || ed.series_slug || seriesId, eId);
+                          router.prefetch(path);
+                          warmReader(ed.pdf_url);
+                        }}
+                        onFocus={() => {
+                          const eId = ed.slug || ed.id;
+                          const path = editionPath(group?.slug || ed.series_slug || seriesId, eId);
+                          router.prefetch(path);
+                          warmReader(ed.pdf_url);
+                        }}
                         onClick={(e) => {
                           e.stopPropagation();
                           openEdition(ed);

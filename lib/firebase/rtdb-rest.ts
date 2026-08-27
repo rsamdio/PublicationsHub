@@ -1,6 +1,7 @@
 import { firebaseConfig } from '@/lib/firebase/config';
 import { compareEditionsNewestFirst } from '@/lib/catalog/edition-sort.js';
 import { toIsoDate } from '@/lib/seo/dates';
+import { cache } from 'react';
 
 async function rtdbGet<T>(path: string): Promise<T | null> {
   const base = firebaseConfig.databaseURL?.replace(/\/$/, '');
@@ -69,15 +70,15 @@ export async function fetchPublicEdition(editionId: string) {
 }
 
 /** Page SSR catalog maps (60s revalidate). */
-export async function fetchPublicSeriesMap() {
+export const fetchPublicSeriesMap = cache(async () => {
   const val = await rtdbGet<Record<string, CatalogSeries>>('public/catalog/series');
   return val && typeof val === 'object' ? val : {};
-}
+});
 
-export async function fetchPublicEditionsMap() {
+export const fetchPublicEditionsMap = cache(async () => {
   const val = await rtdbGet<Record<string, CatalogEdition>>('public/catalog/editions');
   return val && typeof val === 'object' ? val : {};
-}
+});
 
 /** Sitemap builds (1h revalidate). */
 export async function fetchAllPublicSeriesMap() {

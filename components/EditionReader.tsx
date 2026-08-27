@@ -144,7 +144,6 @@ export function EditionReader({
 
   useEffect(() => {
     if (framedEscape || isEmbeddedFrame()) return;
-    if (!chromeReady) return;
     let cancelled = false;
     const key = `${seriesId}:${editionId}`;
     const seedPdf = initialEdition?.pdf_url || null;
@@ -211,7 +210,6 @@ export function EditionReader({
     };
   }, [
     framedEscape,
-    chromeReady,
     seriesId,
     editionId,
     initialEdition,

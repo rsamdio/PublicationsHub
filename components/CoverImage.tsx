@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useState } from 'react';
+import Image from 'next/image';
 import { safeHttpUrl } from '@/lib/urls';
 
 type CoverImageProps = {
@@ -31,40 +32,29 @@ export function CoverImage({
 }: CoverImageProps) {
   const full = safeHttpUrl(fullUrl);
   const thumb = safeHttpUrl(thumbUrl);
-  const imgRef = useRef<HTMLImageElement | null>(null);
-
-  useEffect(() => {
-    const img = imgRef.current;
-    if (img && img.complete && img.naturalWidth > 0) {
-      img.classList.add('shelf-cover-img--loaded');
-    }
-  }, [full, thumb]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   if (!full && !thumb) return null;
 
-  const reveal = (event: React.SyntheticEvent<HTMLImageElement>) => {
-    event.currentTarget.classList.add('shelf-cover-img--loaded');
-  };
-
-  const hasSrcSet = Boolean(thumb && full && thumb !== full);
-  const src = hasSrcSet ? thumb : full || thumb;
-  const srcSet = hasSrcSet ? `${thumb} 512w, ${full} 1200w` : undefined;
+  // Next.js Image component handles srcSet automatically if we just give it the best src.
+  // It optimizes it into multiple sizes based on devicePixelRatio automatically.
+  const src = full || thumb;
+  if (!src) return null;
 
   return (
-    <img
-      ref={imgRef}
+    <Image
       alt={alt}
-      className={`shelf-cover-img${className ? ` ${className}` : ''}`}
+      className={`shelf-cover-img ${isLoaded ? 'shelf-cover-img--loaded' : ''} ${className}`}
       src={src}
-      srcSet={srcSet}
       sizes={sizes}
       width={300}
       height={400}
       loading={loading}
-      decoding="async"
-      fetchPriority={fetchPriority}
-      onLoad={reveal}
-      onError={reveal}
+      priority={fetchPriority === 'high' || loading === 'eager'}
+      onLoad={() => setIsLoaded(true)}
+      onError={() => setIsLoaded(true)}
+      quality={85}
+      style={{ objectFit: 'cover' }}
     />
   );
 }

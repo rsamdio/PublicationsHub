@@ -6,6 +6,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { fetchPublishedCatalog, fetchPublishedSeriesMap } from '@/lib/firebase/db-public.js';
 import { groupEditionsIntoSeries } from '@/lib/catalog/catalog-series.js';
 import { sortEditionsNewestFirstInPlace } from '@/lib/catalog/edition-sort.js';
@@ -58,6 +59,7 @@ function SeriesCard({ group }: { group: any }) {
   const href = publicationPath(group.slug || group.canonicalId);
   const coverFull = group.coverUrl || '';
   const coverThumb = group.coverThumbUrl || '';
+  const router = useRouter();
 
   return (
     <article className="edition-card group relative flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden transition-colors hover:border-primary/50">
@@ -69,9 +71,11 @@ function SeriesCard({ group }: { group: any }) {
           openInNewTabIfEmbedded(href, e);
         }}
         onPointerEnter={() => {
+          router.prefetch(href);
           void import('@/lib/client/viewer.js').then((m: any) => m.preloadReaderAssets?.());
         }}
         onFocus={() => {
+          router.prefetch(href);
           void import('@/lib/client/viewer.js').then((m: any) => m.preloadReaderAssets?.());
         }}
       >
@@ -147,6 +151,7 @@ function FeaturedCard({
     (liveSeries?.publisher_name || pub.publisher_name || '').trim() || 'Publisher';
   const seriesLine = (liveSeries?.title || pub.series_title || '').trim() || '-';
   const title = pub.title || 'Edition';
+  const router = useRouter();
 
   return (
     <article className="group relative flex flex-col edition-card">
@@ -158,12 +163,14 @@ function FeaturedCard({
           openInNewTabIfEmbedded(href, e);
         }}
         onPointerEnter={() => {
+          router.prefetch(href);
           void import('@/lib/client/viewer.js').then((m: any) => {
             if (pub.pdf_url) m.warmReaderForEdition?.(pub.pdf_url);
             else m.preloadReaderAssets?.();
           });
         }}
         onFocus={() => {
+          router.prefetch(href);
           void import('@/lib/client/viewer.js').then((m: any) => {
             if (pub.pdf_url) m.warmReaderForEdition?.(pub.pdf_url);
             else m.preloadReaderAssets?.();

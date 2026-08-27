@@ -23,6 +23,8 @@ type Props = {
   params: Promise<{ seriesSlug: string; editionSlug: string }>;
 };
 
+export const revalidate = 60;
+
 /** Series path must match edition.series_id, or standalone `/[editionSlug]/[editionSlug]`. */
 function editionBelongsToSeries(
   edition: { series_id?: string | null },
@@ -142,6 +144,8 @@ export default async function EditionReaderPage({ params }: Props) {
           })
         ]}
       />
+      <link rel="preload" href="/vendor/pdfjs/3.11.174/pdf.worker.min.js" as="script" />
+      <link rel="preload" href="/vendor/pdfjs/3.11.174/pdf.min.js" as="script" />
       <PublicationCrawlSummary
         mode="edition"
         seriesId={seriesSlug}

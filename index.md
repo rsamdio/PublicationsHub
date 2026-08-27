@@ -45,6 +45,7 @@ PublicationsHub/
 │   ├── GoogleAnalytics.tsx    # GA4 script tag loader
 │   ├── JsonLd.tsx             # Structured data schema injector
 │   ├── MaterialIconsFont.tsx  # Material Symbols icon font loader
+│   ├── NavigationProgressBar.tsx # Client-side routing progress indicator
 │   ├── PublicationCrawlSummary.tsx # Accessible sr-only crawl facts for SEO/GEO
 │   ├── PublicationDetail.tsx  # Series overview, edition list, share triggers
 │   ├── ReaderChrome.tsx       # Reader toolbar, theme toggle, page navigation

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { siteUrl } from '@/lib/firebase/config';
 import { GoogleAnalytics } from '@/components/GoogleAnalytics';
+import { NavigationProgressBar } from '@/components/NavigationProgressBar';
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_OG_IMAGE,
@@ -10,6 +11,13 @@ import {
   TITLE_TEMPLATE,
   TWITTER_HANDLE
 } from '@/lib/seo/metadata';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -76,8 +84,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="overflow-x-clip">
+    <html lang="en" suppressHydrationWarning className={`overflow-x-clip ${inter.variable}`}>
       <body suppressHydrationWarning className="bg-background-light text-slate-900 font-display antialiased min-h-screen flex flex-col overflow-x-clip">
+        <NavigationProgressBar />
         <GoogleAnalytics />
         {children}
       </body>

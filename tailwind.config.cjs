@@ -20,7 +20,7 @@ module.exports = {
         'reader-bg': '#0b1219'
       },
       fontFamily: {
-        display: ['Inter', 'sans-serif']
+        display: ['var(--font-inter)', 'sans-serif']
       },
       borderRadius: {
         DEFAULT: '0.25rem',

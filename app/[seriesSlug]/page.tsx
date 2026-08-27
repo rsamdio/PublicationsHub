@@ -24,6 +24,9 @@ import {
 } from '@/lib/seo/metadata';
 import { organizationJsonLd, seriesJsonLd, websiteJsonLd } from '@/lib/seo/jsonld';
 import { seriesFrequencyLabel } from '@/lib/catalog/frequency-label.js';
+import { groupEditionsIntoSeries, findSeriesGroup } from '@/lib/catalog/catalog-series.js';
+
+export const revalidate = 60;
 
 type Props = { params: Promise<{ seriesSlug: string }> };
 
@@ -147,6 +150,24 @@ export default async function PublicationPage({ params }: Props) {
     datePublished: toIsoDate(ed.issue_date ?? ed.created_at)
   }));
 
+  const allEditions = Object.keys(editionsMap || {}).map(id => ({ id, ...editionsMap[id] }));
+  const groups = groupEditionsIntoSeries(allEditions, seriesMap as any);
+  let initialGroup = findSeriesGroup(groups, resolvedId);
+  if (!initialGroup && standalone) {
+    initialGroup = {
+      slug: resolvedId,
+      seriesTitle: standalone.series_title || standalone.title,
+      description: standalone.description,
+      publisherName: standalone.publisher_name,
+      frequency: null,
+      coverUrl: standalone.cover_url,
+      coverThumbUrl: standalone.cover_thumb_url,
+      editionCount: 1,
+      editions: [{ id: String(seriesId || ""), ...standalone }],
+      latestEdition: { id: String(seriesId || ""), ...standalone }
+    };
+  }
+
   return (
     <>
       <JsonLd
@@ -176,7 +197,7 @@ export default async function PublicationPage({ params }: Props) {
           editions={editionLinks}
         />
         <div className="flex flex-col flex-1 min-h-0 w-full">
-          <PublicationDetail seriesId={resolvedId} />
+          <PublicationDetail seriesId={resolvedId} initialGroup={initialGroup} />
         </div>
         <SiteFooter />
       </FramedDeepLinkEscape>
