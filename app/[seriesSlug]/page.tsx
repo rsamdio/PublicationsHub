@@ -24,7 +24,7 @@ import {
 } from '@/lib/seo/metadata';
 import { organizationJsonLd, seriesJsonLd, websiteJsonLd } from '@/lib/seo/jsonld';
 import { seriesFrequencyLabel } from '@/lib/catalog/frequency-label.js';
-import { groupEditionsIntoSeries, findSeriesGroup } from '@/lib/catalog/catalog-series.js';
+import { buildSingleSeriesGroup } from '@/lib/catalog/catalog-series.js';
 
 export const revalidate = 60;
 
@@ -53,8 +53,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     fetchPublicSeriesMap(),
     fetchPublicEditionsMap()
   ]);
-  const seriesId = resolveSeriesBySlugOrId(seriesMap, seriesSlug)?.seriesId;
-  const editionId = !seriesId ? resolveEditionBySlugOrId(editionsMap, seriesSlug, seriesSlug)?.editionId : null;
+  const seriesRes = resolveSeriesBySlugOrId(seriesMap, seriesSlug);
+  const seriesId = seriesRes?.seriesId;
+  const editionRes = !seriesId ? resolveEditionBySlugOrId(editionsMap, seriesSlug, seriesSlug) : null;
+  const editionId = editionRes?.editionId;
   const resolvedId = seriesId || editionId;
 
   if (!resolvedId) {
@@ -65,8 +67,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const series = seriesId ? await fetchPublicSeries(seriesId) : null;
-  const edition = editionId ? await fetchPublicEdition(editionId) : null;
+  const series = seriesRes?.data || (seriesId ? seriesMap[seriesId] || await fetchPublicSeries(seriesId) : null);
+  const edition = editionRes?.data || (editionId ? editionsMap[editionId] || await fetchPublicEdition(editionId) : null);
   if (!series && !edition) {
     return {
       title: 'Publication not found',
@@ -103,16 +105,18 @@ export default async function PublicationPage({ params }: Props) {
     fetchPublicSeriesMap(),
     fetchPublicEditionsMap()
   ]);
-  const seriesId = resolveSeriesBySlugOrId(seriesMap, seriesSlug)?.seriesId;
-  const editionId = !seriesId ? resolveEditionBySlugOrId(editionsMap, seriesSlug, seriesSlug)?.editionId : null;
+  const seriesRes = resolveSeriesBySlugOrId(seriesMap, seriesSlug);
+  const seriesId = seriesRes?.seriesId;
+  const editionRes = !seriesId ? resolveEditionBySlugOrId(editionsMap, seriesSlug, seriesSlug) : null;
+  const editionId = editionRes?.editionId;
   const resolvedId = seriesId || editionId;
 
   if (!resolvedId) {
     notFound();
   }
 
-  const seriesDoc = seriesId ? await fetchPublicSeries(seriesId) : null;
-  const standalone = editionId ? await fetchPublicEdition(editionId) : null;
+  const seriesDoc = seriesRes?.data || (seriesId ? seriesMap[seriesId] || await fetchPublicSeries(seriesId) : null);
+  const standalone = editionRes?.data || (editionId ? editionsMap[editionId] || await fetchPublicEdition(editionId) : null);
 
   const seriesTitle = seriesTitleSegment(
     seriesDoc?.title || standalone?.series_title || standalone?.title
@@ -150,23 +154,12 @@ export default async function PublicationPage({ params }: Props) {
     datePublished: toIsoDate(ed.issue_date ?? ed.created_at)
   }));
 
-  const allEditions = Object.keys(editionsMap || {}).map(id => ({ id, ...editionsMap[id] }));
-  const groups = groupEditionsIntoSeries(allEditions, seriesMap as any);
-  let initialGroup = findSeriesGroup(groups, resolvedId);
-  if (!initialGroup && standalone) {
-    initialGroup = {
-      slug: resolvedId,
-      seriesTitle: standalone.series_title || standalone.title,
-      description: standalone.description,
-      publisherName: standalone.publisher_name,
-      frequency: null,
-      coverUrl: standalone.cover_url,
-      coverThumbUrl: standalone.cover_thumb_url,
-      editionCount: 1,
-      editions: [{ id: String(seriesId || ""), ...standalone }],
-      latestEdition: { id: String(seriesId || ""), ...standalone }
-    };
-  }
+  const initialGroup = buildSingleSeriesGroup(
+    resolvedId,
+    seriesId || null,
+    seriesDoc,
+    editionRows
+  );
 
   return (
     <>

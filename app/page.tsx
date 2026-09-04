@@ -98,7 +98,7 @@ export default async function HomePage() {
             </div>
           </div>
         </div>
-        <ShelfCatalog />
+        <ShelfCatalog initialEditions={geo.editions} initialSeriesMap={geo.seriesMap} />
       </div>
       <SiteFooter />
     </>

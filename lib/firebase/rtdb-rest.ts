@@ -61,13 +61,13 @@ export type CatalogSeries = {
 export type CatalogEditionRow = CatalogEdition & { id: string };
 export type CatalogSeriesRow = CatalogSeries & { id: string };
 
-export async function fetchPublicSeries(seriesId: string) {
+export const fetchPublicSeries = cache(async (seriesId: string) => {
   return rtdbGet<CatalogSeries>(`public/catalog/series/${encodeURIComponent(seriesId)}`);
-}
+});
 
-export async function fetchPublicEdition(editionId: string) {
+export const fetchPublicEdition = cache(async (editionId: string) => {
   return rtdbGet<CatalogEdition>(`public/catalog/editions/${encodeURIComponent(editionId)}`);
-}
+});
 
 /** Page SSR catalog maps (60s revalidate). */
 export const fetchPublicSeriesMap = cache(async () => {
@@ -124,6 +124,18 @@ export function featuredEditions(
   return rows;
 }
 
+export function allEditionsSummaries(
+  editionsMap: Record<string, CatalogEdition>
+): CatalogEditionRow[] {
+  const rows: CatalogEditionRow[] = [];
+  for (const [id, ed] of Object.entries(editionsMap || {})) {
+    if (!id || !ed) continue;
+    rows.push({ id, ...ed });
+  }
+  rows.sort(compareEditionsNewestFirst);
+  return rows;
+}
+
 export function seriesSummaries(
   seriesMap: Record<string, CatalogSeries>
 ): CatalogSeriesRow[] {
@@ -158,7 +170,14 @@ export function resolveEditionBySlugOrId(
   segment: string
 ): { editionId: string; data: CatalogEdition } | null {
   if (!segment || !seriesId) return null;
-  if (editionsMap[segment]) return { editionId: segment, data: editionsMap[segment] };
+  if (editionsMap[segment]) {
+    const ed = editionsMap[segment];
+    const edSid =
+      ed.series_id != null && String(ed.series_id).trim()
+        ? String(ed.series_id).trim()
+        : segment;
+    if (edSid === seriesId) return { editionId: segment, data: ed };
+  }
   for (const [id, ed] of Object.entries(editionsMap || {})) {
     const edSid =
       ed.series_id != null && String(ed.series_id).trim()

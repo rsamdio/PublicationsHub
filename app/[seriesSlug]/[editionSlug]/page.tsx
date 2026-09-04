@@ -65,13 +65,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     fetchPublicEditionsMap()
   ]);
   
-  const seriesId = resolveSeriesBySlugOrId(seriesMap, seriesSlug)?.seriesId || seriesSlug;
-  const editionId = resolveEditionBySlugOrId(editionsMap, seriesId, editionSlug)?.editionId || editionSlug;
+  const seriesResolution = resolveSeriesBySlugOrId(seriesMap, seriesSlug);
+  const seriesId = seriesResolution?.seriesId || seriesSlug;
+  const editionResolution = resolveEditionBySlugOrId(editionsMap, seriesId, editionSlug);
+  const editionId = editionResolution?.editionId || editionSlug;
   
-  const [series, edition] = await Promise.all([
-    fetchPublicSeries(seriesId),
-    fetchPublicEdition(editionId)
-  ]);
+  const series = seriesResolution?.data || seriesMap[seriesId] || (await fetchPublicSeries(seriesId));
+  const edition = editionResolution?.data || editionsMap[editionId] || (await fetchPublicEdition(editionId));
   if (!edition || !editionBelongsToSeries(edition, seriesId, editionId)) {
     return {
       title: 'Edition not found',
@@ -106,13 +106,13 @@ export default async function EditionReaderPage({ params }: Props) {
     fetchPublicEditionsMap()
   ]);
   
-  const seriesId = resolveSeriesBySlugOrId(seriesMap, seriesSlug)?.seriesId || seriesSlug;
-  const editionId = resolveEditionBySlugOrId(editionsMap, seriesId, editionSlug)?.editionId || editionSlug;
+  const seriesResolution = resolveSeriesBySlugOrId(seriesMap, seriesSlug);
+  const seriesId = seriesResolution?.seriesId || seriesSlug;
+  const editionResolution = resolveEditionBySlugOrId(editionsMap, seriesId, editionSlug);
+  const editionId = editionResolution?.editionId || editionSlug;
   
-  const [series, edition] = await Promise.all([
-    fetchPublicSeries(seriesId),
-    fetchPublicEdition(editionId)
-  ]);
+  const series = seriesResolution?.data || seriesMap[seriesId] || (await fetchPublicSeries(seriesId));
+  const edition = editionResolution?.data || editionsMap[editionId] || (await fetchPublicEdition(editionId));
   if (!edition || !editionBelongsToSeries(edition, seriesId, editionId)) {
     notFound();
   }

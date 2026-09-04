@@ -309,9 +309,16 @@ async function deleteSeriesCore(seriesSnap, ctx) {
   await deleteObjectKey(ctx, seriesThumbPath).catch(() => {});
 
   const edSnap = await db.collection('editions').where('series_id', '==', seriesId).get();
-  for (const doc of edSnap.docs) {
-    await deleteEditionStorageFiles(doc.data(), ctx).catch((e) => logger.warn('deleteSeries edition R2', e));
-    await doc.ref.delete();
+  const docs = edSnap.docs;
+  const CHUNK_SIZE = 5;
+  for (let i = 0; i < docs.length; i += CHUNK_SIZE) {
+    const chunk = docs.slice(i, i + CHUNK_SIZE);
+    await Promise.all(
+      chunk.map(async (doc) => {
+        await deleteEditionStorageFiles(doc.data(), ctx).catch((e) => logger.warn('deleteSeries edition R2', e));
+        await doc.ref.delete();
+      })
+    );
   }
 
   await seriesSnap.ref.delete();

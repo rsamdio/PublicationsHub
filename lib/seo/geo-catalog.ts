@@ -1,9 +1,11 @@
 import {
+  allEditionsSummaries,
   featuredEditions,
   fetchPublicEditionsMap,
   fetchPublicSeriesMap,
   seriesSummaries,
-  type CatalogEditionRow
+  type CatalogEditionRow,
+  type CatalogSeries
 } from '@/lib/firebase/rtdb-rest';
 import {
   editionPath,
@@ -18,9 +20,11 @@ export type GeoCatalogData = {
   editionCount: number;
   listItems: { name: string; url: string; image?: string | null }[];
   listName: string;
+  seriesMap: Record<string, CatalogSeries>;
+  editions: CatalogEditionRow[];
 };
 
-/** Home hero counts + ItemList JSON-LD (no visible duplicate catalog UI). */
+/** Home hero counts + ItemList JSON-LD + SSR home shelf data. */
 export async function loadGeoCatalogData(): Promise<GeoCatalogData> {
   const [seriesMap, editionsMap] = await Promise.all([
     fetchPublicSeriesMap(),
@@ -57,6 +61,8 @@ export async function loadGeoCatalogData(): Promise<GeoCatalogData> {
     seriesCount: seriesRows.length,
     editionCount: editionIds.length,
     listItems,
-    listName
+    listName,
+    seriesMap,
+    editions: allEditionsSummaries(editionsMap)
   };
 }

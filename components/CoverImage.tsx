@@ -36,9 +36,8 @@ export function CoverImage({
 
   if (!full && !thumb) return null;
 
-  // Next.js Image component handles srcSet automatically if we just give it the best src.
-  // It optimizes it into multiple sizes based on devicePixelRatio automatically.
-  const src = full || thumb;
+  // Prefer lightweight thumbnail (512px WebP) for catalog grids; fall back to full if missing.
+  const src = thumb || full;
   if (!src) return null;
 
   return (
@@ -51,9 +50,9 @@ export function CoverImage({
       height={400}
       loading={loading}
       priority={fetchPriority === 'high' || loading === 'eager'}
+      unoptimized
       onLoad={() => setIsLoaded(true)}
       onError={() => setIsLoaded(true)}
-      quality={85}
       style={{ objectFit: 'cover' }}
     />
   );

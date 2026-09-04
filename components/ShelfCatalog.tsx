@@ -250,16 +250,25 @@ function FeaturedCardSkeleton() {
   );
 }
 
-export function ShelfCatalog() {
-  const [editions, setEditions] = useState<any[] | null>(null);
-  const [seriesMap, setSeriesMap] = useState<Record<string, any>>({});
+type ShelfCatalogProps = {
+  initialEditions?: any[] | null;
+  initialSeriesMap?: Record<string, any> | null;
+};
+
+export function ShelfCatalog({
+  initialEditions = null,
+  initialSeriesMap = null
+}: ShelfCatalogProps = {}) {
+  const [editions, setEditions] = useState<any[] | null>(initialEditions);
+  const [seriesMap, setSeriesMap] = useState<Record<string, any>>(initialSeriesMap || {});
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialEditions);
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (initialEditions && initialSeriesMap) return; // Zero-latency hydration, skip client fetch entirely
     let cancelled = false;
     (async () => {
       const [catRes, seriesRes] = await Promise.all([fetchPublishedCatalog(), fetchPublishedSeriesMap()]);
@@ -277,7 +286,7 @@ export function ShelfCatalog() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialEditions, initialSeriesMap]);
 
   const seriesGroups = useMemo(() => {
     if (!editions || editions.length === 0) return [];
