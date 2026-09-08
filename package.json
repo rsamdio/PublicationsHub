@@ -9,7 +9,8 @@
     "migrate": "node scripts/migrate-publications.mjs",
     "validate:harness": "node scripts/validate-harness.mjs",
     "validate:dashes": "node scripts/check-em-dashes.mjs",
-    "validate:all": "npm run validate:dashes && npm run validate:harness && npx tsc --noEmit && npm run build"
+    "validate:all": "npm run validate:dashes && npm run validate:harness && npx tsc --noEmit && npm run build",
+    "submit:indexnow": "node scripts/submit-indexnow.mjs"
   },
   "dependencies": {
     "firebase": "^10.14.1",

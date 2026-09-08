@@ -9,6 +9,35 @@ const admin = require('firebase-admin');
 
 const callableOptions = { region: 'us-central1' };
 
+const INDEXNOW_API_ENDPOINT = 'https://api.indexnow.org/indexnow';
+const INDEXNOW_KEY = 'fc66e32136887908af4a8222ec18b665';
+const DEFAULT_SITE_URL = 'https://publications.rsamdio.org';
+
+async function notifyIndexNow(url) {
+  if (!url) return;
+  try {
+    const siteUrl = (process.env.SITE_URL || DEFAULT_SITE_URL).replace(/\/$/, '');
+    const u = new URL(url);
+    const res = await fetch(INDEXNOW_API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'User-Agent': 'PublicationsHub-Functions-IndexNow/1.0'
+      },
+      body: JSON.stringify({
+        host: u.host,
+        key: INDEXNOW_KEY,
+        keyLocation: `${siteUrl}/${INDEXNOW_KEY}.txt`,
+        urlList: [url]
+      }),
+      signal: AbortSignal.timeout(10000)
+    });
+    logger.info('IndexNow notification sent from function', { url, status: res.status });
+  } catch (err) {
+    logger.warn('IndexNow notification from function failed', { url, error: err?.message || String(err) });
+  }
+}
+
 /** Uses default app `databaseURL` from `admin.initializeApp` in `index.js` (not a URL argument — `admin.database(url)` is for named apps). */
 function rtdb() {
   return admin.database();
@@ -169,6 +198,17 @@ async function applyEditionMirror(editionId, change) {
 
   if (after.status === 'published') {
     await rtdb().ref(`public/catalog/editions/${editionId}`).set(editionPublicPayload(after));
+    try {
+      const siteUrl = (process.env.SITE_URL || DEFAULT_SITE_URL).replace(/\/$/, '');
+      let seriesSlug = after.series_id || '';
+      try {
+        const sSnap = await fs().doc(`series/${after.series_id}`).get();
+        if (sSnap.exists) seriesSlug = sSnap.data()?.slug || after.series_id;
+      } catch (_) {}
+      const editionSlug = after.slug || editionId;
+      const fullUrl = `${siteUrl}/${encodeURIComponent(seriesSlug)}/${encodeURIComponent(editionSlug)}`;
+      notifyIndexNow(fullUrl).catch(() => {});
+    } catch (_) {}
   } else {
     await rtdb().ref(`public/catalog/editions/${editionId}`).remove();
   }
@@ -238,6 +278,13 @@ async function applySeriesMirror(seriesId, change) {
   if (afterTitle != null && beforeTitle !== afterTitle) {
     await cascadeSeriesTitleToEditions(seriesId, afterTitle);
   }
+
+  try {
+    const seriesSlug = after.slug || seriesId;
+    const siteUrl = (process.env.SITE_URL || DEFAULT_SITE_URL).replace(/\/$/, '');
+    const seriesUrl = `${siteUrl}/${encodeURIComponent(seriesSlug)}`;
+    notifyIndexNow(seriesUrl).catch(() => {});
+  } catch (_) {}
 }
 
 exports.mirrorSeries = onDocumentWritten('series/{seriesId}', async (event) => {

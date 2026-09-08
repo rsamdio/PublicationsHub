@@ -30,6 +30,8 @@ PublicationsHub/
 │   │   ├── page.tsx           # Series detail view
 │   │   └── [editionSlug]/     # Edition reader routes
 │   │       └── page.tsx       # Edition flipbook reader (/[seriesSlug]/[editionSlug])
+│   ├── api/
+│   │   └── indexnow/route.ts  # Real-time IndexNow submission endpoint (/api/indexnow)
 │   ├── privacy/page.tsx       # Privacy policy (/privacy)
 │   ├── terms/page.tsx         # Terms of service (/terms)
 │   ├── manifest.ts            # Web application manifest (/manifest.webmanifest)
@@ -105,6 +107,7 @@ PublicationsHub/
 ├── scripts/                   # Tooling and maintenance scripts
 │   ├── validate-harness.mjs   # Validates markdown links, routes, and components
 │   ├── check-em-dashes.mjs    # Enforces zero long em dashes in agent content
+│   ├── submit-indexnow.mjs    # Submits canonical URLs to the IndexNow protocol
 │   ├── migrate-publications.mjs # Legacy publications collection migrator
 │   ├── grant-storage-signed-url-iam.sh # Cloud Functions IAM provisioning script
 │   └── storage-cors.json      # CORS policy configuration for Firebase Storage
@@ -140,7 +143,7 @@ When working on a specific task, consult this table to know which files to inspe
 | **Iframe Embed Safety** | `components/FramedDeepLinkEscape.tsx`, `lib/client/is-embedded.ts`, `netlify.toml` | [docs/architecture/security-and-invariants.md](docs/architecture/security-and-invariants.md) | [reader-engine](.agents/skills/reader-engine/SKILL.md) |
 | **Publisher Studio (/studio)** | `app/studio/page.tsx`, `components/StudioApp.tsx`, `lib/client/dashboard/main.js`, `lib/firebase/db-publisher.js` | [docs/architecture/system-overview.md](docs/architecture/system-overview.md) | [validate-repo](.agents/skills/validate-repo/SKILL.md) |
 | **Platform Admin (/admin)** | `app/admin/page.tsx`, `components/AdminApp.tsx`, `lib/client/admin/main.js`, `lib/firebase/db-admin.js` | [docs/architecture/security-and-invariants.md](docs/architecture/security-and-invariants.md) | [validate-repo](.agents/skills/validate-repo/SKILL.md) |
-| **SEO, OpenGraph & JSON-LD** | `lib/seo/metadata.ts`, `lib/seo/jsonld.ts`, `lib/seo/geo-catalog.ts`, `app/sitemap.ts`, `app/robots.ts` | [docs/SEO.md](docs/SEO.md) | [validate-repo](.agents/skills/validate-repo/SKILL.md) |
+| **SEO, OpenGraph & JSON-LD** | `lib/seo/metadata.ts`, `lib/seo/jsonld.ts`, `lib/seo/geo-catalog.ts`, `app/sitemap.ts`, `app/robots.ts`, `app/api/indexnow/route.ts`, `scripts/submit-indexnow.mjs` | [docs/SEO.md](docs/SEO.md) | [validate-repo](.agents/skills/validate-repo/SKILL.md) |
 | **File Uploads & R2 Storage** | `lib/firebase/storage.js`, `functions/index.js`, `functions/r2.js` | [docs/STORAGE.md](docs/STORAGE.md) | [reader-engine](.agents/skills/reader-engine/SKILL.md) |
 | **Database Mirrors & Triggers** | `functions/mirror.js`, `lib/firebase/db-public.js`, `database.rules.json` | [docs/architecture/data-flow-and-mirrors.md](docs/architecture/data-flow-and-mirrors.md) | [catalog-sync](.agents/skills/catalog-sync/SKILL.md) |
 | **Harness & Link Validation** | `scripts/validate-harness.mjs`, `scripts/check-em-dashes.mjs`, `AGENTS.md` | [docs/workflows/maintenance.md](docs/workflows/maintenance.md) | [update-harness](.agents/skills/update-harness/SKILL.md) |
@@ -155,6 +158,7 @@ When working on a specific task, consult this table to know which files to inspe
 | **Validate Harness** | `npm run validate:harness` | Checks all markdown links, routes, components, and skills |
 | **Validate Em Dashes** | `npm run validate:dashes` | Ensures no long em dashes exist in agent docs and files |
 | **Full Validation** | `npm run validate:all` | Runs em dash check + harness check + typecheck + build |
+| **Submit IndexNow** | `npm run submit:indexnow` | Submits all canonical URLs to the IndexNow search network |
 | **Data Migration** | `npm run migrate` | Runs legacy publications migration script |
 
 ## 5. Architectural Invariants and Boundaries

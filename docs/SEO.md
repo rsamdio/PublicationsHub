@@ -33,6 +33,7 @@ Stable `@id`s: `{site}/#organization`, `{site}/#website`, `{seriesUrl}#series`, 
 - `/robots.txt` - [`app/robots.ts`](../app/robots.ts): disallow `/studio`, `/admin`; explicit allow for GPTBot, ChatGPT-User, PerplexityBot, ClaudeBot, Google-Extended, Applebot-Extended
 - `/sitemap.xml` - [`app/sitemap.ts`](../app/sitemap.ts): home, about, legal, all public series + editions; `lastModified` from dates when present
 - `/llms.txt` - [`public/llms.txt`](../public/llms.txt): short mission + key URLs for assistants
+- `IndexNow` - [`public/fc66e32136887908af4a8222ec18b665.txt`](../public/fc66e32136887908af4a8222ec18b665.txt), [`scripts/submit-indexnow.mjs`](../scripts/submit-indexnow.mjs): instant URL indexing to Bing, Yandex, Seznam, and Naver upon publication or Netlify production deploy
 
 ## Post-deploy checklist
 

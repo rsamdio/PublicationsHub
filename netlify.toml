@@ -1,7 +1,7 @@
-# PublicationsHub — Netlify Next.js
+# PublicationsHub - Netlify Next.js
 
 [build]
-  command = "npm run build"
+  command = "npm run build && node scripts/submit-indexnow.mjs --build"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
