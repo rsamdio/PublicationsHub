@@ -5,6 +5,7 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { JsonLd } from '@/components/JsonLd';
 import {
   aboutPageJsonLd,
+  faqPageJsonLd,
   organizationJsonLd,
   websiteJsonLd
 } from '@/lib/seo/jsonld';
@@ -12,6 +13,34 @@ import { buildShareMetadata } from '@/lib/seo/metadata';
 
 const description =
   'About Publications Hub: the public digital catalog operated by Rotaract South Asia MDIO (RSAMDIO) for publications across South Asia.';
+
+const aboutFaqs = [
+  {
+    question: 'What is Publications Hub?',
+    answer:
+      'Publications Hub is the public digital catalog operated by Rotaract South Asia MDIO (RSAMDIO) for publications across South Asia. Readers can browse series, open editions in the online flipbook reader, and download PDFs when publishers provide them.'
+  },
+  {
+    question: 'Who is Publications Hub for?',
+    answer:
+      'It is for readers looking for club and district magazines, newsletters, and digital editions across South Asia, and for authorized Rotaract club and district publisher teams who upload and manage editions in Publisher Studio.'
+  },
+  {
+    question: 'How do I read publications on Publications Hub?',
+    answer:
+      'Start on the home catalog, open a publication page, then choose an edition. Each edition has a stable public URL under /[seriesSlug]/[editionSlug] to read in the online flipbook reader.'
+  },
+  {
+    question: 'How do publishers publish editions?',
+    answer:
+      'Authorized publishers use Publisher Studio to create publication series, upload PDF editions and covers, and publish to the public catalog.'
+  },
+  {
+    question: 'Who operates Publications Hub?',
+    answer:
+      'Publications Hub is an official initiative operated by Rotaract South Asia MDIO (RSAMDIO).'
+  }
+];
 
 export const metadata: Metadata = buildShareMetadata({
   title: 'About',
@@ -23,7 +52,12 @@ export default function AboutPage() {
   return (
     <>
       <JsonLd
-        data={[websiteJsonLd(), organizationJsonLd(), aboutPageJsonLd({ url: '/about', description })]}
+        data={[
+          websiteJsonLd(),
+          organizationJsonLd(),
+          aboutPageJsonLd({ url: '/about', description }),
+          faqPageJsonLd(aboutFaqs)
+        ]}
       />
       <SiteNav />
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-10 lg:py-14">

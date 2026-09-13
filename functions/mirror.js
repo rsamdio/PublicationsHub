@@ -52,6 +52,15 @@ function tsMs(v) {
   if (typeof v.toMillis === 'function') return v.toMillis();
   if (typeof v === 'number' && !Number.isNaN(v)) return v;
   if (v.seconds != null) return v.seconds * 1000 + Math.floor((v.nanoseconds || 0) / 1e6);
+  if (typeof v === 'string') {
+    const s = v.trim();
+    if (/^\d+$/.test(s)) {
+      const num = Number(s);
+      if (!Number.isNaN(num)) return num;
+    }
+    const parsed = Date.parse(s);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
   return Date.now();
 }
 

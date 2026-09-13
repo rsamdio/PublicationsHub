@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { fetchPublishedCatalog, fetchPublishedSeriesMap } from '@/lib/firebase/db-public.js';
 import { groupEditionsIntoSeries, findSeriesGroup } from '@/lib/catalog/catalog-series.js';
 import { seriesFrequencyLabel } from '@/lib/catalog/frequency-label.js';
 import { pubIcon } from '@/lib/catalog/icons-public.js';
@@ -23,10 +22,16 @@ type Props = {
   initialGroup?: any | null;
 };
 
-function formatDate(iso?: string | null) {
-  if (!iso) return '';
+function formatDate(val?: number | string | null) {
+  if (val == null || val === '') return '';
   try {
-    const d = new Date(iso);
+    const num =
+      typeof val === 'number'
+        ? val
+        : typeof val === 'string' && /^\d+$/.test(val.trim())
+          ? Number(val.trim())
+          : NaN;
+    const d = !Number.isNaN(num) ? new Date(num) : new Date(val);
     if (Number.isNaN(d.getTime())) return '';
     return d.toLocaleDateString('en-GB', {
       day: 'numeric',
@@ -71,6 +76,8 @@ export function PublicationDetail({ seriesId, initialGroup = null }: Props) {
     let cancelled = false;
     (async () => {
       setLoading(true);
+      const { fetchPublishedCatalog, fetchPublishedSeriesMap } = await import('@/lib/firebase/db-public.js');
+      if (cancelled) return;
       const [catRes, seriesRes] = await Promise.all([
         fetchPublishedCatalog(),
         fetchPublishedSeriesMap()
@@ -228,6 +235,10 @@ export function PublicationDetail({ seriesId, initialGroup = null }: Props) {
                         router.prefetch(editionPath(group?.slug || seriesId, group.latestEdition.slug || group.latestEdition.id));
                         warmReader(group.latestEdition?.pdf_url);
                       }}
+                      onTouchStart={() => {
+                        router.prefetch(editionPath(group?.slug || seriesId, group.latestEdition.slug || group.latestEdition.id));
+                        warmReader(group.latestEdition?.pdf_url);
+                      }}
                       onFocus={() => {
                         router.prefetch(editionPath(group?.slug || seriesId, group.latestEdition.slug || group.latestEdition.id));
                         warmReader(group.latestEdition?.pdf_url);
@@ -271,6 +282,12 @@ export function PublicationDetail({ seriesId, initialGroup = null }: Props) {
                   key={ed.id}
                   className="edition-card group flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden transition-colors hover:border-primary/50 cursor-pointer"
                   onPointerEnter={() => {
+                    const eId = ed.slug || ed.id;
+                    const path = editionPath(group?.slug || ed.series_slug || seriesId, eId);
+                    router.prefetch(path);
+                    warmReader(ed.pdf_url);
+                  }}
+                  onTouchStart={() => {
                     const eId = ed.slug || ed.id;
                     const path = editionPath(group?.slug || ed.series_slug || seriesId, eId);
                     router.prefetch(path);
@@ -322,6 +339,12 @@ export function PublicationDetail({ seriesId, initialGroup = null }: Props) {
                         type="button"
                         className="flex-1 border border-primary/50 bg-primary/10 text-primary-dark hover:bg-primary hover:text-white hover:border-primary font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
                         onPointerEnter={() => {
+                          const eId = ed.slug || ed.id;
+                          const path = editionPath(group?.slug || ed.series_slug || seriesId, eId);
+                          router.prefetch(path);
+                          warmReader(ed.pdf_url);
+                        }}
+                        onTouchStart={() => {
                           const eId = ed.slug || ed.id;
                           const path = editionPath(group?.slug || ed.series_slug || seriesId, eId);
                           router.prefetch(path);

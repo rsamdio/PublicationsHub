@@ -13,40 +13,44 @@ let _db: Firestore | null = null;
 let _rtdb: Database | null = null;
 let _functions: Functions | null = null;
 
-function ensureFirebase() {
-  if (_auth) return;
+function getOrInitApp(): FirebaseApp {
+  if (_app) return _app;
   const c = firebaseConfig;
   if (!c?.apiKey || !c?.projectId) {
     throw new Error('Set NEXT_PUBLIC_FIREBASE_* (apiKey, projectId, …)');
   }
-  if (!c?.databaseURL) {
-    throw new Error('Set NEXT_PUBLIC_FIREBASE_DATABASE_URL');
-  }
   _app = getApps().length ? getApps()[0]! : initializeApp(c);
-  _auth = getAuth(_app);
-  _db = getFirestore(_app);
-  _rtdb = getDatabase(_app);
+  return _app;
 }
 
 export function fbAuth(): Auth {
-  ensureFirebase();
-  return _auth!;
+  if (!_auth) {
+    _auth = getAuth(getOrInitApp());
+  }
+  return _auth;
 }
 
 export function fbDb(): Firestore {
-  ensureFirebase();
-  return _db!;
+  if (!_db) {
+    _db = getFirestore(getOrInitApp());
+  }
+  return _db;
 }
 
 export function fbRtdb(): Database {
-  ensureFirebase();
-  return _rtdb!;
+  if (!_rtdb) {
+    const c = firebaseConfig;
+    if (!c?.databaseURL) {
+      throw new Error('Set NEXT_PUBLIC_FIREBASE_DATABASE_URL');
+    }
+    _rtdb = getDatabase(getOrInitApp());
+  }
+  return _rtdb;
 }
 
 export function fbFunctions(): Functions {
-  ensureFirebase();
   if (!_functions) {
-    _functions = getFunctions(_app!, 'us-central1');
+    _functions = getFunctions(getOrInitApp(), 'us-central1');
   }
   return _functions;
 }

@@ -125,6 +125,16 @@ export default async function EditionReaderPage({ params }: Props) {
   const datePublished = toIsoDate(edition.issue_date ?? edition.created_at);
   const datePublishedLabel = formatUiDate(edition.issue_date ?? edition.created_at) || null;
 
+  let pdfOrigin: string | null = null;
+  if (edition.pdf_url) {
+    try {
+      pdfOrigin = new URL(edition.pdf_url).origin;
+    } catch {
+      pdfOrigin = null;
+    }
+  }
+  const coverUrl = edition.cover_url || series?.cover_url || null;
+
   return (
     <>
       <JsonLd
@@ -144,8 +154,20 @@ export default async function EditionReaderPage({ params }: Props) {
           })
         ]}
       />
+      {pdfOrigin && (
+        <>
+          <link rel="preconnect" href={pdfOrigin} crossOrigin="anonymous" />
+          <link rel="dns-prefetch" href={pdfOrigin} />
+        </>
+      )}
       <link rel="preload" href="/vendor/pdfjs/3.11.174/pdf.worker.min.js" as="script" />
       <link rel="preload" href="/vendor/pdfjs/3.11.174/pdf.min.js" as="script" />
+      <link rel="preload" href="/vendor/page-flip/2.0.7/page-flip.browser.min.js" as="script" />
+      <link rel="preload" href="/vendor/pdfjs/3.11.174/pdf_viewer.min.css" as="style" />
+      <link rel="preload" href="/st-page-flip.css" as="style" />
+      {coverUrl && (
+        <link rel="preload" href={coverUrl} as="image" fetchPriority="high" />
+      )}
       <PublicationCrawlSummary
         mode="edition"
         seriesId={seriesSlug}

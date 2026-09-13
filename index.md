@@ -37,6 +37,8 @@ PublicationsHub/
 │   ├── manifest.ts            # Web application manifest (/manifest.webmanifest)
 │   ├── robots.ts              # Search & AI crawler directives
 │   ├── sitemap.ts             # Dynamic sitemap from RTDB catalog
+│   ├── llms.txt/route.ts      # Dynamic LLM summary feed (/llms.txt)
+│   ├── llms-full.txt/route.ts # Dynamic full catalog feed (/llms-full.txt)
 │   ├── globals.css            # Global CSS, Tailwind utilities, reader styles
 │   └── not-found.tsx          # 404 page
 ├── components/                # Reusable React UI components
@@ -101,7 +103,6 @@ PublicationsHub/
 ├── public/                    # Static public assets
 │   ├── fonts/                 # Local font assets
 │   ├── images/                # Logos, favicons, social cards
-│   ├── llms.txt               # LLM guidance document
 │   ├── st-page-flip.css       # Page flip engine styling
 │   └── vendor/                # Vendored PDF.js and StPageFlip bundles
 ├── scripts/                   # Tooling and maintenance scripts

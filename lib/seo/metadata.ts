@@ -42,7 +42,7 @@ export function ogImages(
   const label = (alt && String(alt).trim()) || `${SITE_NAME} - ${ORG_NAME}`;
   const cover = safeHttpUrl(coverUrl);
   if (cover) {
-    return [{ url: cover, alt: label }];
+    return [{ url: cover, width: 800, height: 1067, alt: label }];
   }
   return [
     {

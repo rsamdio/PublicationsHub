@@ -4,10 +4,15 @@ import { siteUrl } from '@/lib/firebase/config';
 const AI_BOTS = [
   'GPTBot',
   'ChatGPT-User',
+  'OAI-SearchBot',
   'PerplexityBot',
   'ClaudeBot',
   'Google-Extended',
-  'Applebot-Extended'
+  'Applebot-Extended',
+  'cohere-ai',
+  'Amazonbot',
+  'Diffbot',
+  'Meta-ExternalAgent'
 ] as const;
 
 export default function robots(): MetadataRoute.Robots {

@@ -32,13 +32,18 @@ export function CoverImage({
 }: CoverImageProps) {
   const full = safeHttpUrl(fullUrl);
   const thumb = safeHttpUrl(thumbUrl);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const isHighPriority = fetchPriority === 'high' || loading === 'eager';
+  const [isLoaded, setIsLoaded] = useState(isHighPriority);
 
   if (!full && !thumb) return null;
 
   // Prefer lightweight thumbnail (512px WebP) for catalog grids; fall back to full if missing.
   const src = thumb || full;
   if (!src) return null;
+
+  // When thumb is already a 512px WebP CDN asset, avoid duplicate Netlify transformation.
+  // When only raw fullUrl exists, let Next.js optimize and resize it.
+  const isPreoptimizedThumb = Boolean(thumb && thumb === src);
 
   return (
     <Image
@@ -49,8 +54,8 @@ export function CoverImage({
       width={300}
       height={400}
       loading={loading}
-      priority={fetchPriority === 'high' || loading === 'eager'}
-      unoptimized
+      priority={isHighPriority}
+      unoptimized={isPreoptimizedThumb}
       onLoad={() => setIsLoaded(true)}
       onError={() => setIsLoaded(true)}
       style={{ objectFit: 'cover' }}

@@ -21,6 +21,7 @@ type Props = {
   datePublishedLabel?: string | null;
   editions?: EditionLink[];
   editionId?: string;
+  asHeading?: 'h1' | 'h2' | 'h3';
 };
 
 /**
@@ -41,12 +42,15 @@ export function PublicationCrawlSummary({
   latestLabel,
   datePublishedLabel,
   editions = [],
-  editionId
+  editionId,
+  asHeading
 }: Props) {
   const heading =
     mode === 'edition'
       ? editionTitleSegment(editionTitle, seriesTitle)
       : seriesTitle || 'Publication';
+
+  const HeadingTag = asHeading || (mode === 'edition' ? 'h1' : 'h2');
 
   return (
     <section
@@ -54,7 +58,7 @@ export function PublicationCrawlSummary({
       style={{ clipPath: 'inset(50%)', margin: '-1px' }}
       aria-label="Publication summary"
     >
-      <h1>{heading}</h1>
+      <HeadingTag>{heading}</HeadingTag>
       {mode === 'edition' && seriesTitle ? (
         <p>
           Part of <Link href={publicationPath(seriesId)}>{seriesTitle}</Link>

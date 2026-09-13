@@ -4,10 +4,9 @@
  * Public home catalog (React port of `js/shelf.js`): featured editions row + "All Publications"
  * grid of series, with search filtering and infinite scroll.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useDeferredValue } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { fetchPublishedCatalog, fetchPublishedSeriesMap } from '@/lib/firebase/db-public.js';
 import { groupEditionsIntoSeries } from '@/lib/catalog/catalog-series.js';
 import { sortEditionsNewestFirstInPlace } from '@/lib/catalog/edition-sort.js';
 import { seriesFrequencyBadgeAttrs, seriesFrequencyLabel } from '@/lib/catalog/frequency-label.js';
@@ -38,10 +37,16 @@ function Icon({
   return <span dangerouslySetInnerHTML={{ __html: pubIcon(name, className) }} />;
 }
 
-function formatDate(iso?: string | null): string {
-  if (!iso) return '';
+function formatDate(val?: number | string | null): string {
+  if (val == null || val === '') return '';
   try {
-    const d = new Date(iso);
+    const num =
+      typeof val === 'number'
+        ? val
+        : typeof val === 'string' && /^\d+$/.test(val.trim())
+          ? Number(val.trim())
+          : NaN;
+    const d = !Number.isNaN(num) ? new Date(num) : new Date(val);
     if (Number.isNaN(d.getTime())) return '';
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   } catch {
@@ -60,6 +65,9 @@ function SeriesCard({ group }: { group: any }) {
   const coverFull = group.coverUrl || '';
   const coverThumb = group.coverThumbUrl || '';
   const router = useRouter();
+  const latestWhen = formatDate(
+    group.latestEdition?.issue_date || group.latestEdition?.created_at || group.lastActivityIso
+  );
 
   return (
     <article className="edition-card group relative flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden transition-colors hover:border-primary/50">
@@ -71,6 +79,10 @@ function SeriesCard({ group }: { group: any }) {
           openInNewTabIfEmbedded(href, e);
         }}
         onPointerEnter={() => {
+          router.prefetch(href);
+          void import('@/lib/client/viewer.js').then((m: any) => m.preloadReaderAssets?.());
+        }}
+        onTouchStart={() => {
           router.prefetch(href);
           void import('@/lib/client/viewer.js').then((m: any) => m.preloadReaderAssets?.());
         }}
@@ -102,7 +114,7 @@ function SeriesCard({ group }: { group: any }) {
       <div className="p-5 flex-1 flex flex-col">
         <div className="flex items-center text-xs text-slate-500 mb-2">
           <Icon name="new_releases" className="text-sm mr-1" />
-          {group.lastActivityIso ? `Latest Issue · ${formatDate(group.lastActivityIso)}` : 'Latest Issue'}
+          <span>{latestWhen ? `Latest Issue · ${latestWhen}` : 'Latest Issue'}</span>
         </div>
         <p className="text-xs text-slate-500 mb-1 line-clamp-1">{group.publisherName || 'Publisher'}</p>
         <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-primary transition-colors line-clamp-2">
@@ -163,6 +175,13 @@ function FeaturedCard({
           openInNewTabIfEmbedded(href, e);
         }}
         onPointerEnter={() => {
+          router.prefetch(href);
+          void import('@/lib/client/viewer.js').then((m: any) => {
+            if (pub.pdf_url) m.warmReaderForEdition?.(pub.pdf_url);
+            else m.preloadReaderAssets?.();
+          });
+        }}
+        onTouchStart={() => {
           router.prefetch(href);
           void import('@/lib/client/viewer.js').then((m: any) => {
             if (pub.pdf_url) m.warmReaderForEdition?.(pub.pdf_url);
@@ -264,6 +283,7 @@ export function ShelfCatalog({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!initialEditions);
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredQuery = useDeferredValue(searchQuery);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -271,6 +291,8 @@ export function ShelfCatalog({
     if (initialEditions && initialSeriesMap) return; // Zero-latency hydration, skip client fetch entirely
     let cancelled = false;
     (async () => {
+      const { fetchPublishedCatalog, fetchPublishedSeriesMap } = await import('@/lib/firebase/db-public.js');
+      if (cancelled) return;
       const [catRes, seriesRes] = await Promise.all([fetchPublishedCatalog(), fetchPublishedSeriesMap()]);
       if (cancelled) return;
       if (catRes.error) {
@@ -299,19 +321,19 @@ export function ShelfCatalog({
   }, [editions]);
 
   const filteredGroups = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     if (!q) return seriesGroups;
     return seriesGroups.filter((s: any) => {
       const freqSearch = seriesFrequencyLabel(s.frequency) || String(s.frequency || '').trim();
       const key = `${s.seriesTitle} ${s.publisherName} ${s.description || ''} ${freqSearch}`.toLowerCase();
       return key.includes(q);
     });
-  }, [seriesGroups, searchQuery]);
+  }, [seriesGroups, deferredQuery]);
 
   // Reset to the first page whenever the search query changes.
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [searchQuery]);
+  }, [deferredQuery]);
 
   // Infinite scroll: load the next batch once the sentinel nears the viewport.
   useEffect(() => {

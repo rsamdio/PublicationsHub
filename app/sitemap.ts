@@ -5,7 +5,7 @@ import {
   fetchAllPublicSeriesMap
 } from '@/lib/firebase/rtdb-rest';
 import { toLastModified } from '@/lib/seo/dates';
-import { editionPath, publicationPath } from '@/lib/urls';
+import { editionPath, publicationPath, safeHttpUrl } from '@/lib/urls';
 
 function abs(path: string): string {
   const base = siteUrl.replace(/\/$/, '');
@@ -45,11 +45,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const [seriesId, s] of Object.entries(seriesMap || {})) {
     if (!seriesId) continue;
     const seriesSlug = s?.slug || seriesId;
+    const cover = safeHttpUrl(s?.cover_url || s?.cover_thumb_url);
     entries.push({
       url: abs(publicationPath(seriesSlug)),
       changeFrequency: 'weekly',
       priority: 0.8,
-      lastModified: toLastModified(s?.created_at)
+      lastModified: toLastModified(s?.created_at),
+      ...(cover ? { images: [cover] } : {})
     });
   }
 
@@ -62,11 +64,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const series = seriesMap?.[seriesId];
     const seriesSlug = series?.slug || seriesId;
     const editionSlug = ed.slug || editionId;
+    const cover = safeHttpUrl(ed.cover_url || ed.cover_thumb_url || series?.cover_url);
     entries.push({
       url: abs(editionPath(seriesSlug, editionSlug)),
       changeFrequency: 'weekly',
       priority: 0.6,
-      lastModified: toLastModified(ed.issue_date ?? ed.created_at)
+      lastModified: toLastModified(ed.issue_date ?? ed.created_at),
+      ...(cover ? { images: [cover] } : {})
     });
   }
 

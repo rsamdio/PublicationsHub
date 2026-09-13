@@ -10,6 +10,15 @@ function NavigationProgressBarInner() {
 
   useEffect(() => {
     setIsRouting(false);
+    if (typeof window !== 'undefined' && pathname) {
+      try {
+        const current = sessionStorage.getItem('pubhub_current_route');
+        if (current && current !== pathname) {
+          sessionStorage.setItem('pubhub_internal_referrer', current);
+        }
+        sessionStorage.setItem('pubhub_current_route', pathname);
+      } catch (_) {}
+    }
   }, [pathname, searchParams]);
 
   useEffect(() => {

@@ -181,6 +181,7 @@ export default async function PublicationPage({ params }: Props) {
         <SiteNav />
         <PublicationCrawlSummary
           mode="series"
+          asHeading="h2"
           seriesId={seriesSlug}
           seriesTitle={seriesTitle}
           description={description}

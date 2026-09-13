@@ -6,6 +6,10 @@ export function toIsoDate(v: number | string | null | undefined): string | null 
   }
   const s = String(v).trim();
   if (!s) return null;
+  if (/^\d+$/.test(s)) {
+    const d = new Date(Number(s));
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
   const d = new Date(s);
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }

@@ -3,10 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ReaderChrome } from '@/components/ReaderChrome';
-import {
-  fetchPublishedEdition,
-  fetchPublishedSeries
-} from '@/lib/firebase/db-public.js';
 import { editionPath, publicationPath } from '@/lib/urls';
 import {
   isEmbeddedFrame,
@@ -98,53 +94,16 @@ export function EditionReader({
   }, [seriesId, editionId, router]);
 
   useEffect(() => {
-    if (framedEscape || isEmbeddedFrame()) return;
+    if (framedEscape || isEmbeddedFrame() || !chromeReady) return;
 
     let cancelled = false;
     let viewerMod: {
-      preloadReaderAssets?: () => void;
-      warmReaderForEdition?: (url: string) => void;
       setReaderCloseHandler?: (fn: (() => void) | null) => void;
       closeReader?: () => void;
       unlockReaderPageScroll?: () => void;
+      openReader?: (pub: any) => any;
     } | null = null;
 
-    void import('@/lib/client/viewer.js').then((m) => {
-      if (cancelled) {
-        m.setReaderCloseHandler?.(null);
-        m.closeReader?.();
-        m.unlockReaderPageScroll?.();
-        return;
-      }
-      viewerMod = m;
-      const pdf = initialEdition?.pdf_url;
-      if (pdf) m.warmReaderForEdition?.(pdf);
-      else m.preloadReaderAssets?.();
-      m.setReaderCloseHandler?.(() => {
-        // Close is an exit, not a forward navigation: replace so browser Back
-        // does not land back on the edition and reopen the reader.
-        router.replace(seriesPath);
-      });
-    });
-
-    return () => {
-      cancelled = true;
-      const tearDown = (m: NonNullable<typeof viewerMod>) => {
-        m.setReaderCloseHandler?.(null);
-        m.closeReader?.();
-        m.unlockReaderPageScroll?.();
-      };
-      if (viewerMod) {
-        tearDown(viewerMod);
-      } else {
-        void import('@/lib/client/viewer.js').then(tearDown);
-      }
-    };
-  }, [framedEscape, router, seriesPath, initialEdition?.pdf_url]);
-
-  useEffect(() => {
-    if (framedEscape || isEmbeddedFrame()) return;
-    let cancelled = false;
     const key = `${seriesId}:${editionId}`;
     const seedPdf = initialEdition?.pdf_url || null;
     const seedTitle = seriesTitle || initialEdition?.series_title || null;
@@ -152,12 +111,33 @@ export function EditionReader({
     (async () => {
       const viewer = await import('@/lib/client/viewer.js');
       if (cancelled || isEmbeddedFrame()) return;
+      viewerMod = viewer;
+
+      viewer.setReaderCloseHandler?.(() => {
+        // If the user navigated here from within PublicationsHub in this tab, router.back()
+        // returns cleanly to the previous page without polluting the history stack.
+        // If the user landed directly on the edition, navigate to the series overview.
+        let hasInternalHistory = false;
+        if (typeof window !== 'undefined') {
+          try {
+            const internalRef = sessionStorage.getItem('pubhub_internal_referrer');
+            hasInternalHistory = Boolean(internalRef && window.history.length > 1);
+          } catch (_) {}
+        }
+        if (hasInternalHistory) {
+          router.back();
+        } else {
+          router.replace(seriesPath);
+        }
+      });
 
       let seed: EditionReaderSeed | null =
         seedPdf && initialEdition ? { ...initialEdition, id: editionId } : null;
       let titleFromSeries = seedTitle;
 
       if (!seed?.pdf_url) {
+        const { fetchPublishedEdition, fetchPublishedSeries } = await import('@/lib/firebase/db-public.js');
+        if (cancelled) return;
         const [edRes, seriesRes] = await Promise.all([
           fetchPublishedEdition(editionId),
           fetchPublishedSeries(seriesId)
@@ -172,6 +152,8 @@ export function EditionReader({
           ed.series_title ||
           null;
       } else if (!titleFromSeries) {
+        const { fetchPublishedSeries } = await import('@/lib/firebase/db-public.js');
+        if (cancelled) return;
         const seriesRes = await fetchPublishedSeries(seriesId);
         if (cancelled) return;
         titleFromSeries =
@@ -207,13 +189,28 @@ export function EditionReader({
     return () => {
       cancelled = true;
       if (openedRef.current === key) openedRef.current = null;
+      const tearDown = (m: NonNullable<typeof viewerMod>) => {
+        m.setReaderCloseHandler?.(null);
+        m.closeReader?.();
+        m.unlockReaderPageScroll?.();
+      };
+      if (viewerMod) {
+        tearDown(viewerMod);
+      } else {
+        void import('@/lib/client/viewer.js').then(tearDown);
+      }
     };
   }, [
     framedEscape,
+    chromeReady,
     seriesId,
     editionId,
+    seriesSlug,
+    editionSlug,
     initialEdition,
-    seriesTitle
+    seriesTitle,
+    router,
+    seriesPath
   ]);
 
   if (framedEscape) {

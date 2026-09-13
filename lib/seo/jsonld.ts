@@ -64,7 +64,13 @@ export function organizationJsonLd() {
     name: ORG_NAME,
     url: 'https://rsamdio.org/',
     logo: abs('/images/rsamdio.webp'),
-    sameAs: ['https://rsamdio.org/', TWITTER_URL],
+    sameAs: [
+      'https://rsamdio.org/',
+      TWITTER_URL,
+      'https://www.facebook.com/rsamdio',
+      'https://www.instagram.com/rsa_mdio',
+      'https://www.linkedin.com/company/rotaract-south-asia-mdio'
+    ],
     areaServed: {
       '@type': 'AdministrativeArea',
       name: 'South Asia'
@@ -107,6 +113,21 @@ export function aboutPageJsonLd(input: { url: string; description?: string | nul
   };
 }
 
+export function faqPageJsonLd(faqs: { question: string; answer: string }[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((f) => ({
+      '@type': 'Question',
+      name: f.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: f.answer
+      }
+    }))
+  };
+}
+
 export function seriesJsonLd(input: {
   name: string;
   description?: string | null;
@@ -118,7 +139,7 @@ export function seriesJsonLd(input: {
   const seriesUrl = abs(input.url);
   const node: Record<string, unknown> = {
     '@context': 'https://schema.org',
-    '@type': 'CreativeWorkSeries',
+    '@type': ['Periodical', 'CreativeWorkSeries'],
     '@id': seriesNodeId(input.url),
     name: input.name,
     url: seriesUrl,
