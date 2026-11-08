@@ -20,7 +20,7 @@ When facts conflict, adhere to this hierarchy:
   - Reads: Realtime Database (RTDB) read mirrors via `lib/firebase/db-public.js`, `db-publisher.js`, `db-admin.js`. Direct client reads to mirrored Firestore collections are blocked.
 - **UI Theme**: Site chrome is light-only (`#f6f3ed` background, `#fffcf8` nav/footer, `#d81a6a` Rotaract cranberry pink accent). The PDF flipbook reader (`#reader-view`) defaults to light with an in-reader toggle to dark.
 - **Iframe Embed Safety**: Embedded contexts (`window.self !== window.top`) are restricted to Home + About. Any `/[seriesSlug]/...` links escape to a new tab (`noopener`). Direct framed deep links open a new tab and reset the iframe to `/`.
-- **Canonical URLs**: Use path shapes defined in [lib/urls.ts](lib/urls.ts) (`/[seriesSlug]`, `/[seriesSlug]/[editionSlug]`). No legacy `.html` routes or query-param bridges.
+- **Canonical URLs**: Use path shapes defined in [lib/urls.ts](lib/urls.ts) (`/[seriesSlug]`, `/[seriesSlug]/[editionSlug]`). Slugs must be lowercase `a-z0-9` with hyphens only (never pasted URLs or paths). No legacy `.html` routes or query-param bridges.
 - **No Long Em Dashes**: Never use em dashes (`\u2014`) in any agent-generated text, documentation, comments, commit messages, or UI copy. Use hyphens, colons, parentheses, or separate sentences instead.
 - **Zero Secrets in Frontend**: Cloudflare R2 credentials stay strictly server-side in Cloud Functions.
 
@@ -49,5 +49,7 @@ npx tsc --noEmit         # TypeScript typecheck
 npm run build            # Next.js production build
 npm run validate:harness # Validate all harness links, routes, components, skills
 npm run validate:dashes  # Verify zero em dashes across harness and docs
-npm run validate:all     # Complete CI check (dashes + harness + types + build)
+npm run validate:slugs   # Unit evals for slug policy + redirect map
+npm run validate:slugs:live # Live RTDB audit for invalid public slugs
+npm run validate:all     # Complete CI check (dashes + harness + slugs + types + build)
 ```

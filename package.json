@@ -9,7 +9,9 @@
     "migrate": "node scripts/migrate-publications.mjs",
     "validate:harness": "node scripts/validate-harness.mjs",
     "validate:dashes": "node scripts/check-em-dashes.mjs",
-    "validate:all": "npm run validate:dashes && npm run validate:harness && npx tsc --noEmit && npm run build",
+    "validate:slugs": "node scripts/eval-slugs.mjs",
+    "validate:slugs:live": "node scripts/audit-public-slugs.mjs",
+    "validate:all": "npm run validate:dashes && npm run validate:harness && npm run validate:slugs && npx tsc --noEmit && npm run build",
     "submit:indexnow": "node scripts/submit-indexnow.mjs"
   },
   "dependencies": {

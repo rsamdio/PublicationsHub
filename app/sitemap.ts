@@ -5,7 +5,12 @@ import {
   fetchAllPublicSeriesMap
 } from '@/lib/firebase/rtdb-rest';
 import { toLastModified } from '@/lib/seo/dates';
-import { editionPath, publicationPath, safeHttpUrl } from '@/lib/urls';
+import {
+  editionPath,
+  publicationPath,
+  publicPathSegment,
+  safeHttpUrl
+} from '@/lib/urls';
 
 function abs(path: string): string {
   const base = siteUrl.replace(/\/$/, '');
@@ -44,7 +49,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   for (const [seriesId, s] of Object.entries(seriesMap || {})) {
     if (!seriesId) continue;
-    const seriesSlug = s?.slug || seriesId;
+    const seriesSlug = publicPathSegment(s?.slug, seriesId);
+    if (!seriesSlug) continue;
     const cover = safeHttpUrl(s?.cover_url || s?.cover_thumb_url);
     entries.push({
       url: abs(publicationPath(seriesSlug)),
@@ -62,8 +68,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ? String(ed.series_id).trim()
         : editionId;
     const series = seriesMap?.[seriesId];
-    const seriesSlug = series?.slug || seriesId;
-    const editionSlug = ed.slug || editionId;
+    const seriesSlug = publicPathSegment(series?.slug, seriesId);
+    const editionSlug = publicPathSegment(ed.slug, editionId);
+    if (!seriesSlug || !editionSlug) continue;
     const cover = safeHttpUrl(ed.cover_url || ed.cover_thumb_url || series?.cover_url);
     entries.push({
       url: abs(editionPath(seriesSlug, editionSlug)),

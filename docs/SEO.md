@@ -35,6 +35,26 @@ Stable `@id`s: `{site}/#organization`, `{site}/#website`, `{seriesUrl}#series`, 
 - `/llms.txt` - [`app/llms.txt/route.ts`](../app/llms.txt/route.ts) and `/llms-full.txt` - [`app/llms-full.txt/route.ts`](../app/llms-full.txt/route.ts): dynamic markdown catalog feeds for AI agents and assistants
 - `IndexNow` - [`public/fc66e32136887908af4a8222ec18b665.txt`](../public/fc66e32136887908af4a8222ec18b665.txt), [`scripts/submit-indexnow.mjs`](../scripts/submit-indexnow.mjs): instant URL indexing to Bing, Yandex, Seznam, and Naver upon publication or Netlify production deploy
 
+## URL slug policy
+
+Public path segments must be lowercase `a-z0-9` with optional hyphens (`july-2026`). Studio and Admin reject pasted URLs, paths, `%` encodings, and reserved root routes. Write helpers in [`lib/urls.ts`](../lib/urls.ts) and [`lib/firebase/db-publisher.js`](../lib/firebase/db-publisher.js) enforce the same rules; Firestore rules require a valid slug on create.
+
+Known broken historical addresses 301 via [`lib/seo/slug-redirects.ts`](../lib/seo/slug-redirects.ts) and [`middleware.ts`](../middleware.ts). After renaming live records, keep that map aligned with the new canonicals:
+
+| Target after rename | Notes |
+|---|---|
+| `/the-wings-log` | Wings Log series (D3191) |
+| `/the-wings-log/july-2026` | Wings Log July 2026 edition |
+| `/kairav/july-2026` | KAIRAV July |
+| `/kairav/august-2026` | KAIRAV August |
+
+Checks:
+
+- `npm run validate:slugs` (unit policy + redirect map; part of `validate:all`)
+- `npm run validate:slugs:live` (RTDB audit; run after renames / before crawl)
+
+Missing series/edition routes call `notFound()` (HTTP 404, `noindex`). Sitemap and llms feeds never emit URL-like stored slugs (they fall back to document id).
+
 ## Post-deploy checklist
 
 1. Open `/robots.txt`, `/sitemap.xml`, `/llms.txt`, `/about` on production.
@@ -46,6 +66,9 @@ Stable `@id`s: `{site}/#organization`, `{site}/#website`, `{seriesUrl}#series`, 
    - Series: visible facts + `BreadcrumbList` + `hasPart`
    - Edition: `sr-only` facts + `PublicationIssue` + `MediaObject` + breadcrumbs
 6. URL Inspection for 3-5 publications after crawl.
+7. Confirm the four historical broken URLs 301 to the targets above, and that sitemap lists only the new addresses.
+8. Confirm a nonsense path returns HTTP 404 (not a soft 200 "not found" document).
+9. Run `npm run validate:slugs:live` after Admin renames.
 
 ## Off-site authority (ops, not code)
 

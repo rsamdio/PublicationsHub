@@ -185,11 +185,38 @@ function checkSkills() {
   logOk(`Validated ${skills.length} agent skills.`);
 }
 
+/** Flag undeclared identifiers that previously broke Admin slug saves. */
+function checkStudioAdminUndefGuards() {
+  logInfo('Checking Studio/Admin for known undefined identifier patterns...');
+  const files = [
+    path.join(rootDir, 'lib/client/admin/main.js'),
+    path.join(rootDir, 'lib/client/dashboard/main.js')
+  ];
+  const banned = ['openOrgEditions', 'renderAllEditionsTable'];
+  for (const file of files) {
+    if (!fs.existsSync(file)) {
+      logError(`Missing ${path.relative(rootDir, file)}`);
+      continue;
+    }
+    const content = fs.readFileSync(file, 'utf8');
+    for (const name of banned) {
+      const re = new RegExp(`\\b${name}\\b`);
+      if (re.test(content)) {
+        logError(
+          `${path.relative(rootDir, file)} still references banned identifier '${name}' (was undefined at runtime).`
+        );
+      }
+    }
+  }
+  logOk('Studio/Admin banned-identifier guard passed.');
+}
+
 console.log('=== Running PublicationsHub Agent Harness Validator ===\n');
 checkLinks();
 checkRouteCoverage();
 checkComponentCoverage();
 checkSkills();
+checkStudioAdminUndefGuards();
 
 console.log('\n======================================================');
 if (hasErrors) {

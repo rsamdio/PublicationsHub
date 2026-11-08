@@ -85,6 +85,25 @@ service cloud.firestore {
       ]);
     }
 
+    /** Public URL slug: null/absent, or lowercase letters, numbers, hyphens (max 60). */
+    function isValidSlugField(value) {
+      return value == null
+        || (value is string
+          && value.size() > 0
+          && value.size() <= 60
+          && value.matches('^[a-z0-9]+(-[a-z0-9]+)*$'));
+    }
+
+    function seriesSlugOk() {
+      return !('slug' in request.resource.data)
+        || isValidSlugField(request.resource.data.slug);
+    }
+
+    function editionSlugOk() {
+      return !('slug' in request.resource.data)
+        || isValidSlugField(request.resource.data.slug);
+    }
+
     match /platform_admins/{uid} {
       allow read: if isSignedIn() && request.auth.uid == uid;
       allow write: if false;
@@ -120,11 +139,14 @@ service cloud.firestore {
         && isPublisherMember(request.resource.data.publisher_id)
         && request.resource.data.publisher_id is string
         && request.resource.data.title is string
-        && request.resource.data.created_by_uid == request.auth.uid;
+        && request.resource.data.created_by_uid == request.auth.uid
+        && request.resource.data.slug is string
+        && isValidSlugField(request.resource.data.slug);
       // Platform staff edit via admin UI (same field allowlist as studio).
       allow update: if isSignedIn()
         && (isPlatformAdmin() || isPublisherMember(resource.data.publisher_id))
-        && seriesUpdateKeysAllowed();
+        && seriesUpdateKeysAllowed()
+        && seriesSlugOk();
       allow delete: if isPlatformAdmin()
         || (isSignedIn() && isPublisherMember(resource.data.publisher_id));
     }
@@ -139,11 +161,14 @@ service cloud.firestore {
         && request.resource.data.title is string
         && request.resource.data.pdf_url is string
         && request.resource.data.status == 'published'
-        && request.resource.data.created_by_uid == request.auth.uid;
+        && request.resource.data.created_by_uid == request.auth.uid
+        && request.resource.data.slug is string
+        && isValidSlugField(request.resource.data.slug);
       // Platform staff edit via admin UI (same field allowlist as studio).
       allow update: if isSignedIn()
         && (isPlatformAdmin() || isPublisherMember(resource.data.publisher_id))
-        && editionUpdateKeysAllowed();
+        && editionUpdateKeysAllowed()
+        && editionSlugOk();
       allow delete: if isPlatformAdmin()
         || (isSignedIn() && isPublisherMember(resource.data.publisher_id));
     }

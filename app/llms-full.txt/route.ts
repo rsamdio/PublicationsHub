@@ -6,7 +6,7 @@ import {
   toIsoDate
 } from '@/lib/firebase/rtdb-rest';
 import { seriesFrequencyLabel } from '@/lib/catalog/frequency-label.js';
-import { editionPath, publicationPath } from '@/lib/urls';
+import { editionPath, publicationPath, publicPathSegment } from '@/lib/urls';
 
 export const revalidate = 3600;
 
@@ -40,7 +40,8 @@ export async function GET() {
 
   for (const [seriesId, s] of seriesEntries) {
     if (!seriesId || !s) continue;
-    const seriesSlug = s.slug || seriesId;
+    const seriesSlug = publicPathSegment(s.slug, seriesId);
+    if (!seriesSlug) continue;
     const seriesUrl = abs(publicationPath(seriesSlug));
     const publisher = s.publisher_name || 'Rotaract South Asia';
     const freq = s.frequency ? seriesFrequencyLabel(s.frequency) || s.frequency : 'Not specified';
@@ -59,7 +60,8 @@ export async function GET() {
     if (seriesEditions.length > 0) {
       lines.push('### Published Editions:');
       for (const ed of seriesEditions) {
-        const editionSlug = ed.slug || ed.id;
+        const editionSlug = publicPathSegment(ed.slug, ed.id);
+        if (!editionSlug) continue;
         const edUrl = abs(editionPath(seriesSlug, editionSlug));
         const dateStr = toIsoDate(ed.issue_date ?? ed.created_at);
         const dateLabel = dateStr ? ` (${dateStr})` : '';

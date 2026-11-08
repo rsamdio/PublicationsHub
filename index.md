@@ -93,7 +93,9 @@ PublicationsHub/
 │       ├── dates.ts           # Date formatting helpers for metadata
 │       ├── geo-catalog.ts     # Generates ItemList schema for GEO/AI search
 │       ├── jsonld.ts          # Structured data builders (CreativeWorkSeries, PublicationIssue)
-│       └── metadata.ts        # Next.js Metadata defaults and templates
+│       ├── metadata.ts        # Next.js Metadata defaults and templates
+│       └── slug-redirects.ts  # 301 map for historically broken public slugs
+├── middleware.ts              # Edge redirects for broken slug URLs
 ├── functions/                 # Backend Cloud Functions (FROZEN)
 │   ├── index.js               # Upload HTTP handlers and publisher callables
 │   ├── extra-exports.js       # Platform admin callables and backfill triggers
@@ -108,6 +110,8 @@ PublicationsHub/
 ├── scripts/                   # Tooling and maintenance scripts
 │   ├── validate-harness.mjs   # Validates markdown links, routes, and components
 │   ├── check-em-dashes.mjs    # Enforces zero long em dashes in agent content
+│   ├── eval-slugs.mjs         # Unit evals for slug policy + redirect map
+│   ├── audit-public-slugs.mjs # Live RTDB audit for invalid public slugs
 │   ├── submit-indexnow.mjs    # Submits canonical URLs to the IndexNow protocol
 │   ├── migrate-publications.mjs # Legacy publications collection migrator
 │   ├── grant-storage-signed-url-iam.sh # Cloud Functions IAM provisioning script
@@ -158,7 +162,8 @@ When working on a specific task, consult this table to know which files to inspe
 | **Build** | `npm run build` | Next.js production build (`next build`) |
 | **Validate Harness** | `npm run validate:harness` | Checks all markdown links, routes, components, and skills |
 | **Validate Em Dashes** | `npm run validate:dashes` | Ensures no long em dashes exist in agent docs and files |
-| **Full Validation** | `npm run validate:all` | Runs em dash check + harness check + typecheck + build |
+| **Full Validation** | `npm run validate:all` | Runs em dash check + harness check + slug evals + typecheck + build |
+| **Live slug audit** | `npm run validate:slugs:live` | Fetches public RTDB mirrors and fails on invalid series/edition slugs |
 | **Submit IndexNow** | `npm run submit:indexnow` | Submits all canonical URLs to the IndexNow search network |
 | **Data Migration** | `npm run migrate` | Runs legacy publications migration script |
 

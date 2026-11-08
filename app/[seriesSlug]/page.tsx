@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { SiteNav } from '@/components/SiteNav';
 import { SiteFooter } from '@/components/SiteFooter';
 import { PublicationDetail } from '@/components/PublicationDetail';
@@ -16,7 +16,7 @@ import {
   resolveEditionBySlugOrId,
   toIsoDate
 } from '@/lib/firebase/rtdb-rest';
-import { editionPath, publicationPath } from '@/lib/urls';
+import { editionPath, isValidSlug, publicationPath, publicPathSegment } from '@/lib/urls';
 import {
   buildShareMetadata,
   enrichDescription,
@@ -60,22 +60,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const resolvedId = seriesId || editionId;
 
   if (!resolvedId) {
-    return {
-      title: 'Publication not found',
-      description: 'This publication could not be found on Publications Hub.',
-      robots: { index: false, follow: false }
-    };
+    notFound();
   }
 
   const series = seriesRes?.data || (seriesId ? seriesMap[seriesId] || await fetchPublicSeries(seriesId) : null);
   const edition = editionRes?.data || (editionId ? editionsMap[editionId] || await fetchPublicEdition(editionId) : null);
   if (!series && !edition) {
-    return {
-      title: 'Publication not found',
-      description: 'This publication could not be found on Publications Hub.',
-      robots: { index: false, follow: false }
-    };
+    notFound();
   }
+
+  const canonicalSeries =
+    seriesId && series
+      ? publicPathSegment(series.slug, seriesId)
+      : seriesSlug;
+  if (
+    seriesId &&
+    series &&
+    canonicalSeries &&
+    isValidSlug(canonicalSeries) &&
+    canonicalSeries !== seriesSlug
+  ) {
+    permanentRedirect(publicationPath(canonicalSeries));
+  }
+
   const title = seriesTitleSegment(
     series?.title || edition?.series_title || edition?.title
   );
@@ -86,7 +93,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       seriesTitle: series?.title || edition?.series_title || edition?.title
     }
   );
-  const path = publicationPath(seriesSlug);
+  const path = publicationPath(canonicalSeries || seriesSlug);
   const cover = series?.cover_url || edition?.cover_url;
   return buildShareMetadata({
     title,
@@ -118,6 +125,20 @@ export default async function PublicationPage({ params }: Props) {
   const seriesDoc = seriesRes?.data || (seriesId ? seriesMap[seriesId] || await fetchPublicSeries(seriesId) : null);
   const standalone = editionRes?.data || (editionId ? editionsMap[editionId] || await fetchPublicEdition(editionId) : null);
 
+  const canonicalSeries =
+    seriesId && seriesDoc
+      ? publicPathSegment(seriesDoc.slug, seriesId)
+      : seriesSlug;
+  if (
+    seriesId &&
+    seriesDoc &&
+    canonicalSeries &&
+    isValidSlug(canonicalSeries) &&
+    canonicalSeries !== seriesSlug
+  ) {
+    permanentRedirect(publicationPath(canonicalSeries));
+  }
+
   const seriesTitle = seriesTitleSegment(
     seriesDoc?.title || standalone?.series_title || standalone?.title
   );
@@ -127,7 +148,7 @@ export default async function PublicationPage({ params }: Props) {
     seriesDoc?.publisher_name || standalone?.publisher_name || null;
   const freqRaw = seriesDoc?.frequency != null ? String(seriesDoc.frequency) : '';
   const frequencyLabel = freqRaw ? seriesFrequencyLabel(freqRaw) || freqRaw : null;
-  const path = publicationPath(seriesSlug);
+  const path = publicationPath(canonicalSeries || seriesSlug);
 
   const editionRows = standalone
     ? [{ id: String(seriesId || ""), ...standalone }]

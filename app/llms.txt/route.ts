@@ -1,7 +1,7 @@
 import { siteUrl } from '@/lib/firebase/config';
 import { fetchAllPublicSeriesMap } from '@/lib/firebase/rtdb-rest';
 import { seriesFrequencyLabel } from '@/lib/catalog/frequency-label.js';
-import { publicationPath } from '@/lib/urls';
+import { publicationPath, publicPathSegment } from '@/lib/urls';
 
 export const revalidate = 3600;
 
@@ -16,7 +16,7 @@ export async function GET() {
   const seriesList = Object.entries(seriesMap || {}).map(([id, s]) => ({
     id,
     title: s?.title || 'Publication',
-    slug: s?.slug || id,
+    slug: publicPathSegment(s?.slug, id),
     description: s?.description || '',
     publisherName: s?.publisher_name || 'Rotaract South Asia',
     frequency: s?.frequency ? seriesFrequencyLabel(s.frequency) || s.frequency : 'Not specified'
